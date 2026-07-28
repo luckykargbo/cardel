@@ -1150,22 +1150,23 @@ ul { list-style: none; }
 }
 
 .card-action-btn {
-  width: 34px;
-  height: 34px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  background: rgba(9,9,11,0.8);
+  background: rgba(9,9,11,0.85);
   backdrop-filter: blur(8px);
   border: 1px solid var(--border-strong);
   color: var(--text-muted);
-  font-size: 15px;
+  font-size: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: var(--t-fast);
 }
 
-.card-action-btn:hover { color: var(--gold); border-color: var(--gold); }
-.card-action-btn.faved { color: #f87171; border-color: #f87171; }
+.card-action-btn:hover { color: var(--gold); border-color: var(--gold); transform: scale(1.08); }
+.card-action-btn.faved { color: #ef4444; border-color: #ef4444; background: rgba(239,68,68,0.18); box-shadow: 0 0 14px rgba(239,68,68,0.35); }
+.card-action-btn.faved i { font-size: 22px; }
 
 /* Card Media Overlay (bottom) */
 .card-media-overlay {
@@ -2721,6 +2722,27 @@ ul { list-style: none; }
 }
 
 .btn-qv-sec:hover { border-color: var(--gold); color: var(--gold); }
+.btn-qv-sec.faved { color: #ef4444; border-color: #ef4444; background: rgba(239,68,68,0.18); box-shadow: 0 0 14px rgba(239,68,68,0.35); }
+
+.btn-qv-fav {
+  flex: 0 0 auto;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--t-fast);
+}
+
+.btn-qv-fav:hover { color: var(--gold); border-color: var(--gold); transform: scale(1.08); }
+.btn-qv-fav.faved { color: #ef4444; border-color: #ef4444; background: rgba(239,68,68,0.18); box-shadow: 0 0 16px rgba(239,68,68,0.4); }
+.btn-qv-fav i { font-size: 24px; }
 
 /* ============================================================
    TOAST NOTIFICATIONS

@@ -38,6 +38,31 @@ const ENQUIRIES = [
 ];
 
 // ============================================================
+// PROFILE AVATAR
+// ============================================================
+let adminAvatar = localStorage.getItem('pm_admin_avatar') || 'https://i.pravatar.cc/150?img=12';
+
+function updateAvatarUI() {
+  const headAvatar = $('headerAvatar');
+  const settingsAvatar = $('settingsAvatarPreview');
+  if (headAvatar) headAvatar.src = adminAvatar;
+  if (settingsAvatar) settingsAvatar.src = adminAvatar;
+}
+
+function handleAvatarUpload(input) {
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      adminAvatar = e.target.result;
+      localStorage.setItem('pm_admin_avatar', adminAvatar);
+      updateAvatarUI();
+      showToast('Profile picture updated successfully!', 'success');
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+// ============================================================
 // STATE
 // ============================================================
 let currentPage  = 'login';
@@ -145,11 +170,8 @@ function navigate(tab) {
   closeDropdown();
 
   // Tab-specific init
-  if (tab === 'dashboard')    renderDashboardTable();
-  if (tab === 'inventory')    renderInventoryGrid();
-  if (tab === 'appointments') renderAppointments();
-  if (tab === 'enquiries')    renderEnquiries();
-  if (tab === 'analytics')    renderAnalyticsChart();
+  if (tab === 'dashboard') renderDashboardTable();
+  if (tab === 'inventory') renderInventoryGrid();
 }
 
 // ============================================================
@@ -157,11 +179,11 @@ function navigate(tab) {
 // ============================================================
 function initAppOnLogin() {
   applyTheme(currentTheme);
+  updateAvatarUI();
   renderMetrics();
   renderDashboardTable();
   renderInventoryGrid();
   updateNavBadges();
-  initCharts();
 }
 
 // ============================================================
@@ -195,186 +217,86 @@ function updateNavBadges() {
 }
 
 // ============================================================
-// METRICS
+// METRICS (Inventory Control overview matching user dashboard design)
 // ============================================================
 function renderMetrics() {
-  const active = ADMIN_VEHICLES.filter(v => v.status === 'active').length;
-  const draft  = ADMIN_VEHICLES.filter(v => v.status === 'draft').length;
-  const total  = ADMIN_VEHICLES.reduce((s, v) => s + v.price, 0);
-  const avgSell = Math.round(total / ADMIN_VEHICLES.length);
+  const totalCars  = ADMIN_VEHICLES.length;
+  const activeCount = ADMIN_VEHICLES.filter(v => v.status === 'active').length;
+  const draftCount  = ADMIN_VEHICLES.filter(v => v.status === 'draft').length;
+  const activePct   = totalCars > 0 ? ((activeCount / totalCars) * 100).toFixed(1) : '0.0';
 
   const grid = $('dashMetrics');
   if (!grid) return;
   grid.innerHTML = `
     <div class="metric-card card">
       <div class="metric-header">
-        <span class="metric-title">Total Inventory Value</span>
-        <div class="metric-icon gold"><i class="ri-money-dollar-circle-fill"></i></div>
+        <span class="metric-title" style="text-transform:uppercase;font-size:11px;letter-spacing:1px;font-weight:700;color:var(--text-muted)">TOTAL CARS</span>
+        <div class="metric-icon gold"><i class="ri-car-fill"></i></div>
       </div>
       <div class="metric-body">
-        <div class="metric-value" style="font-size:26px">${fmtNLE(total)}</div>
-        <span class="metric-sub positive"><i class="ri-arrow-up-line"></i> 14.8%</span>
+        <div class="metric-value" style="font-size:32px;font-weight:800">${totalCars}</div>
+        <span class="metric-sub positive" style="font-size:13px"><i class="ri-arrow-up-line"></i> +2 this month</span>
       </div>
-      <div class="metric-footer"><p class="footer-note"><i class="ri-calendar-line"></i> All listings combined</p></div>
+      <div class="metric-footer"><p class="footer-note" style="font-size:12px;color:var(--text-muted)"><i class="ri-pulse-line"></i> Inventory Volume high</p></div>
     </div>
     <div class="metric-card card">
       <div class="metric-header">
-        <span class="metric-title">Active Listings</span>
-        <div class="metric-icon green"><i class="ri-car-fill"></i></div>
+        <span class="metric-title" style="text-transform:uppercase;font-size:11px;letter-spacing:1px;font-weight:700;color:var(--text-muted)">ACTIVE INVENTORY</span>
+        <div class="metric-icon green"><i class="ri-checkbox-circle-fill"></i></div>
       </div>
       <div class="metric-body">
-        <div class="metric-value">${active}</div>
-        <span class="metric-sub positive"><i class="ri-arrow-up-line"></i> 3 new</span>
+        <div class="metric-value" style="font-size:32px;font-weight:800">${activeCount}</div>
+        <span class="metric-sub neutral" style="font-size:13px">${activePct}% Live</span>
       </div>
-      <div class="metric-footer"><p class="footer-note"><i class="ri-calendar-line"></i> Live on showroom</p></div>
+      <div class="metric-footer"><p class="footer-note" style="font-size:12px;color:var(--text-muted)"><i class="ri-eye-line"></i> Currently visible in showroom</p></div>
     </div>
     <div class="metric-card card">
       <div class="metric-header">
-        <span class="metric-title">Draft Listings</span>
-        <div class="metric-icon warning"><i class="ri-draft-fill"></i></div>
+        <span class="metric-title" style="text-transform:uppercase;font-size:11px;letter-spacing:1px;font-weight:700;color:var(--text-muted)">DRAFTS / PENDING</span>
+        <div class="metric-icon warning"><i class="ri-edit-box-fill"></i></div>
       </div>
       <div class="metric-body">
-        <div class="metric-value">${draft}</div>
-        <span class="metric-sub neutral">Awaiting publish</span>
+        <div class="metric-value" style="font-size:32px;font-weight:800">${draftCount}</div>
+        <span class="metric-sub warning" style="color:var(--gold);font-weight:600;font-size:13px">Requires Action</span>
       </div>
-      <div class="metric-footer"><p class="footer-note"><i class="ri-eye-off-line"></i> Hidden from public</p></div>
-    </div>
-    <div class="metric-card card">
-      <div class="metric-header">
-        <span class="metric-title">Avg. Listing Price</span>
-        <div class="metric-icon blue"><i class="ri-price-tag-3-fill"></i></div>
-      </div>
-      <div class="metric-body">
-        <div class="metric-value" style="font-size:26px">${fmtNLE(avgSell)}</div>
-        <span class="metric-sub positive"><i class="ri-arrow-up-line"></i> 6.2%</span>
-      </div>
-      <div class="metric-footer"><p class="footer-note"><i class="ri-calendar-line"></i> vs last quarter</p></div>
+      <div class="metric-footer"><p class="footer-note" style="font-size:12px;color:var(--text-muted)"><i class="ri-alert-line"></i> Awaiting quality inspection</p></div>
     </div>
   `;
 }
 
 // ============================================================
-// CHARTS
-// ============================================================
-let revenueChartInstance, typeChartInstance, analyticsChartInstance;
-
-function initCharts() {
-  Chart.defaults.color = '#8e8e9e';
-  Chart.defaults.borderColor = 'rgba(255,255,255,0.07)';
-
-  // Revenue bar chart
-  const rCtx = document.getElementById('revenueChart');
-  if (rCtx) {
-    if (revenueChartInstance) revenueChartInstance.destroy();
-    revenueChartInstance = new Chart(rCtx, {
-      type: 'bar',
-      data: {
-        labels: ['Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'],
-        datasets: [{
-          label: 'Revenue (NLE M)',
-          data: [18.4, 22.1, 19.8, 28.5, 31.2, 26.9, 34.6],
-          backgroundColor: 'rgba(229,169,92,0.7)',
-          borderRadius: 8,
-          borderSkipped: false
-        }]
-      },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { callback: v => `NLE ${v}M` } } } }
-    });
-  }
-
-  // Type doughnut
-  const tCtx = document.getElementById('typeChart');
-  if (tCtx) {
-    if (typeChartInstance) typeChartInstance.destroy();
-    const newCount = ADMIN_VEHICLES.filter(v => v.type === 'new').length;
-    const usedCount = ADMIN_VEHICLES.filter(v => v.type === 'used').length;
-    const elecCount = ADMIN_VEHICLES.filter(v => v.type === 'electric').length;
-    typeChartInstance = new Chart(tCtx, {
-      type: 'doughnut',
-      data: {
-        labels: ['New', 'Pre-Owned', 'Electric'],
-        datasets: [{
-          data: [newCount, usedCount, elecCount],
-          backgroundColor: ['rgba(229,169,92,0.9)', 'rgba(139,139,160,0.6)', 'rgba(16,185,129,0.8)'],
-          borderColor: 'rgba(9,9,11,0.5)',
-          borderWidth: 3
-        }]
-      },
-      options: { responsive: true, cutout: '68%', plugins: { legend: { position: 'bottom', labels: { padding: 12 } } } }
-    });
-  }
-}
-
-function renderAnalyticsChart() {
-  const ctx = document.getElementById('analyticsChart');
-  if (!ctx) return;
-  if (analyticsChartInstance) analyticsChartInstance.destroy();
-  analyticsChartInstance = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: ['Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'],
-      datasets: [
-        {
-          label: 'Sales (NLE M)',
-          data: [18.4, 22.1, 19.8, 28.5, 31.2, 26.9, 34.6],
-          borderColor: '#e5a95c',
-          backgroundColor: 'rgba(229,169,92,0.1)',
-          fill: true,
-          tension: 0.4,
-          pointBackgroundColor: '#e5a95c',
-          pointRadius: 4
-        },
-        {
-          label: 'Enquiries',
-          data: [31, 42, 38, 55, 61, 49, 68],
-          borderColor: '#10b981',
-          backgroundColor: 'rgba(16,185,129,0.05)',
-          fill: false,
-          tension: 0.4,
-          pointBackgroundColor: '#10b981',
-          pointRadius: 4
-        }
-      ]
-    },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: false } } }
-  });
-}
-
-// ============================================================
-// DASHBOARD TABLE
+// DASHBOARD TABLE (Recent Inventory matching uploaded screenshot)
 // ============================================================
 function renderDashboardTable() {
   const tbody = $('dashTableBody');
   if (!tbody) return;
-  const info = $('dashPaginationInfo');
+  const subtitle = $('recentInventorySubtitle');
 
   const vehicles = [...ADMIN_VEHICLES].slice(0, 5);
   tbody.innerHTML = vehicles.map(v => `
     <tr>
       <td>
-        <div style="display:flex;align-items:center;gap:12px">
-          <img src="${v.image}" class="table-thumb" alt="${v.title}" onerror="this.src='https://via.placeholder.com/72x48/141418/e5a95c?text=PM'">
-          <div class="vehicle-cell">
-            <span class="vehicle-name">${v.title}</span>
-            <span class="vehicle-sub">${v.brand} · ${v.type.charAt(0).toUpperCase() + v.type.slice(1)}</span>
-          </div>
+        <img src="${v.image}" class="table-thumb" alt="${v.title}" style="width:64px;height:42px;object-fit:cover;border-radius:6px" onerror="this.src='https://via.placeholder.com/72x48/141418/e5a95c?text=PM'">
+      </td>
+      <td>
+        <div class="vehicle-cell">
+          <span class="vehicle-name" style="font-weight:700;font-size:14px;color:var(--text);display:block">${v.title}</span>
+          <span class="vehicle-sub" style="font-size:12px;color:var(--text-muted)">${v.year} · ${v.transmission} · ${v.engine || 'N/A'}</span>
         </div>
       </td>
-      <td>${v.year}</td>
-      <td><span class="price-text" style="color:var(--gold)">${fmtNLE(v.price)}</span></td>
-      <td><span class="status-pill ${v.status}">${v.status.charAt(0).toUpperCase() + v.status.slice(1)}</span></td>
-      <td>${v.location}</td>
+      <td><span class="price-text" style="font-weight:700;color:var(--text)">$${v.price ? v.price.toLocaleString() : '0'}</span></td>
+      <td><span class="status-pill ${v.status}" style="font-size:11px;font-weight:700;letter-spacing:0.5px">• ${v.status.toUpperCase()}</span></td>
       <td class="text-right">
-        <div class="action-btn-group">
-          <button class="btn btn-ghost btn-sm" onclick="openDetailModal(${v.id})" title="View"><i class="ri-eye-line"></i></button>
-          <button class="btn btn-secondary btn-sm" onclick="openEditModal(${v.id})" title="Edit"><i class="ri-edit-line"></i></button>
-          <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="openDeleteModal(${v.id})" title="Delete"><i class="ri-delete-bin-line"></i></button>
+        <div class="action-btn-group" style="display:flex;gap:6px;justify-content:flex-end">
+          <button class="btn btn-ghost btn-sm" onclick="openDetailModal(${v.id})" title="View" style="padding:6px 8px"><i class="ri-eye-line"></i></button>
+          <button class="btn btn-ghost btn-sm" onclick="openEditModal(${v.id})" title="Edit" style="padding:6px 8px"><i class="ri-edit-line"></i></button>
+          <button class="btn btn-ghost btn-sm" style="color:var(--red);padding:6px 8px" onclick="openDeleteModal(${v.id})" title="Delete"><i class="ri-delete-bin-line"></i></button>
         </div>
       </td>
     </tr>
   `).join('');
 
-  if (info) info.textContent = `Showing 1–${vehicles.length} of ${ADMIN_VEHICLES.length} vehicles`;
+  if (subtitle) subtitle.textContent = `Showing ${vehicles.length} of ${ADMIN_VEHICLES.length} Vehicles`;
 }
 
 // ============================================================
@@ -926,3 +848,5 @@ window.cancelAppt          = cancelAppt;
 window.replyToEnquiry      = replyToEnquiry;
 window.showToast           = showToast;
 window.handleAdminSearch   = handleAdminSearch;
+window.handleAvatarUpload  = handleAvatarUpload;
+

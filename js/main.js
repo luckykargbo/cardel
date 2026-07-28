@@ -417,22 +417,21 @@ function renderVehicles(filter = 'all') {
 }
 
 function toggleFav(id) {
-  // Find the heart button by its data-fav-id attribute
-  const btn = document.querySelector(`[data-fav-id="${id}"]`);
+  const btns = document.querySelectorAll(`[data-fav-id="${id}"]`);
 
   if (favourites.includes(id)) {
     favourites = favourites.filter(f => f !== id);
-    if (btn) {
+    btns.forEach(btn => {
       btn.classList.remove('faved');
       btn.innerHTML = '<i class="ri-heart-line"></i>';
-    }
+    });
     showToast('Removed from favourites', 'gold');
   } else {
     favourites.push(id);
-    if (btn) {
+    btns.forEach(btn => {
       btn.classList.add('faved');
       btn.innerHTML = '<i class="ri-heart-fill"></i>';
-    }
+    });
     showToast('❤️ Saved to favourites!', 'success');
   }
   localStorage.setItem('pm_favourites', JSON.stringify(favourites));
@@ -627,11 +626,8 @@ function openQuickView(id) {
           <a class="btn-qv-primary" href="${buildWALink(v)}" target="_blank" style="text-decoration:none">
             <i class="ri-whatsapp-line"></i> WhatsApp Enquiry
           </a>
-          <button class="btn-qv-sec" onclick="openTestDrive('${v.title}')">
-            <i class="ri-steering-2-line"></i> Test Drive
-          </button>
-          <button class="btn-qv-sec" onclick="toggleFav(${v.id}, this)" style="flex:0;width:44px;padding:0">
-            <i class="ri-heart-line"></i>
+          <button class="btn-qv-fav ${isFav(v.id) ? 'faved' : ''}" data-fav-id="${v.id}" onclick="toggleFav(${v.id})" title="Save to Favourites">
+            <i class="${isFav(v.id) ? 'ri-heart-fill' : 'ri-heart-line'}"></i>
           </button>
         </div>
       </div>
@@ -644,51 +640,12 @@ function openQuickView(id) {
 
 function initModals() {
   // Quick View close
-  $('#quickViewClose').addEventListener('click', closeQuickView);
-  $('#quickViewModal').addEventListener('click', e => { if (e.target === $('#quickViewModal')) closeQuickView(); });
-
-  // Test Drive open triggers
-  const tdOpenButtons = ['heroTestDriveBtn', 'testDriveNavBtn', 'showcaseTestDrive', 'ctaTestDriveBtn', 'mobileTestDrive'];
-  tdOpenButtons.forEach(id => {
-    const el = $('#' + id);
-    if (el) el.addEventListener('click', () => openTestDrive());
-  });
-
-  // Test Drive close
-  $('#testDriveClose').addEventListener('click', closeTestDrive);
-  $('#testDriveModal').addEventListener('click', e => { if (e.target === $('#testDriveModal')) closeTestDrive(); });
-
-  // Test Drive submit
-  $('#testDriveSubmit').addEventListener('click', () => {
-    const name    = $('#tdName').value.trim();
-    const phone   = $('#tdPhone').value.trim();
-    const vehicle = $('#tdVehicle').value;
-    const date    = $('#tdDate').value;
-    const time    = $('#tdTime').value;
-    if (!name || !phone) {
-      showToast('Please fill in your name and phone number', 'error');
-      return;
-    }
-    // Build WhatsApp message with booking details
-    const msg = encodeURIComponent(
-      `🚘 *Test Drive Booking — Prestige Motors*\n\n` +
-      `👤 Name: ${name}\n` +
-      `📞 Phone: ${phone}\n` +
-      `🚗 Vehicle: ${vehicle}\n` +
-      `📅 Date: ${date || 'Flexible'}\n` +
-      `🕐 Time: ${time || 'Flexible'}\n\n` +
-      `Please confirm this test drive appointment. Thank you!`
-    );
-    const waUrl = `https://wa.me/${WA_NUMBER}?text=${msg}`;
-    closeTestDrive();
-    // Open WhatsApp in new tab
-    window.open(waUrl, '_blank');
-    showToast('Redirecting to WhatsApp to confirm your booking! 🎉', 'success', 5000);
-  });
+  if ($('#quickViewClose')) $('#quickViewClose').addEventListener('click', closeQuickView);
+  if ($('#quickViewModal')) $('#quickViewModal').addEventListener('click', e => { if (e.target === $('#quickViewModal')) closeQuickView(); });
 
   // Escape key
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { closeQuickView(); closeTestDrive(); }
+    if (e.key === 'Escape') { closeQuickView(); }
   });
 }
 
