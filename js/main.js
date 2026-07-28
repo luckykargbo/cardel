@@ -231,6 +231,7 @@ const VEHICLES = [
 // STATE
 // ============================================================
 let favourites = JSON.parse(localStorage.getItem('pm_favourites') || '[]');
+const isFav = (id) => favourites.includes(id);
 let currentFilter = 'all';
 let carouselIndex = 0;
 let carouselTimer;
@@ -362,7 +363,6 @@ function renderVehicles(filter = 'all') {
   if (!grid) return;
 
   const filtered = filter === 'all' ? VEHICLES : VEHICLES.filter(v => v.type === filter);
-  const isFav = (id) => favourites.includes(id);
 
   grid.innerHTML = filtered.map(v => `
     <div class="vehicle-card reveal-item" data-id="${v.id}" data-type="${v.type}" onclick="openQuickView(${v.id})">
