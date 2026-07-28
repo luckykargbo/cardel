@@ -548,7 +548,7 @@
       <div class="showcase-layout">
         <div class="showcase-media">
           <div class="showcase-image-wrap">
-            <img src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1200&q=90" alt="Porsche 911 Turbo S" class="showcase-img" id="showcaseImg">
+            <img src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1200&q=90" alt="Porsche 911 Turbo S" class="showcase-img" id="showcaseImg" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?w=1200&q=90'">
             <div class="showcase-image-overlay"></div>
             <div class="showcase-badge-row">
               <span class="showcase-badge verified"><i class="ri-verified-badge-fill"></i> Verified</span>
@@ -557,10 +557,10 @@
             </div>
           </div>
           <div class="showcase-thumbnails" id="showcaseThumbs">
-            <img src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=300&q=80" alt="View 1" class="showcase-thumb active" onclick="changeShowcaseImg(this,'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1200&q=90')">
-            <img src="https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=300&q=80" alt="View 2" class="showcase-thumb" onclick="changeShowcaseImg(this,'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=1200&q=90')">
-            <img src="https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=300&q=80" alt="View 3" class="showcase-thumb" onclick="changeShowcaseImg(this,'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=1200&q=90')">
-            <img src="https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=300&q=80" alt="View 4" class="showcase-thumb" onclick="changeShowcaseImg(this,'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=1200&q=90')">
+            <img src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=300&q=80" alt="View 1" class="showcase-thumb active" onclick="changeShowcaseImg(this,'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1200&q=90')" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=300&q=80'">
+            <img src="https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=300&q=80" alt="View 2" class="showcase-thumb" onclick="changeShowcaseImg(this,'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=1200&q=90')" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=300&q=80'">
+            <img src="https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=300&q=80" alt="View 3" class="showcase-thumb" onclick="changeShowcaseImg(this,'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=1200&q=90')" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=300&q=80'">
+            <img src="https://images.unsplash.com/photo-1555215695-3004980ad54e?w=300&q=80" alt="View 4" class="showcase-thumb" onclick="changeShowcaseImg(this,'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=1200&q=90')" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1555215695-3004980ad54e?w=300&q=80'">
           </div>
         </div>
 
@@ -619,12 +619,11 @@
           </div>
 
           <div class="showcase-ctas">
-
-            <button class="btn-showcase-secondary">
-              <i class="ri-file-list-3-line"></i> Request Quote
-            </button>
-            <button class="btn-showcase-icon" title="Save to favourites"><i class="ri-heart-line"></i></button>
-            <button class="btn-showcase-icon" title="Share"><i class="ri-share-line"></i></button>
+            <a href="https://wa.me/23276637648?text=Hello%2C%20I%20am%20interested%20in%20the%20Porsche%20911%20Turbo%20S" target="_blank" class="btn-showcase-primary" style="text-decoration:none">
+              <i class="ri-whatsapp-line"></i> WhatsApp Enquiry
+            </a>
+            <button class="btn-showcase-icon" data-fav-id="3" onclick="toggleFav(3)" title="Save to Favourites"><i class="ri-heart-line"></i></button>
+            <button class="btn-showcase-icon" onclick="openQuickView(3)" title="Quick View"><i class="ri-eye-line"></i></button>
           </div>
         </div>
       </div>
