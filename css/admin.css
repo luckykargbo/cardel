@@ -1128,7 +1128,7 @@ img { max-width: 100%; display: block; }
 }
 
 /* ============================================================
-   RESPONSIVE & MOBILE ADAPTATION
+   RESPONSIVE & MOBILE ADAPTATION (768px BREAKPOINT)
    ============================================================ */
 @media (max-width: 1200px) {
   .metrics-grid { grid-template-columns: repeat(2, 1fr); }
@@ -1136,7 +1136,21 @@ img { max-width: 100%; display: block; }
   .settings-grid{ grid-template-columns: 1fr; }
 }
 
-@media (max-width: 900px) {
+/* DESKTOP LAYOUT (>= 768px): Hide mobile navigation controls */
+@media (min-width: 768px) {
+  .admin-hamburger {
+    display: none !important;
+  }
+  .sidebar-header-mobile {
+    display: none !important;
+  }
+  .sidebar-backdrop {
+    display: none !important;
+  }
+}
+
+/* MOBILE LAYOUT (< 768px): Show mobile navbar & toggleable slide-out drawer */
+@media (max-width: 767px) {
   .admin-hamburger {
     display: inline-flex !important;
   }
@@ -1168,12 +1182,23 @@ img { max-width: 100%; display: block; }
     transform: translateX(0) !important;
   }
 
+  .top-header {
+    height: 60px;
+    padding: 0 10px;
+  }
+
   .header-left {
     display: flex;
     align-items: center;
     gap: 6px;
     flex: 1;
     min-width: 0;
+  }
+
+  .header-divider,
+  .profile-info,
+  .arrow-icon {
+    display: none !important;
   }
 
   .brand-logo {
@@ -1193,7 +1218,7 @@ img { max-width: 100%; display: block; }
   }
 
   .brand-edition {
-    font-size: 9px;
+    display: none;
   }
 
   .content-area {
@@ -1219,37 +1244,6 @@ img { max-width: 100%; display: block; }
     flex: 1;
     min-width: 110px;
     justify-content: center;
-  }
-
-  .form-grid { grid-template-columns: 1fr; }
-  .vehicle-detail-header { flex-direction: column; }
-  .vehicle-detail-img { width: 100%; }
-  .vehicle-detail-specs { grid-template-columns: 1fr 1fr; }
-}
-
-@media (max-width: 600px) {
-  .top-header {
-    height: 60px;
-    padding: 0 10px;
-  }
-
-  .header-divider {
-    display: none !important;
-  }
-
-  .profile-info {
-    display: none !important;
-  }
-
-  .arrow-icon {
-    display: none !important;
-  }
-
-  .profile-btn {
-    padding: 2px;
-    border-radius: 50%;
-    background: transparent;
-    border: none;
   }
 
   .metrics-grid {
@@ -1288,6 +1282,11 @@ img { max-width: 100%; display: block; }
     width: 100%;
     justify-content: space-between;
   }
+
+  .form-grid { grid-template-columns: 1fr; }
+  .vehicle-detail-header { flex-direction: column; }
+  .vehicle-detail-img { width: 100%; }
+  .vehicle-detail-specs { grid-template-columns: 1fr 1fr; }
 
   .modal-lg {
     max-width: 100%;
