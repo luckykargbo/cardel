@@ -45,6 +45,7 @@ const VEHICLES = [
     type: 'new',
     verified: true,
     badge360: true,
+    videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-sports-car-driving-on-a-road-at-sunset-41481-large.mp4',
     image: 'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800&q=85',
     dealer: 'Prestige West Africa'
   },
@@ -67,6 +68,7 @@ const VEHICLES = [
     type: 'new',
     verified: true,
     badge: 'Best Seller',
+    videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-car-driving-on-a-highway-at-dusk-41477-large.mp4',
     image: 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=800&q=85',
     dealer: 'Prestige West Africa'
   },
@@ -90,6 +92,7 @@ const VEHICLES = [
     verified: true,
     badge360: true,
     badge: 'Editor\'s Choice',
+    videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-sports-car-drifting-on-a-track-41476-large.mp4',
     image: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&q=85',
     dealer: 'Prestige West Africa'
   },
@@ -112,6 +115,7 @@ const VEHICLES = [
     type: 'used',
     verified: true,
     badge: 'Limited Offer',
+    videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-red-sports-car-driving-on-a-curved-road-41475-large.mp4',
     image: 'https://images.unsplash.com/photo-1592198084033-aade902d1aae?w=800&q=85',
     dealer: 'Prestige West Africa'
   },
@@ -134,6 +138,7 @@ const VEHICLES = [
     type: 'new',
     verified: true,
     badge360: true,
+    videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-sports-car-speeding-on-a-race-track-41474-large.mp4',
     image: 'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=800&q=85',
     dealer: 'Prestige West Africa'
   },
@@ -595,11 +600,37 @@ function openQuickView(id) {
   const v = VEHICLES.find(v => v.id === id);
   if (!v) return;
 
+function openQuickView(id) {
+  const v = VEHICLES.find(v => v.id === id);
+  if (!v) return;
+
+  const hasVideo = Boolean(v.videoUrl);
+
   $('#quickViewContent').innerHTML = `
     <div class="qv-inner">
-      <div class="qv-media">
-        <img src="${v.image}" alt="${v.title}">
+      <div class="qv-media" id="qvMediaContainer">
+        <div class="qv-media-wrapper" id="qvMediaWrapper">
+          <img src="${v.image}" alt="${v.title}" class="qv-main-image" id="qvMainImage">
+          ${hasVideo ? `
+            <div class="qv-video-badge-overlay" onclick="switchQVTab('video', '${v.videoUrl}', '${v.image}')">
+              <div class="qv-play-pulse"><i class="ri-play-fill"></i></div>
+              <span>Watch Video Tour</span>
+            </div>
+          ` : ''}
+        </div>
+
+        ${hasVideo ? `
+          <div class="qv-media-tabs">
+            <button class="qv-media-tab active" id="tabPhotoBtn" onclick="switchQVTab('photo', '${v.videoUrl}', '${v.image}')">
+              <i class="ri-image-fill"></i> Photo Gallery
+            </button>
+            <button class="qv-media-tab" id="tabVideoBtn" onclick="switchQVTab('video', '${v.videoUrl}', '${v.image}')">
+              <i class="ri-film-fill"></i> HD Video Tour <span class="live-dot">●</span>
+            </button>
+          </div>
+        ` : ''}
       </div>
+
       <div class="qv-details">
         <div>
           <span style="font-size:11px;font-weight:700;letter-spacing:1.5px;color:var(--gold);text-transform:uppercase">${v.brand} · ${v.year}</span>
@@ -609,6 +640,18 @@ function openQuickView(id) {
           <div class="qv-price">${fmtFull(v.price)}</div>
           <div class="qv-monthly">From ${fmtFull(v.monthly)} / month</div>
         </div>
+
+        ${hasVideo ? `
+          <div class="qv-video-banner" onclick="switchQVTab('video', '${v.videoUrl}', '${v.image}')">
+            <div class="qv-vb-icon"><i class="ri-play-fill"></i></div>
+            <div>
+              <div style="font-weight:700;font-size:13px;color:var(--text)">HD Video Tour Available</div>
+              <div style="font-size:12px;color:var(--text-muted)">Watch walkaround video &amp; exhaust sound</div>
+            </div>
+            <i class="ri-arrow-right-s-line" style="margin-left:auto;font-size:18px;color:var(--gold)"></i>
+          </div>
+        ` : ''}
+
         <div class="qv-specs-grid">
           <div class="qv-spec"><div class="qv-spec-label">Horsepower</div><div class="qv-spec-val">${v.hp}</div></div>
           <div class="qv-spec"><div class="qv-spec-label">Engine</div><div class="qv-spec-val">${v.engine}</div></div>
@@ -619,6 +662,7 @@ function openQuickView(id) {
           <div class="qv-spec"><div class="qv-spec-label">Body Type</div><div class="qv-spec-val">${v.body}</div></div>
           <div class="qv-spec"><div class="qv-spec-label">Location</div><div class="qv-spec-val">${v.location}</div></div>
         </div>
+
         <div style="font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:6px">
           <i class="ri-verified-badge-fill" style="color:var(--gold)"></i> ${v.dealer} · Verified Dealer
         </div>
@@ -637,6 +681,44 @@ function openQuickView(id) {
   $('#quickViewModal').classList.add('show');
   document.body.style.overflow = 'hidden';
 }
+
+function switchQVTab(mode, videoUrl, imageUrl) {
+  const wrapper = $('#qvMediaWrapper');
+  const photoBtn = $('#tabPhotoBtn');
+  const videoBtn = $('#tabVideoBtn');
+  if (!wrapper) return;
+
+  if (mode === 'video') {
+    if (photoBtn) photoBtn.classList.remove('active');
+    if (videoBtn) videoBtn.classList.add('active');
+
+    if (videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be')) {
+      const id = videoUrl.split('v=')[1]?.split('&')[0] || videoUrl.split('/').pop();
+      wrapper.innerHTML = `<iframe src="https://www.youtube.com/embed/${id}?autoplay=1" allow="autoplay" allowfullscreen class="qv-video-frame"></iframe>`;
+    } else if (videoUrl.includes('vimeo.com')) {
+      const id = videoUrl.split('/').pop();
+      wrapper.innerHTML = `<iframe src="https://player.vimeo.com/video/${id}?autoplay=1" allow="autoplay" allowfullscreen class="qv-video-frame"></iframe>`;
+    } else {
+      wrapper.innerHTML = `
+        <video controls autoplay playsinline class="qv-video-element">
+          <source src="${videoUrl}">
+          Your browser does not support video playback.
+        </video>
+      `;
+    }
+  } else {
+    if (videoBtn) videoBtn.classList.remove('active');
+    if (photoBtn) photoBtn.classList.add('active');
+    wrapper.innerHTML = `
+      <img src="${imageUrl}" alt="Car Image" class="qv-main-image">
+      <div class="qv-video-badge-overlay" onclick="switchQVTab('video', '${videoUrl}', '${imageUrl}')">
+        <div class="qv-play-pulse"><i class="ri-play-fill"></i></div>
+        <span>Watch Video Tour</span>
+      </div>
+    `;
+  }
+}
+window.switchQVTab = switchQVTab;
 
 function initModals() {
   // Quick View close

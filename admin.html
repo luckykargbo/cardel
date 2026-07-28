@@ -524,12 +524,25 @@
           <h4 style="font-family:var(--font-head);font-size:16px;font-weight:700;margin:28px 0 12px">
             <i class="ri-video-fill" style="color:var(--gold)"></i> Video Showcase
           </h4>
-          <div class="video-url-input">
-            <input type="url" id="vm-videoUrl" placeholder="Paste YouTube, Vimeo or CDN video URL..." class="form-group input">
-            <button class="btn btn-secondary btn-sm" onclick="previewVideo()">Preview</button>
+
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <div class="upload-zone" id="videoUploadZone" style="padding:24px;border:2px dashed var(--gold);background:rgba(229,169,92,0.04)">
+              <input type="file" id="vm-videoFile" accept="video/*" onchange="handleVideoFileUpload(this)">
+              <div class="upload-zone-icon"><i class="ri-video-upload-fill" style="color:var(--gold)"></i></div>
+              <div class="upload-zone-title">Upload Video File</div>
+              <div class="upload-zone-sub">Click to browse or drop MP4, WebM, MOV video file</div>
+            </div>
+
+            <div style="text-align:center;font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text-subtle);margin:2px 0">— OR ENTER VIDEO URL —</div>
+
+            <div class="video-url-input" style="display:flex;gap:8px">
+              <input type="url" id="vm-videoUrl" placeholder="Paste YouTube, Vimeo, MP4 or CDN video URL..." class="form-group input" style="flex:1" onchange="handleVideoUrlChange(this.value)">
+              <button class="btn btn-secondary btn-sm" onclick="previewVideo()"><i class="ri-play-circle-line"></i> Preview</button>
+            </div>
           </div>
-          <div class="video-preview-area" id="videoPreviewArea" style="margin-top:12px">
-            <span>No video attached yet. Enter a URL above to preview.</span>
+
+          <div class="video-preview-area" id="videoPreviewArea" style="margin-top:14px;background:var(--bg-input);padding:14px;border-radius:var(--radius-md);text-align:center;font-size:13px;color:var(--text-muted)">
+            <span>No video attached yet. Upload a video file or enter a URL above.</span>
           </div>
         </div>
 

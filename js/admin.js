@@ -741,23 +741,83 @@ function removePhoto(btn, src) {
   btn.parentElement.remove();
 }
 
+let uploadedVideoData = '';
+
+function handleVideoFileUpload(input) {
+  if (input.files && input.files[0]) {
+    const file = input.files[0];
+    const reader = new FileReader();
+    reader.onload = e => {
+      uploadedVideoData = e.target.result;
+      const area = $('videoPreviewArea');
+      if (area) {
+        area.innerHTML = `
+          <div style="position:relative">
+            <video controls autoplay muted playsinline style="width:100%;max-height:220px;border-radius:10px;background:#000">
+              <source src="${uploadedVideoData}">
+            </video>
+            <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:12px;color:var(--green);font-weight:600"><i class="ri-checkbox-circle-fill"></i> Video File Attached (${(file.size / (1024 * 1024)).toFixed(1)} MB)</span>
+              <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="removeUploadedVideo()"><i class="ri-delete-bin-line"></i> Remove</button>
+            </div>
+          </div>
+        `;
+      }
+      showToast('Video file attached successfully! 🎬', 'success');
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+function handleVideoUrlChange(url) {
+  if (url.trim()) {
+    uploadedVideoData = url.trim();
+    previewVideo();
+  }
+}
+
+function removeUploadedVideo() {
+  uploadedVideoData = '';
+  const fileInp = $('vm-videoFile');
+  if (fileInp) fileInp.value = '';
+  const urlInp = $('vm-videoUrl');
+  if (urlInp) urlInp.value = '';
+  const area = $('videoPreviewArea');
+  if (area) area.innerHTML = '<span>No video attached yet. Upload a video file or enter a URL above.</span>';
+}
+
 function previewVideo() {
-  const url = document.getElementById('vm-videoUrl')?.value.trim();
+  const url = uploadedVideoData || document.getElementById('vm-videoUrl')?.value.trim();
   const area = $('videoPreviewArea');
   if (!area) return;
-  if (!url) { area.innerHTML = '<span>Enter a URL to preview</span>'; return; }
+  if (!url) { area.innerHTML = '<span>Enter a URL or upload a file to preview</span>'; return; }
+
+  if (url.startsWith('data:video') || url.endsWith('.mp4') || url.endsWith('.webm') || url.endsWith('.mov')) {
+    area.innerHTML = `
+      <div style="position:relative">
+        <video controls autoplay muted playsinline style="width:100%;max-height:220px;border-radius:10px;background:#000">
+          <source src="${url}">
+        </video>
+        <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:12px;color:var(--green);font-weight:600"><i class="ri-checkbox-circle-fill"></i> Video Ready</span>
+          <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="removeUploadedVideo()"><i class="ri-delete-bin-line"></i> Remove</button>
+        </div>
+      </div>
+    `;
+    return;
+  }
 
   let embedUrl = url;
   if (url.includes('youtube.com') || url.includes('youtu.be')) {
     const id = url.split('v=')[1]?.split('&')[0] || url.split('/').pop();
     embedUrl = `https://www.youtube.com/embed/${id}`;
-    area.innerHTML = `<iframe src="${embedUrl}" allowfullscreen></iframe>`;
+    area.innerHTML = `<iframe src="${embedUrl}" allowfullscreen style="width:100%;height:220px;border-radius:10px;border:none"></iframe>`;
   } else if (url.includes('vimeo.com')) {
     const id = url.split('/').pop();
     embedUrl = `https://player.vimeo.com/video/${id}`;
-    area.innerHTML = `<iframe src="${embedUrl}" allowfullscreen></iframe>`;
+    area.innerHTML = `<iframe src="${embedUrl}" allowfullscreen style="width:100%;height:220px;border-radius:10px;border:none"></iframe>`;
   } else {
-    area.innerHTML = `<video controls style="width:100%;border-radius:var(--radius-md)"><source src="${url}"></video>`;
+    area.innerHTML = `<video controls style="width:100%;border-radius:var(--radius-md);max-height:220px"><source src="${url}"></video>`;
   }
 }
 
@@ -849,4 +909,8 @@ window.replyToEnquiry      = replyToEnquiry;
 window.showToast           = showToast;
 window.handleAdminSearch   = handleAdminSearch;
 window.handleAvatarUpload  = handleAvatarUpload;
+window.handleVideoFileUpload = handleVideoFileUpload;
+window.handleVideoUrlChange  = handleVideoUrlChange;
+window.removeUploadedVideo   = removeUploadedVideo;
+
 
