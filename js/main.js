@@ -600,10 +600,6 @@ function openQuickView(id) {
   const v = VEHICLES.find(v => v.id === id);
   if (!v) return;
 
-function openQuickView(id) {
-  const v = VEHICLES.find(v => v.id === id);
-  if (!v) return;
-
   const hasVideo = Boolean(v.videoUrl);
 
   $('#quickViewContent').innerHTML = `
@@ -925,7 +921,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Global exposure for onclick handlers in HTML
 window.openQuickView  = openQuickView;
-window.openTestDrive  = openTestDrive;
 window.toggleFav      = toggleFav;
 window.filterByBrand  = filterByBrand;
 window.quickSearch    = quickSearch;
