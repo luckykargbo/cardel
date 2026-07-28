@@ -1,27 +1,19 @@
 {
-  "version": 2,
-  "cleanUrls": true,
-  "trailingSlash": false,
-  "rewrites": [
+  "routes": [
     {
-      "source": "/app-admin-gate",
-      "destination": "/admin.html"
+      "handle": "filesystem"
     },
     {
-      "source": "/admin-gate",
-      "destination": "/admin.html"
+      "src": "/app-admin-gate(.*)",
+      "dest": "/admin.html#/app-admin-gate"
     },
     {
-      "source": "/admin-dashboard",
-      "destination": "/admin.html"
+      "src": "/admin-gate(.*)",
+      "dest": "/admin.html#/app-admin-gate"
     },
     {
-      "source": "/admin",
-      "destination": "/admin.html"
-    },
-    {
-      "source": "/login",
-      "destination": "/admin.html"
+      "src": "/admin-dashboard(.*)",
+      "dest": "/admin.html#/admin-dashboard"
     }
   ]
 }
