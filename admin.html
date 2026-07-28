@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prestige Motors — Admin Control Suite</title>
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+  <!-- ============================================================
+       VIEW: LOGIN
+       ============================================================ -->
+  <div class="page-view active" id="page-login">
+    <div class="login-container">
+      <div class="login-card">
+        <div class="login-header">
+          <div class="logo-mark lg">🚘</div>
+          <div>
+            <h1 class="login-title">Prestige Motors</h1>
+            <p style="font-size:13px;color:var(--text-muted);margin-top:4px">Admin Control Suite</p>
+          </div>
+          <span class="security-badge"><i class="ri-lock-2-fill"></i> Secure Portal</span>
+        </div>
+
+        <form class="login-form" id="loginForm" onsubmit="handleLogin(event)">
+          <div class="form-group">
+            <label>Email Address</label>
+            <input type="email" id="loginEmail" placeholder="admin@prestigemotors.com" autocomplete="username" required>
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <div style="position:relative">
+              <input type="password" id="loginPassword" placeholder="••••••••••" autocomplete="current-password" required style="padding-right:44px">
+              <button type="button" onclick="togglePwVisibility()" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:18px">
+                <i class="ri-eye-line" id="pwEyeIcon"></i>
+              </button>
+            </div>
+          </div>
+          <div class="form-options">
+            <label class="checkbox-label">
+              <input type="checkbox" id="rememberMe"> Remember me
+            </label>
+            <a href="#" style="color:var(--gold);font-size:12px">Forgot password?</a>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block btn-lg" id="loginBtn">
+            <i class="ri-login-box-line"></i> Sign In to Dashboard
+          </button>
+        </form>
+
+        <div class="login-hint-card">
+          <span class="hint-title"><i class="ri-information-line"></i> Demo Credentials</span>
+          <div class="hint-text">
+            Email: <code>admin@prestigemotors.com</code><br>
+            Password: <code>Onyx2026!</code>
+          </div>
+        </div>
+
+        <div style="text-align:center">
+          <a href="index.html" style="font-size:13px;color:var(--text-muted);display:inline-flex;align-items:center;gap:6px">
+            <i class="ri-arrow-left-line"></i> Back to Showroom
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       VIEW: 404
+       ============================================================ -->
+  <div class="page-view" id="page-404">
+    <div class="error-container">
+      <div class="error-card">
+        <div class="error-code">404</div>
+        <h2 class="error-title">Page Not Found</h2>
+        <p class="error-desc">The requested URL path does not exist or has been restricted by security policy.</p>
+        <button class="btn btn-primary" onclick="navigate('dashboard')">
+          <i class="ri-home-line"></i> Return to Dashboard
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       VIEW: ADMIN APP
+       ============================================================ -->
+  <div class="page-view" id="page-app">
+    <div class="app-wrapper">
+
+      <!-- TOP HEADER -->
+      <header class="top-header">
+        <div class="header-left">
+          <div class="brand-logo">
+            <div class="logo-mark">🚘</div>
+            <div class="logo-text">
+              <span class="brand-name">Prestige Motors</span>
+              <span class="brand-edition">Admin Suite</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="header-center">
+          <div class="header-search-bar">
+            <i class="ri-search-line search-icon"></i>
+            <input type="text" id="adminSearch" placeholder="Search vehicles, clients..." onkeyup="handleAdminSearch(this.value)">
+            <span class="search-kbd">⌘K</span>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <button class="icon-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Toggle Theme">
+            <i class="ri-moon-line" id="themeIcon"></i>
+          </button>
+          <div class="header-divider"></div>
+          <button class="icon-btn" title="Notifications">
+            <i class="ri-notification-2-line"></i>
+            <span class="badge-dot"></span>
+          </button>
+          <a href="index.html" class="icon-btn" title="View Public Site" target="_blank">
+            <i class="ri-external-link-line"></i>
+          </a>
+          <div class="header-divider"></div>
+          <div class="profile-dropdown-container">
+            <button class="profile-btn" onclick="toggleDropdown()" id="profileBtn">
+              <img src="https://i.pravatar.cc/150?img=12" alt="Admin" class="avatar-img">
+              <div class="profile-info">
+                <span class="profile-name">Super Admin</span>
+                <span class="profile-role">System Administrator</span>
+              </div>
+              <i class="ri-arrow-down-s-line arrow-icon"></i>
+            </button>
+            <div class="dropdown-menu" id="profileDropdown">
+              <div class="dropdown-header">
+                <span class="dropdown-title">Prestige Motors</span>
+                <span class="dropdown-email">admin@prestigemotors.com</span>
+              </div>
+              <div class="dropdown-divider"></div>
+              <a class="dropdown-item" onclick="navigate('settings')"><i class="ri-settings-3-line"></i> Account Settings</a>
+              <a class="dropdown-item" href="index.html" target="_blank"><i class="ri-store-2-line"></i> View Showroom</a>
+              <div class="dropdown-divider"></div>
+              <button class="dropdown-item danger" onclick="showLogoutModal()"><i class="ri-logout-box-line"></i> Sign Out</button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- MAIN CONTAINER -->
+      <div class="main-container">
+
+        <!-- SIDEBAR -->
+        <nav class="sidebar">
+          <div class="sidebar-badge">
+            <i class="ri-verified-badge-fill"></i>
+            <div>
+              <span class="sb-badge-title">Admin Dashboard</span>
+              <span class="sb-badge-sub">ONYX CONTROL SUITE</span>
+            </div>
+          </div>
+
+          <ul class="sidebar-nav">
+            <li class="nav-section-label">Main</li>
+            <li class="nav-item active" onclick="navigate('dashboard')" id="nav-dashboard">
+              <i class="ri-dashboard-3-fill nav-icon"></i> Dashboard
+            </li>
+            <li class="nav-item" onclick="navigate('inventory')" id="nav-inventory">
+              <i class="ri-car-fill nav-icon"></i> Inventory
+              <span class="nav-badge" id="inventoryCount">0</span>
+            </li>
+            <li class="nav-item" onclick="navigate('appointments')" id="nav-appointments">
+              <i class="ri-calendar-event-fill nav-icon"></i> Appointments
+              <span class="nav-badge">8</span>
+            </li>
+
+            <li class="nav-section-label">Analytics</li>
+            <li class="nav-item" onclick="navigate('analytics')" id="nav-analytics">
+              <i class="ri-bar-chart-box-fill nav-icon"></i> Analytics
+            </li>
+            <li class="nav-item" onclick="navigate('enquiries')" id="nav-enquiries">
+              <i class="ri-message-2-fill nav-icon"></i> Enquiries
+              <span class="nav-badge">3</span>
+            </li>
+
+            <li class="nav-section-label">System</li>
+            <li class="nav-item" onclick="navigate('settings')" id="nav-settings">
+              <i class="ri-settings-3-fill nav-icon"></i> Settings
+            </li>
+          </ul>
+
+          <div class="sidebar-footer">
+            <button class="nav-item" onclick="showLogoutModal()" style="width:100%;text-align:left;color:var(--text-muted)">
+              <i class="ri-logout-box-line nav-icon"></i> Sign Out
+            </button>
+          </div>
+        </nav>
+
+        <!-- CONTENT AREA -->
+        <main class="content-area">
+
+          <!-- ====== DASHBOARD TAB ====== -->
+          <div class="tab-view active" id="tab-dashboard">
+            <div class="view-header">
+              <div>
+                <span class="section-kicker">Overview</span>
+                <h1 class="view-title">Dashboard</h1>
+                <p class="view-desc">Welcome back, Super Admin. Here's your showroom at a glance.</p>
+              </div>
+              <div class="view-actions">
+                <button class="btn btn-secondary btn-sm"><i class="ri-download-line"></i> Export Report</button>
+                <button class="btn btn-primary btn-sm" onclick="openAddVehicleModal()">
+                  <i class="ri-add-line"></i> Add Vehicle
+                </button>
+              </div>
+            </div>
+
+            <!-- Metrics -->
+            <div class="metrics-grid" id="dashMetrics">
+              <!-- Populated by JS -->
+            </div>
+
+            <!-- Charts -->
+            <div class="chart-grid">
+              <div class="card chart-card">
+                <div class="card-header">
+                  <div>
+                    <div class="card-title">Revenue Overview</div>
+                    <div class="card-subtitle">Monthly performance (NLE)</div>
+                  </div>
+                  <select style="background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;font-size:12px;color:var(--text);outline:none">
+                    <option>Last 7 months</option>
+                    <option>Last 12 months</option>
+                  </select>
+                </div>
+                <div class="chart-body">
+                  <canvas id="revenueChart"></canvas>
+                </div>
+              </div>
+              <div class="card chart-card">
+                <div class="card-header">
+                  <div class="card-title">Sales by Type</div>
+                  <div class="card-subtitle">Current period</div>
+                </div>
+                <div class="chart-body" style="justify-content:center">
+                  <canvas id="typeChart" style="max-width:200px;max-height:200px"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <!-- Recent Table -->
+            <div class="card recent-table-card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Recent Inventory</div>
+                  <div class="card-subtitle">Last 5 listings</div>
+                </div>
+                <button class="btn btn-ghost btn-sm" onclick="navigate('inventory')">View All <i class="ri-arrow-right-line"></i></button>
+              </div>
+              <div class="table-responsive">
+                <table class="data-table" id="dashboardTable">
+                  <thead>
+                    <tr>
+                      <th>Vehicle</th>
+                      <th>Year</th>
+                      <th>Price</th>
+                      <th>Status</th>
+                      <th>Location</th>
+                      <th class="text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="dashTableBody"></tbody>
+                </table>
+              </div>
+              <div class="table-pagination">
+                <span class="pagination-info" id="dashPaginationInfo"></span>
+                <div class="pagination-controls">
+                  <button class="page-btn"><i class="ri-arrow-left-s-line"></i></button>
+                  <button class="page-btn active">1</button>
+                  <button class="page-btn">2</button>
+                  <button class="page-btn"><i class="ri-arrow-right-s-line"></i></button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ====== INVENTORY TAB ====== -->
+          <div class="tab-view" id="tab-inventory">
+            <div class="view-header">
+              <div>
+                <span class="section-kicker">Vehicle Management</span>
+                <h2 class="view-title">Inventory</h2>
+                <p class="view-desc">Manage your complete vehicle collection</p>
+              </div>
+              <div class="view-actions">
+                <button class="btn btn-secondary btn-sm"><i class="ri-download-line"></i> Export CSV</button>
+                <button class="btn btn-primary" onclick="openAddVehicleModal()">
+                  <i class="ri-add-line"></i> Add New Vehicle
+                </button>
+              </div>
+            </div>
+
+            <div class="inventory-toolbar">
+              <div class="search-filter-group">
+                <div class="input-with-icon" style="max-width:360px">
+                  <i class="ri-search-line" style="color:var(--text-muted)"></i>
+                  <input type="text" placeholder="Search by make, model, year..." id="inventorySearch" onkeyup="filterInventory()">
+                </div>
+                <div class="filter-tabs">
+                  <button class="tab-pill active" data-status="all" onclick="filterByStatus(this,'all')">All</button>
+                  <button class="tab-pill" data-status="active" onclick="filterByStatus(this,'active')">Active</button>
+                  <button class="tab-pill" data-status="draft" onclick="filterByStatus(this,'draft')">Draft</button>
+                  <button class="tab-pill" data-status="sold" onclick="filterByStatus(this,'sold')">Sold</button>
+                </div>
+              </div>
+              <div class="toolbar-right">
+                <div class="select-wrapper">
+                  <select onchange="sortInventory(this.value)">
+                    <option value="newest">Newest First</option>
+                    <option value="price-asc">Price: Low to High</option>
+                    <option value="price-desc">Price: High to Low</option>
+                    <option value="name">Name A-Z</option>
+                  </select>
+                  <i class="ri-arrow-down-s-line"></i>
+                </div>
+                <div class="view-switcher">
+                  <button class="btn btn-ghost btn-sm active" id="gridViewBtn" onclick="switchView('grid')">
+                    <i class="ri-grid-fill"></i>
+                  </button>
+                  <button class="btn btn-ghost btn-sm" id="listViewBtn" onclick="switchView('list')">
+                    <i class="ri-list-check"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="inventory-grid-mode" id="inventoryGrid">
+              <!-- Populated by admin.js -->
+            </div>
+          </div>
+
+          <!-- ====== APPOINTMENTS TAB ====== -->
+          <div class="tab-view" id="tab-appointments">
+            <div class="view-header">
+              <div>
+                <span class="section-kicker">Schedule</span>
+                <h2 class="view-title">Appointments</h2>
+                <p class="view-desc">Manage test drives and client meetings</p>
+              </div>
+              <div class="view-actions">
+                <button class="btn btn-primary btn-sm" onclick="showToast('Feature coming soon!','info')">
+                  <i class="ri-add-line"></i> New Appointment
+                </button>
+              </div>
+            </div>
+            <div id="appointmentsList" style="display:flex;flex-direction:column;gap:12px">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+
+          <!-- ====== ANALYTICS TAB ====== -->
+          <div class="tab-view" id="tab-analytics">
+            <div class="view-header">
+              <div>
+                <span class="section-kicker">Performance</span>
+                <h2 class="view-title">Analytics</h2>
+                <p class="view-desc">Track your dealership performance metrics</p>
+              </div>
+            </div>
+            <div class="metrics-grid">
+              <div class="card metric-card">
+                <div class="metric-header">
+                  <span class="metric-title">Total Revenue</span>
+                  <div class="metric-icon gold"><i class="ri-money-dollar-circle-fill"></i></div>
+                </div>
+                <div class="metric-body">
+                  <div class="metric-value" style="font-size:28px">NLE 186M</div>
+                  <span class="metric-sub positive"><i class="ri-arrow-up-line"></i> 31.2%</span>
+                </div>
+                <div class="metric-footer"><p class="footer-note"><i class="ri-calendar-line"></i> Year to date</p></div>
+              </div>
+              <div class="card metric-card">
+                <div class="metric-header">
+                  <span class="metric-title">Units Sold</span>
+                  <div class="metric-icon green"><i class="ri-car-fill"></i></div>
+                </div>
+                <div class="metric-body">
+                  <div class="metric-value">42</div>
+                  <span class="metric-sub positive"><i class="ri-arrow-up-line"></i> 8 units</span>
+                </div>
+                <div class="metric-footer"><p class="footer-note"><i class="ri-calendar-line"></i> This month</p></div>
+              </div>
+              <div class="card metric-card">
+                <div class="metric-header">
+                  <span class="metric-title">Avg Sale Price</span>
+                  <div class="metric-icon blue"><i class="ri-price-tag-3-fill"></i></div>
+                </div>
+                <div class="metric-body">
+                  <div class="metric-value" style="font-size:28px">NLE 4.4M</div>
+                  <span class="metric-sub positive"><i class="ri-arrow-up-line"></i> 12.4%</span>
+                </div>
+                <div class="metric-footer"><p class="footer-note"><i class="ri-calendar-line"></i> vs last month</p></div>
+              </div>
+              <div class="card metric-card">
+                <div class="metric-header">
+                  <span class="metric-title">Conversion Rate</span>
+                  <div class="metric-icon warning"><i class="ri-percent-fill"></i></div>
+                </div>
+                <div class="metric-body">
+                  <div class="metric-value">18.4%</div>
+                  <span class="metric-sub positive"><i class="ri-arrow-up-line"></i> 2.1%</span>
+                </div>
+                <div class="metric-footer"><p class="footer-note"><i class="ri-calendar-line"></i> Enquiry to sale</p></div>
+              </div>
+            </div>
+            <div class="card" style="padding:0;overflow:hidden">
+              <div class="card-header">
+                <div class="card-title">Sales Trend</div>
+                <div class="card-subtitle">7-month performance overview</div>
+              </div>
+              <div style="padding:24px;height:300px;display:flex;align-items:center">
+                <canvas id="analyticsChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- ====== ENQUIRIES TAB ====== -->
+          <div class="tab-view" id="tab-enquiries">
+            <div class="view-header">
+              <div>
+                <span class="section-kicker">Communications</span>
+                <h2 class="view-title">Enquiries</h2>
+                <p class="view-desc">Manage client messages and leads</p>
+              </div>
+            </div>
+            <div id="enquiriesList" style="display:flex;flex-direction:column;gap:12px">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+
+          <!-- ====== SETTINGS TAB ====== -->
+          <div class="tab-view" id="tab-settings">
+            <div class="view-header">
+              <div>
+                <span class="section-kicker">Configuration</span>
+                <h2 class="view-title">Settings</h2>
+                <p class="view-desc">Manage your administrative preferences and system configuration.</p>
+              </div>
+            </div>
+
+            <div class="settings-grid">
+              <!-- Theme -->
+              <div class="card setting-card">
+                <h3 class="setting-title"><i class="ri-palette-fill" style="color:var(--gold)"></i> Interface Theme</h3>
+                <p class="setting-desc">Choose your preferred display theme for the admin portal.</p>
+                <div class="theme-picker">
+                  <div class="theme-option active" id="theme-dark-opt" onclick="setTheme('dark')">
+                    <div class="theme-swatch dark"></div>
+                    <div class="theme-name">Dark Mode</div>
+                  </div>
+                  <div class="theme-option" id="theme-light-opt" onclick="setTheme('light')">
+                    <div class="theme-swatch light"></div>
+                    <div class="theme-name">Light Mode</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Credentials -->
+              <div class="card setting-card">
+                <h3 class="setting-title"><i class="ri-key-fill" style="color:var(--gold)"></i> Admin Credentials</h3>
+                <p class="setting-desc">Update your login email and password.</p>
+                <div class="form-group" style="margin-bottom:12px">
+                  <label>Email Address</label>
+                  <input type="email" value="admin@prestigemotors.com" readonly style="opacity:0.7">
+                </div>
+                <div class="form-group">
+                  <label>Current Password</label>
+                  <input type="password" placeholder="••••••••" value="Onyx2026!">
+                </div>
+                <button class="btn btn-primary btn-sm" style="margin-top:16px" onclick="showToast('Credentials updated!','success')">
+                  <i class="ri-save-line"></i> Save Changes
+                </button>
+              </div>
+
+              <!-- Dealership Info -->
+              <div class="card setting-card">
+                <h3 class="setting-title"><i class="ri-store-fill" style="color:var(--gold)"></i> Dealership Information</h3>
+                <p class="setting-desc">Update your public-facing dealership details.</p>
+                <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:12px">
+                  <div class="form-group">
+                    <label>Dealership Name</label>
+                    <input type="text" value="Prestige Motors Executive Ltd">
+                  </div>
+                  <div class="form-group">
+                    <label>Phone</label>
+                    <input type="tel" value="+232 76 000 000">
+                  </div>
+                  <div class="form-group full-width">
+                    <label>Address</label>
+                    <input type="text" value="Wilkinson Road, Freetown, Sierra Leone">
+                  </div>
+                </div>
+                <button class="btn btn-primary btn-sm" style="margin-top:16px" onclick="showToast('Dealership info saved!','success')">
+                  <i class="ri-save-line"></i> Save Changes
+                </button>
+              </div>
+
+              <!-- Session -->
+              <div class="card setting-card">
+                <h3 class="setting-title"><i class="ri-shield-keyhole-fill" style="color:var(--gold)"></i> Session & Security</h3>
+                <p class="setting-desc">Manage your active session and security preferences.</p>
+                <div style="background:var(--bg-input);border-radius:var(--radius-md);padding:16px;margin-bottom:16px;font-size:13px;color:var(--text-muted)">
+                  <p><i class="ri-time-line" style="color:var(--gold)"></i> Session started: Just now</p>
+                  <p style="margin-top:6px"><i class="ri-computer-line" style="color:var(--gold)"></i> Browser: Chrome / Windows</p>
+                </div>
+                <button class="btn btn-danger btn-sm" onclick="showLogoutModal()">
+                  <i class="ri-logout-box-line"></i> Sign Out of Session
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </main>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       MODALS
+       ============================================================ -->
+
+  <!-- Add/Edit Vehicle Modal -->
+  <div class="modal-overlay" id="vehicleModal">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title" id="vehicleModalTitle">Add New Vehicle</h3>
+          <p class="modal-subtitle">Complete all fields to create a premium listing</p>
+        </div>
+        <button class="modal-close" onclick="closeVehicleModal()"><i class="ri-close-line"></i></button>
+      </div>
+
+      <div class="modal-tabs">
+        <button class="modal-tab active" data-step="0" onclick="switchModalTab(0)">
+          <span class="step-num">1</span> Vehicle Details
+        </button>
+        <button class="modal-tab" data-step="1" onclick="switchModalTab(1)">
+          <span class="step-num">2</span> Media Upload
+        </button>
+        <button class="modal-tab" data-step="2" onclick="switchModalTab(2)">
+          <span class="step-num">3</span> Publish
+        </button>
+      </div>
+
+      <div class="modal-form">
+        <!-- Step 1: Details -->
+        <div class="form-step-panel active" id="step-0">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Vehicle Title / Name *</label>
+              <input type="text" id="vm-title" placeholder="e.g. BMW M8 Competition Coupé">
+            </div>
+            <div class="form-group">
+              <label>Brand *</label>
+              <select id="vm-brand">
+                <option value="">Select Brand</option>
+                <option>BMW</option><option>Mercedes-Benz</option><option>Porsche</option>
+                <option>Ferrari</option><option>Lamborghini</option><option>Audi</option>
+                <option>Tesla</option><option>Bentley</option><option>Rolls-Royce</option>
+                <option>McLaren</option><option>Aston Martin</option><option>Bugatti</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Model</label>
+              <input type="text" id="vm-model" placeholder="e.g. M8 Competition">
+            </div>
+            <div class="form-group">
+              <label>Year *</label>
+              <input type="number" id="vm-year" placeholder="2024" min="1980" max="2026">
+            </div>
+            <div class="form-group">
+              <label>Price (NLE) *</label>
+              <input type="number" id="vm-price" placeholder="2450000">
+            </div>
+            <div class="form-group">
+              <label>Mileage (km)</label>
+              <input type="number" id="vm-mileage" placeholder="0">
+            </div>
+            <div class="form-group">
+              <label>Horsepower</label>
+              <input type="text" id="vm-hp" placeholder="e.g. 625 hp">
+            </div>
+            <div class="form-group">
+              <label>Engine</label>
+              <input type="text" id="vm-engine" placeholder="e.g. 4.4L V8 Twin-Turbo">
+            </div>
+            <div class="form-group">
+              <label>Transmission</label>
+              <select id="vm-transmission">
+                <option>Automatic</option><option>Manual</option><option>DCT / PDK</option>
+                <option>CVT</option><option>Electric</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Fuel Type</label>
+              <select id="vm-fuel">
+                <option>Petrol</option><option>Electric</option><option>Hybrid</option>
+                <option>Plug-in Hybrid</option><option>Diesel</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Body Type</label>
+              <select id="vm-body">
+                <option>Coupé</option><option>Sedan</option><option>SUV</option>
+                <option>Convertible</option><option>Roadster</option><option>Hatchback</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Colour</label>
+              <input type="text" id="vm-colour" placeholder="e.g. Obsidian Black">
+            </div>
+            <div class="form-group">
+              <label>Location</label>
+              <select id="vm-location">
+                <option>Freetown</option><option>Bo</option><option>Kenema</option>
+                <option>Makeni</option><option>Koidu</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Listing Type</label>
+              <select id="vm-type">
+                <option value="new">New</option>
+                <option value="used">Pre-Owned</option>
+                <option value="electric">Electric</option>
+              </select>
+            </div>
+            <div class="form-group full-width">
+              <label>Description</label>
+              <textarea id="vm-desc" placeholder="Write a compelling vehicle description..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Media -->
+        <div class="form-step-panel" id="step-1">
+          <h4 style="font-family:var(--font-head);font-size:16px;font-weight:700;margin-bottom:16px">
+            <i class="ri-image-fill" style="color:var(--gold)"></i> High-Resolution Photo Gallery
+          </h4>
+          <div class="upload-zone" id="photoUploadZone">
+            <input type="file" multiple accept="image/*" onchange="handlePhotoUpload(this)">
+            <div class="upload-zone-icon"><i class="ri-upload-cloud-2-fill"></i></div>
+            <div class="upload-zone-title">Drag & drop photos here</div>
+            <div class="upload-zone-sub">or click to browse · JPG, PNG, WebP · Max 10MB per file</div>
+          </div>
+          <div class="upload-previews" id="photoPreviewGrid"></div>
+
+          <h4 style="font-family:var(--font-head);font-size:16px;font-weight:700;margin:28px 0 12px">
+            <i class="ri-video-fill" style="color:var(--gold)"></i> Video Showcase
+          </h4>
+          <div class="video-url-input">
+            <input type="url" id="vm-videoUrl" placeholder="Paste YouTube, Vimeo or CDN video URL..." class="form-group input">
+            <button class="btn btn-secondary btn-sm" onclick="previewVideo()">Preview</button>
+          </div>
+          <div class="video-preview-area" id="videoPreviewArea" style="margin-top:12px">
+            <span>No video attached yet. Enter a URL above to preview.</span>
+          </div>
+        </div>
+
+        <!-- Step 3: Publish -->
+        <div class="form-step-panel" id="step-2">
+          <h4 style="font-family:var(--font-head);font-size:16px;font-weight:700;margin-bottom:16px">
+            <i class="ri-eye-fill" style="color:var(--gold)"></i> Inventory Visibility
+          </h4>
+          <div class="visibility-card" style="margin-bottom:16px">
+            <div>
+              <div class="visibility-label">Publish to Live Showroom</div>
+              <div class="visibility-sublabel">Visible to all site visitors immediately</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="vm-publish" checked>
+              <div class="toggle-slider"></div>
+            </label>
+          </div>
+          <div class="visibility-card">
+            <div>
+              <div class="visibility-label">Featured Listing</div>
+              <div class="visibility-sublabel">Appear in the Featured Vehicles section</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="vm-featured">
+              <div class="toggle-slider"></div>
+            </label>
+          </div>
+          <div style="margin-top:24px;background:var(--bg-input);border-radius:var(--radius-md);padding:20px">
+            <h5 style="font-weight:700;margin-bottom:12px">Listing Summary</h5>
+            <div id="publishSummary" style="font-size:13px;color:var(--text-muted);line-height:1.8"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="modalPrevBtn" onclick="modalPrev()">
+          <i class="ri-arrow-left-line"></i> Previous
+        </button>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-secondary" onclick="closeVehicleModal()">Cancel</button>
+          <button class="btn btn-primary" id="modalNextBtn" onclick="modalNext()">
+            Next <i class="ri-arrow-right-line"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirm Modal -->
+  <div class="modal-overlay" id="deleteModal">
+    <div class="modal-card modal-sm">
+      <div style="padding:32px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:16px">
+        <div style="width:60px;height:60px;border-radius:50%;background:var(--red-bg);display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--red)">
+          <i class="ri-delete-bin-fill"></i>
+        </div>
+        <h3 style="font-family:var(--font-head);font-size:20px;font-weight:800">Delete Vehicle</h3>
+        <p style="font-size:14px;color:var(--text-muted)" id="deleteModalDesc">Are you sure you want to delete this vehicle listing? This action cannot be undone.</p>
+        <div style="display:flex;gap:10px;width:100%">
+          <button class="btn btn-secondary" style="flex:1" onclick="closeDeleteModal()">Cancel</button>
+          <button class="btn btn-danger" style="flex:1" id="confirmDeleteBtn">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Logout Modal -->
+  <div class="modal-overlay" id="logoutModal">
+    <div class="modal-card modal-sm">
+      <div class="logout-confirm">
+        <div class="logout-icon"><i class="ri-logout-box-fill"></i></div>
+        <h3 class="logout-title">Sign Out?</h3>
+        <p class="logout-desc">This will clear your session and redirect you to the public showroom.</p>
+        <div style="display:flex;gap:10px;width:100%">
+          <button class="btn btn-secondary" style="flex:1" onclick="closeLogoutModal()">Cancel</button>
+          <button class="btn btn-danger" style="flex:1" onclick="performLogout()">
+            <i class="ri-logout-box-line"></i> Sign Out
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vehicle Detail Modal -->
+  <div class="modal-overlay" id="vehicleDetailModal">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title" id="detailModalTitle">Vehicle Details</h3>
+          <p class="modal-subtitle" id="detailModalSub"></p>
+        </div>
+        <button class="modal-close" onclick="closeDetailModal()"><i class="ri-close-line"></i></button>
+      </div>
+      <div style="padding:28px;overflow-y:auto;max-height:70vh" id="vehicleDetailContent"></div>
+      <div class="modal-footer">
+        <a href="index.html#inventory" target="_blank" class="btn btn-ghost btn-sm">
+          <i class="ri-external-link-line"></i> View on Public Site
+        </a>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-secondary btn-sm" onclick="closeDetailModal();setTimeout(()=>openAddVehicleModal(),100)">
+            <i class="ri-edit-line"></i> Edit
+          </button>
+          <button class="btn btn-primary btn-sm" onclick="closeDetailModal()">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

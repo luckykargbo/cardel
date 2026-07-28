@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prestige Motors — Luxury Automobile Collection | Sierra Leone</title>
+  <meta name="description" content="Sierra Leone's premier luxury car dealership. Browse our exclusive collection of premium vehicles from BMW, Mercedes-Benz, Porsche, Ferrari, Lamborghini and more. Drive your dream car today.">
+  <meta name="keywords" content="luxury cars, Sierra Leone, Freetown, prestige motors, BMW, Mercedes, Porsche, Ferrari, NLE financing">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ============================================================
+       NAVBAR
+       ============================================================ -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-container">
+      <a href="#home" class="nav-logo">
+        <div class="logo-mark-nav">🚘</div>
+        <div class="logo-text-nav">
+          <span class="brand-name-nav">PRESTIGE</span>
+          <span class="brand-sub-nav">MOTORS</span>
+        </div>
+      </a>
+
+      <ul class="nav-links" id="navLinks">
+        <li><a href="#inventory" class="nav-link">Inventory</a></li>
+        <li><a href="#new-cars" class="nav-link">New Cars</a></li>
+        <li><a href="#used-cars" class="nav-link">Used Cars</a></li>
+        <li><a href="#brands" class="nav-link">Brands</a></li>
+
+        <li><a href="#about" class="nav-link">About</a></li>
+        <li><a href="#contact" class="nav-link">Contact</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <button class="nav-icon-btn" id="searchToggle" title="Search" aria-label="Search">
+          <i class="ri-search-line"></i>
+        </button>
+        <button class="nav-icon-btn fav-btn" id="favBtn" title="Favourites" aria-label="Favourites">
+          <i class="ri-heart-line"></i>
+          <span class="nav-badge hidden" id="favCount">0</span>
+        </button>
+        <a href="admin.html" class="nav-icon-btn" title="Dealer Portal" aria-label="Account">
+          <i class="ri-user-line"></i>
+        </a>
+        <button class="btn-nav-cta" id="testDriveNavBtn">Book Test Drive</button>
+        <button class="hamburger" id="hamburger" aria-label="Open menu">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Search Overlay -->
+    <div class="nav-search-overlay" id="navSearchOverlay">
+      <div class="nav-search-inner">
+        <i class="ri-search-line search-overlay-icon"></i>
+        <input type="text" id="navSearchInput" placeholder="Search BMW, Porsche, Ferrari..." autocomplete="off">
+        <button class="nav-search-close" id="navSearchClose" aria-label="Close search"><i class="ri-close-line"></i></button>
+      </div>
+    </div>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+      <ul class="mobile-nav-links">
+        <li><a href="#inventory" class="mobile-nav-link" data-close>Inventory</a></li>
+        <li><a href="#new-cars" class="mobile-nav-link" data-close>New Cars</a></li>
+        <li><a href="#used-cars" class="mobile-nav-link" data-close>Used Cars</a></li>
+        <li><a href="#brands" class="mobile-nav-link" data-close>Brands</a></li>
+
+        <li><a href="#about" class="mobile-nav-link" data-close>About</a></li>
+        <li><a href="#contact" class="mobile-nav-link" data-close>Contact</a></li>
+        <li><a href="admin.html" class="mobile-nav-link mobile-nav-admin">Dealer Portal <i class="ri-external-link-line"></i></a></li>
+      </ul>
+      <button class="btn-mobile-cta" id="mobileTestDrive">Book Test Drive</button>
+    </div>
+  </nav>
+
+  <!-- ============================================================
+       HERO SECTION
+       ============================================================ -->
+  <section class="hero" id="home">
+    <canvas class="particles-canvas" id="particlesCanvas"></canvas>
+    <div class="hero-bg-overlay"></div>
+    <div class="hero-spotlight"></div>
+
+    <div class="hero-image-container">
+      <img
+        src="https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?w=1920&q=90"
+        alt="Luxury sports car — Prestige Motors"
+        class="hero-car-img"
+        id="heroCar"
+        loading="eager">
+      <div class="hero-car-glow"></div>
+      <div class="hero-ground-reflection"></div>
+    </div>
+
+    <div class="hero-content-wrapper">
+      <div class="hero-content">
+        <div class="hero-badge">
+          <i class="ri-verified-badge-fill"></i>
+          <span>Premium Collection 2025</span>
+        </div>
+
+        <h1 class="hero-headline">
+          Find the Car<br>
+          <span class="hero-headline-accent">You've Always</span><br>
+          Dreamed Of
+        </h1>
+
+        <p class="hero-subheading">
+          Sierra Leone's most exclusive dealership, curating the world's finest automobiles.
+          From everyday luxury to hypercars — discover your perfect machine.
+        </p>
+
+        <div class="hero-ctas">
+          <a href="#inventory" class="btn-hero-primary">
+            <i class="ri-car-line"></i>
+            Browse Inventory
+            <span class="btn-arrow-icon"><i class="ri-arrow-right-line"></i></span>
+          </a>
+          <button class="btn-hero-secondary" id="heroTestDriveBtn">
+            <div class="play-circle"><i class="ri-steering-2-line"></i></div>
+            Book a Test Drive
+          </button>
+        </div>
+
+        <div class="hero-stats">
+          <div class="hero-stat">
+            <span class="hero-stat-num">500+</span>
+            <span class="hero-stat-label">Premium Cars</span>
+          </div>
+          <div class="hero-stat-divider"></div>
+          <div class="hero-stat">
+            <span class="hero-stat-num">50+</span>
+            <span class="hero-stat-label">Luxury Brands</span>
+          </div>
+          <div class="hero-stat-divider"></div>
+          <div class="hero-stat">
+            <span class="hero-stat-num">15K+</span>
+            <span class="hero-stat-label">Happy Clients</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero-scroll-indicator" id="heroScroll">
+      <div class="scroll-mouse">
+        <div class="scroll-wheel"></div>
+      </div>
+      <span>Scroll to explore</span>
+    </div>
+
+    <!-- Floating Glass Cards -->
+    <div class="hero-float-card hero-float-card--left">
+      <div class="float-card-icon gold"><i class="ri-shield-check-fill"></i></div>
+      <div class="float-card-text">
+        <span class="float-card-title">Verified Dealer</span>
+        <span class="float-card-sub">100% Authentic</span>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       SMART SEARCH PANEL
+       ============================================================ -->
+  <section class="search-section" id="search-panel">
+    <div class="search-container">
+      <div class="search-glass-card">
+        <div class="search-panel-header">
+          <div class="search-title-group">
+            <div class="search-icon-wrap"><i class="ri-search-2-line"></i></div>
+            <div>
+              <h2 class="search-panel-title">Find Your Perfect Car</h2>
+              <p class="search-panel-subtitle">Search from Sierra Leone's finest collection</p>
+            </div>
+          </div>
+          <div class="search-popular">
+            <span class="popular-label">Popular:</span>
+            <button class="search-tag" onclick="quickSearch('Porsche 911')">Porsche 911</button>
+            <button class="search-tag" onclick="quickSearch('Mercedes AMG')">Mercedes AMG</button>
+            <button class="search-tag" onclick="quickSearch('BMW M8')">BMW M8</button>
+            <button class="search-tag" onclick="quickSearch('Ferrari')">Ferrari</button>
+          </div>
+        </div>
+
+        <div class="search-filters-grid">
+          <div class="filter-group">
+            <label class="filter-label"><i class="ri-car-line"></i> Brand</label>
+            <div class="select-wrap">
+              <select id="filterBrand" class="filter-select">
+                <option value="">All Brands</option>
+                <option>BMW</option><option>Mercedes-Benz</option><option>Porsche</option>
+                <option>Ferrari</option><option>Lamborghini</option><option>Audi</option>
+                <option>Tesla</option><option>Bentley</option><option>Rolls-Royce</option>
+                <option>McLaren</option><option>Aston Martin</option><option>Bugatti</option>
+              </select>
+              <i class="ri-arrow-down-s-line sel-arrow"></i>
+            </div>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label"><i class="ri-settings-3-line"></i> Model</label>
+            <div class="select-wrap">
+              <select id="filterModel" class="filter-select">
+                <option value="">All Models</option>
+                <option>M8 Competition</option><option>AMG GT 63</option>
+                <option>911 Turbo S</option><option>296 GTB</option>
+                <option>Huracán Tecnica</option><option>R8 V10</option>
+                <option>Model S Plaid</option><option>Continental GT</option>
+                <option>Ghost</option><option>720S</option>
+              </select>
+              <i class="ri-arrow-down-s-line sel-arrow"></i>
+            </div>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label"><i class="ri-calendar-line"></i> Year</label>
+            <div class="select-wrap">
+              <select id="filterYear" class="filter-select">
+                <option value="">Any Year</option>
+                <option>2025</option><option>2024</option><option>2023</option>
+                <option>2022</option><option>2021</option><option>2020</option>
+              </select>
+              <i class="ri-arrow-down-s-line sel-arrow"></i>
+            </div>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label"><i class="ri-layout-3-line"></i> Body Type</label>
+            <div class="select-wrap">
+              <select id="filterBody" class="filter-select">
+                <option value="">All Types</option>
+                <option>Coupé</option><option>Sedan</option><option>SUV</option>
+                <option>Convertible</option><option>Roadster</option><option>Hatchback</option>
+              </select>
+              <i class="ri-arrow-down-s-line sel-arrow"></i>
+            </div>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label"><i class="ri-settings-2-line"></i> Transmission</label>
+            <div class="select-wrap">
+              <select id="filterTransmission" class="filter-select">
+                <option value="">Any</option>
+                <option>Automatic</option><option>Manual</option>
+                <option>DCT / PDK</option><option>CVT</option><option>Electric</option>
+              </select>
+              <i class="ri-arrow-down-s-line sel-arrow"></i>
+            </div>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label"><i class="ri-gas-station-line"></i> Fuel Type</label>
+            <div class="select-wrap">
+              <select id="filterFuel" class="filter-select">
+                <option value="">Any</option>
+                <option>Petrol</option><option>Electric</option><option>Hybrid</option>
+                <option>Plug-in Hybrid</option><option>Diesel</option>
+              </select>
+              <i class="ri-arrow-down-s-line sel-arrow"></i>
+            </div>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label"><i class="ri-price-tag-3-line"></i> Price Range (NLE)</label>
+            <div class="select-wrap">
+              <select id="filterPrice" class="filter-select">
+                <option value="">All Prices</option>
+                <option value="0-1000000">Under NLE 1M</option>
+                <option value="1000000-3000000">NLE 1M – 3M</option>
+                <option value="3000000-6000000">NLE 3M – 6M</option>
+                <option value="6000000-10000000">NLE 6M – 10M</option>
+                <option value="10000000+">Above NLE 10M</option>
+              </select>
+              <i class="ri-arrow-down-s-line sel-arrow"></i>
+            </div>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label"><i class="ri-route-line"></i> Mileage</label>
+            <div class="select-wrap">
+              <select id="filterMileage" class="filter-select">
+                <option value="">Any Mileage</option>
+                <option value="0">Brand New</option>
+                <option value="5000">Under 5,000 km</option>
+                <option value="20000">Under 20,000 km</option>
+                <option value="50000">Under 50,000 km</option>
+              </select>
+              <i class="ri-arrow-down-s-line sel-arrow"></i>
+            </div>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label"><i class="ri-palette-line"></i> Colour</label>
+            <div class="select-wrap">
+              <select id="filterColour" class="filter-select">
+                <option value="">Any Colour</option>
+                <option>Obsidian Black</option><option>Polar White</option>
+                <option>Mineral Grey</option><option>Midnight Blue</option>
+                <option>Ruby Red</option><option>Racing Yellow</option>
+                <option>Pearl Silver</option><option>Titanium Bronze</option>
+              </select>
+              <i class="ri-arrow-down-s-line sel-arrow"></i>
+            </div>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label"><i class="ri-map-pin-line"></i> Location</label>
+            <div class="select-wrap">
+              <select id="filterLocation" class="filter-select">
+                <option value="">All Locations</option>
+                <option>Freetown</option><option>Bo</option><option>Kenema</option>
+                <option>Makeni</option><option>Koidu</option>
+              </select>
+              <i class="ri-arrow-down-s-line sel-arrow"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="search-action-bar">
+          <button class="btn-search-reset" id="searchReset">
+            <i class="ri-refresh-line"></i> Reset Filters
+          </button>
+          <button class="btn-search-go" id="searchBtn">
+            <i class="ri-search-line"></i>
+            Search Vehicles
+            <span class="btn-glow-ring"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       FEATURED VEHICLES
+       ============================================================ -->
+  <section class="featured-section" id="inventory">
+    <div class="section-container">
+      <div class="section-header">
+        <div class="section-header-left">
+          <span class="section-kicker">Our Collection</span>
+          <h2 class="section-title">Featured Vehicles</h2>
+          <p class="section-desc">Handpicked premium vehicles from the world's most prestigious manufacturers</p>
+        </div>
+        <div class="section-header-right">
+          <div class="filter-pills" id="vehicleFilterPills">
+            <button class="filter-pill active" data-filter="all">All</button>
+            <button class="filter-pill" data-filter="new">New</button>
+            <button class="filter-pill" data-filter="used">Pre-Owned</button>
+            <button class="filter-pill" data-filter="electric">Electric</button>
+          </div>
+          <a href="#inventory" class="btn-view-all">View All <i class="ri-arrow-right-line"></i></a>
+        </div>
+      </div>
+
+      <div class="vehicles-grid" id="vehiclesGrid">
+        <!-- Populated by main.js -->
+      </div>
+
+      <div class="load-more-wrap">
+        <button class="btn-load-more" id="loadMoreBtn">
+          <i class="ri-refresh-line"></i> Load More Vehicles
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       BROWSE BY BRAND
+       ============================================================ -->
+  <section class="brands-section" id="brands">
+    <div class="section-container">
+      <div class="section-header-center">
+        <span class="section-kicker">Explore by Manufacturer</span>
+        <h2 class="section-title">Browse by Brand</h2>
+        <p class="section-desc">Discover our curated selection from the world's finest automotive houses</p>
+      </div>
+
+      <div class="brands-grid">
+        <button class="brand-circle" data-brand="BMW" onclick="filterByBrand('BMW')">
+          <div class="brand-logo-wrap">
+            <svg viewBox="0 0 100 100" class="brand-logo-img" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="48" fill="none" stroke="#e5a95c" stroke-width="3"/><circle cx="50" cy="50" r="36" fill="none" stroke="#e5a95c" stroke-width="1.5"/><path d="M50 14 A36 36 0 0 1 86 50 L50 50 Z" fill="#1c69d3" opacity="0.85"/><path d="M14 50 A36 36 0 0 1 50 14 L50 50 Z" fill="white" opacity="0.9"/><path d="M50 86 A36 36 0 0 1 14 50 L50 50 Z" fill="#1c69d3" opacity="0.85"/><path d="M86 50 A36 36 0 0 1 50 86 L50 50 Z" fill="white" opacity="0.9"/><text x="50" y="54" text-anchor="middle" font-size="11" font-weight="800" fill="#e5a95c" font-family="Arial">BMW</text></svg>
+          </div>
+          <span class="brand-name-label">BMW</span>
+          <div class="brand-ripple"></div>
+        </button>
+        <button class="brand-circle" data-brand="Mercedes-Benz" onclick="filterByBrand('Mercedes-Benz')">
+          <div class="brand-logo-wrap">
+            <svg viewBox="0 0 100 100" class="brand-logo-img" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="48" fill="none" stroke="#e5a95c" stroke-width="3"/><circle cx="50" cy="50" r="36" fill="none" stroke="rgba(229,169,92,0.3)" stroke-width="1"/><line x1="50" y1="14" x2="50" y2="50" stroke="#e5a95c" stroke-width="3" stroke-linecap="round"/><line x1="50" y1="50" x2="19" y2="68" stroke="#e5a95c" stroke-width="3" stroke-linecap="round"/><line x1="50" y1="50" x2="81" y2="68" stroke="#e5a95c" stroke-width="3" stroke-linecap="round"/><text x="50" y="90" text-anchor="middle" font-size="8" font-weight="700" fill="#e5a95c" font-family="Arial">AMG</text></svg>
+          </div>
+          <span class="brand-name-label">Mercedes</span>
+          <div class="brand-ripple"></div>
+        </button>
+        <button class="brand-circle" data-brand="Porsche" onclick="filterByBrand('Porsche')">
+          <div class="brand-logo-wrap">
+            <svg viewBox="0 0 100 100" class="brand-logo-img" xmlns="http://www.w3.org/2000/svg"><rect x="20" y="28" width="60" height="44" rx="4" fill="none" stroke="#e5a95c" stroke-width="2.5"/><rect x="35" y="28" width="30" height="44" fill="none" stroke="#e5a95c" stroke-width="1"/><text x="50" y="52" text-anchor="middle" font-size="9" font-weight="900" fill="#e5a95c" font-family="Arial">PORSCHE</text><text x="50" y="63" text-anchor="middle" font-size="7" fill="rgba(229,169,92,0.7)" font-family="Arial">STUTTGART</text></svg>
+          </div>
+          <span class="brand-name-label">Porsche</span>
+          <div class="brand-ripple"></div>
+        </button>
+        <button class="brand-circle" data-brand="Ferrari" onclick="filterByBrand('Ferrari')">
+          <div class="brand-logo-wrap">
+            <svg viewBox="0 0 100 100" class="brand-logo-img" xmlns="http://www.w3.org/2000/svg"><rect x="28" y="15" width="44" height="70" rx="4" fill="#c8102e" opacity="0.9"/><rect x="28" y="15" width="44" height="70" rx="4" fill="none" stroke="#e5a95c" stroke-width="2"/><text x="50" y="54" text-anchor="middle" font-size="10" font-weight="900" fill="#e5a95c" font-family="Arial">SF</text><text x="50" y="70" text-anchor="middle" font-size="7" font-weight="700" fill="rgba(229,169,92,0.8)" font-family="Arial">FERRARI</text></svg>
+          </div>
+          <span class="brand-name-label">Ferrari</span>
+          <div class="brand-ripple"></div>
+        </button>
+        <button class="brand-circle" data-brand="Lamborghini" onclick="filterByBrand('Lamborghini')">
+          <div class="brand-logo-wrap">
+            <svg viewBox="0 0 100 100" class="brand-logo-img" xmlns="http://www.w3.org/2000/svg"><polygon points="50,12 88,50 50,88 12,50" fill="none" stroke="#e5a95c" stroke-width="2.5"/><polygon points="50,24 76,50 50,76 24,50" fill="none" stroke="rgba(229,169,92,0.4)" stroke-width="1"/><text x="50" y="54" text-anchor="middle" font-size="8" font-weight="900" fill="#e5a95c" font-family="Arial">LAMBO</text></svg>
+          </div>
+          <span class="brand-name-label">Lamborghini</span>
+          <div class="brand-ripple"></div>
+        </button>
+        <button class="brand-circle" data-brand="Audi" onclick="filterByBrand('Audi')">
+          <div class="brand-logo-wrap">
+            <svg viewBox="0 0 100 100" class="brand-logo-img" xmlns="http://www.w3.org/2000/svg"><circle cx="23" cy="50" r="15" fill="none" stroke="#e5a95c" stroke-width="3"/><circle cx="40" cy="50" r="15" fill="none" stroke="#e5a95c" stroke-width="3"/><circle cx="60" cy="50" r="15" fill="none" stroke="#e5a95c" stroke-width="3"/><circle cx="77" cy="50" r="15" fill="none" stroke="#e5a95c" stroke-width="3"/></svg>
+          </div>
+          <span class="brand-name-label">Audi</span>
+          <div class="brand-ripple"></div>
+        </button>
+        <button class="brand-circle" data-brand="Tesla" onclick="filterByBrand('Tesla')">
+          <div class="brand-logo-wrap">
+            <svg viewBox="0 0 100 100" class="brand-logo-img" xmlns="http://www.w3.org/2000/svg"><path d="M50 18 L50 82" stroke="#e5a95c" stroke-width="5" stroke-linecap="round"/><path d="M20 28 Q35 20 50 18 Q65 20 80 28" stroke="#e5a95c" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M28 28 Q38 35 50 18 Q62 35 72 28" stroke="rgba(229,169,92,0.5)" stroke-width="2" fill="none"/><text x="50" y="92" text-anchor="middle" font-size="8" font-weight="700" fill="#e5a95c" font-family="Arial">TESLA</text></svg>
+          </div>
+          <span class="brand-name-label">Tesla</span>
+          <div class="brand-ripple"></div>
+        </button>
+        <button class="brand-circle" data-brand="Bentley" onclick="filterByBrand('Bentley')">
+          <div class="brand-logo-wrap">
+            <svg viewBox="0 0 100 100" class="brand-logo-img" xmlns="http://www.w3.org/2000/svg"><ellipse cx="50" cy="50" rx="38" ry="38" fill="none" stroke="#e5a95c" stroke-width="2.5"/><path d="M30 50 Q38 34 50 30 Q62 34 70 50 Q62 66 50 70 Q38 66 30 50Z" fill="none" stroke="rgba(229,169,92,0.5)" stroke-width="1"/><text x="50" y="54" text-anchor="middle" font-size="11" font-weight="900" fill="#e5a95c" font-family="serif">B</text></svg>
+          </div>
+          <span class="brand-name-label">Bentley</span>
+          <div class="brand-ripple"></div>
+        </button>
+        <button class="brand-circle" data-brand="Rolls-Royce" onclick="filterByBrand('Rolls-Royce')">
+          <div class="brand-logo-wrap">
+            <svg viewBox="0 0 100 100" class="brand-logo-img" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="38" fill="none" stroke="#e5a95c" stroke-width="2.5"/><text x="50" y="44" text-anchor="middle" font-size="10" font-weight="900" fill="#e5a95c" font-family="serif">RR</text><line x1="25" y1="52" x2="75" y2="52" stroke="rgba(229,169,92,0.5)" stroke-width="1"/><text x="50" y="65" text-anchor="middle" font-size="6.5" font-weight="700" fill="rgba(229,169,92,0.8)" font-family="Arial" letter-spacing="1">ROLLS-ROYCE</text></svg>
+          </div>
+          <span class="brand-name-label">Rolls-Royce</span>
+          <div class="brand-ripple"></div>
+        </button>
+        <button class="brand-circle" data-brand="McLaren" onclick="filterByBrand('McLaren')">
+          <div class="brand-logo-wrap">
+            <svg viewBox="0 0 100 100" class="brand-logo-img" xmlns="http://www.w3.org/2000/svg"><path d="M10 62 Q30 20 50 18 Q70 20 90 62 Q70 75 50 78 Q30 75 10 62Z" fill="none" stroke="#e5a95c" stroke-width="2.5"/><text x="50" y="52" text-anchor="middle" font-size="9" font-weight="900" fill="#e5a95c" font-family="Arial">McLAREN</text></svg>
+          </div>
+          <span class="brand-name-label">McLaren</span>
+          <div class="brand-ripple"></div>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       WHY CHOOSE US
+       ============================================================ -->
+  <section class="features-section" id="about">
+    <div class="section-container">
+      <div class="section-header-center">
+        <span class="section-kicker">Why Prestige Motors</span>
+        <h2 class="section-title">The Prestige Difference</h2>
+        <p class="section-desc">We don't just sell cars — we deliver an experience that redefines automotive excellence</p>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card reveal-item">
+          <div class="feature-icon-wrap"><i class="ri-shield-check-fill"></i></div>
+          <h3 class="feature-title">Verified Dealers</h3>
+          <p class="feature-desc">Every vehicle and dealer on our platform is rigorously verified through our multi-point authentication process.</p>
+          <div class="feature-card-glow"></div>
+        </div>
+        <div class="feature-card reveal-item">
+          <div class="feature-icon-wrap"><i class="ri-award-fill"></i></div>
+          <h3 class="feature-title">Certified Vehicles</h3>
+          <p class="feature-desc">All pre-owned vehicles undergo a 150-point inspection by certified master technicians before listing.</p>
+          <div class="feature-card-glow"></div>
+        </div>
+        <div class="feature-card reveal-item">
+          <div class="feature-icon-wrap"><i class="ri-bank-card-fill"></i></div>
+          <h3 class="feature-title">Flexible Financing</h3>
+          <p class="feature-desc">Tailored finance plans with competitive rates, instant approvals, and flexible terms starting from 12 months.</p>
+          <div class="feature-card-glow"></div>
+        </div>
+        <div class="feature-card reveal-item">
+          <div class="feature-icon-wrap"><i class="ri-truck-fill"></i></div>
+          <h3 class="feature-title">Nationwide Delivery</h3>
+          <p class="feature-desc">Seamless door-to-door delivery across all regions of Sierra Leone with real-time tracking.</p>
+          <div class="feature-card-glow"></div>
+        </div>
+        <div class="feature-card reveal-item">
+          <div class="feature-icon-wrap"><i class="ri-file-shield-2-fill"></i></div>
+          <h3 class="feature-title">Warranty Included</h3>
+          <p class="feature-desc">Comprehensive warranty packages and extended service plans available on every certified vehicle.</p>
+          <div class="feature-card-glow"></div>
+        </div>
+        <div class="feature-card reveal-item">
+          <div class="feature-icon-wrap"><i class="ri-customer-service-2-fill"></i></div>
+          <h3 class="feature-title">24/7 Concierge</h3>
+          <p class="feature-desc">Our white-glove concierge team is available around the clock for inquiries, support, and private showings.</p>
+          <div class="feature-card-glow"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       STATISTICS
+       ============================================================ -->
+  <section class="stats-section">
+    <div class="stats-bg-glow"></div>
+    <div class="section-container">
+      <div class="stats-grid">
+        <div class="stat-card reveal-item">
+          <div class="stat-icon"><i class="ri-car-fill"></i></div>
+          <div class="stat-number-row">
+            <span class="stat-num" data-target="25000">0</span>
+            <span class="stat-suffix">+</span>
+          </div>
+          <div class="stat-label">Cars Available</div>
+        </div>
+        <div class="stat-card reveal-item">
+          <div class="stat-icon"><i class="ri-store-fill"></i></div>
+          <div class="stat-number-row">
+            <span class="stat-num" data-target="150">0</span>
+            <span class="stat-suffix">+</span>
+          </div>
+          <div class="stat-label">Trusted Dealers</div>
+        </div>
+        <div class="stat-card reveal-item">
+          <div class="stat-icon"><i class="ri-star-fill"></i></div>
+          <div class="stat-number-row">
+            <span class="stat-num" data-target="98">0</span>
+            <span class="stat-suffix">%</span>
+          </div>
+          <div class="stat-label">Customer Satisfaction</div>
+        </div>
+        <div class="stat-card reveal-item">
+          <div class="stat-icon"><i class="ri-trophy-fill"></i></div>
+          <div class="stat-number-row">
+            <span class="stat-num" data-target="40">0</span>
+            <span class="stat-suffix">+</span>
+          </div>
+          <div class="stat-label">Vehicle Brands</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       LUXURY SHOWCASE
+       ============================================================ -->
+  <section class="showcase-section" id="new-cars">
+    <div class="section-container">
+      <div class="showcase-layout">
+        <div class="showcase-media">
+          <div class="showcase-image-wrap">
+            <img src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1200&q=90" alt="Porsche 911 Turbo S" class="showcase-img" id="showcaseImg">
+            <div class="showcase-image-overlay"></div>
+            <div class="showcase-badge-row">
+              <span class="showcase-badge verified"><i class="ri-verified-badge-fill"></i> Verified</span>
+              <span class="showcase-badge gold"><i class="ri-star-fill"></i> Editor's Choice</span>
+              <span class="showcase-badge new">New Arrival</span>
+            </div>
+          </div>
+          <div class="showcase-thumbnails" id="showcaseThumbs">
+            <img src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=300&q=80" alt="View 1" class="showcase-thumb active" onclick="changeShowcaseImg(this,'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1200&q=90')">
+            <img src="https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=300&q=80" alt="View 2" class="showcase-thumb" onclick="changeShowcaseImg(this,'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=1200&q=90')">
+            <img src="https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=300&q=80" alt="View 3" class="showcase-thumb" onclick="changeShowcaseImg(this,'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=1200&q=90')">
+            <img src="https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=300&q=80" alt="View 4" class="showcase-thumb" onclick="changeShowcaseImg(this,'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=1200&q=90')">
+          </div>
+        </div>
+
+        <div class="showcase-info">
+          <span class="section-kicker">Featured Vehicle</span>
+          <h2 class="showcase-title">Porsche 911 Turbo S</h2>
+          <p class="showcase-year-tag">2024 · Obsidian Black · 480 km · Freetown</p>
+          <p class="showcase-desc">The pinnacle of rear-engined sports car engineering. With 650 hp and a 0–100 km/h time of just 2.7 seconds, the 911 Turbo S is a masterpiece of controlled, electrifying performance.</p>
+
+          <div class="showcase-specs-grid">
+            <div class="showcase-spec">
+              <span class="spec-icon"><i class="ri-flashlight-fill"></i></span>
+              <span class="spec-value">650 hp</span>
+              <span class="spec-label">Horsepower</span>
+            </div>
+            <div class="showcase-spec">
+              <span class="spec-icon"><i class="ri-timer-2-fill"></i></span>
+              <span class="spec-value">2.7s</span>
+              <span class="spec-label">0–100 km/h</span>
+            </div>
+            <div class="showcase-spec">
+              <span class="spec-icon"><i class="ri-speed-up-fill"></i></span>
+              <span class="spec-value">330 km/h</span>
+              <span class="spec-label">Top Speed</span>
+            </div>
+            <div class="showcase-spec">
+              <span class="spec-icon"><i class="ri-settings-3-fill"></i></span>
+              <span class="spec-value">PDK 8-spd</span>
+              <span class="spec-label">Transmission</span>
+            </div>
+            <div class="showcase-spec">
+              <span class="spec-icon"><i class="ri-gas-station-fill"></i></span>
+              <span class="spec-value">Petrol</span>
+              <span class="spec-label">Fuel Type</span>
+            </div>
+            <div class="showcase-spec">
+              <span class="spec-icon"><i class="ri-engine-fill"></i></span>
+              <span class="spec-value">3.8L Twin-Turbo</span>
+              <span class="spec-label">Engine</span>
+            </div>
+          </div>
+
+          <div class="showcase-price-block">
+            <div class="showcase-price-left">
+              <span class="showcase-price-label">Asking Price</span>
+              <div class="showcase-price">NLE 4,100,000</div>
+              <span class="showcase-monthly">From NLE 77,400 / month</span>
+            </div>
+            <div class="showcase-dealer-badge">
+              <i class="ri-verified-badge-fill"></i>
+              <div>
+                <span class="dealer-name">Prestige West Africa</span>
+                <span class="dealer-loc"><i class="ri-map-pin-2-line"></i> Freetown</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="showcase-ctas">
+            <button class="btn-showcase-primary" id="showcaseTestDrive">
+              <i class="ri-steering-2-line"></i> Book Test Drive
+            </button>
+            <button class="btn-showcase-secondary">
+              <i class="ri-file-list-3-line"></i> Request Quote
+            </button>
+            <button class="btn-showcase-icon" title="Save to favourites"><i class="ri-heart-line"></i></button>
+            <button class="btn-showcase-icon" title="Share"><i class="ri-share-line"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ============================================================
+       TESTIMONIALS
+       ============================================================ -->
+  <section class="testimonials-section" id="used-cars">
+    <div class="section-container">
+      <div class="section-header-center">
+        <span class="section-kicker">Client Stories</span>
+        <h2 class="section-title">What Our Clients Say</h2>
+        <p class="section-desc">Trusted by Sierra Leone's most discerning automotive connoisseurs</p>
+      </div>
+
+      <div class="testimonials-carousel-wrap">
+        <div class="testimonials-track-outer">
+          <div class="testimonials-carousel" id="testimonialsCarousel">
+            <div class="testimonial-card">
+              <div class="quote-mark">"</div>
+              <p class="testimonial-text">The experience at Prestige Motors was extraordinary. I walked in looking for a BMW M8 and walked out with not just a car, but a lifestyle upgrade. The team's knowledge and professionalism is unmatched in Sierra Leone.</p>
+              <div class="testimonial-author">
+                <img src="https://i.pravatar.cc/150?img=3" alt="Ahmed Koroma" class="testimonial-avatar">
+                <div class="testimonial-meta">
+                  <div class="testimonial-name">Ahmed Koroma</div>
+                  <div class="testimonial-role">CEO, Koroma Industries — Freetown</div>
+                </div>
+                <div class="testimonial-stars">
+                  <i class="ri-star-fill"></i><i class="ri-star-fill"></i><i class="ri-star-fill"></i><i class="ri-star-fill"></i><i class="ri-star-fill"></i>
+                </div>
+              </div>
+            </div>
+            <div class="testimonial-card">
+              <div class="quote-mark">"</div>
+              <p class="testimonial-text">I always wanted a Porsche 911. Prestige Motors made it happen with a financing deal that fit my budget perfectly. The 48-hour delivery to my home was the cherry on top. Absolutely first-class service.</p>
+              <div class="testimonial-author">
+                <img src="https://i.pravatar.cc/150?img=5" alt="Fatmata Bangura" class="testimonial-avatar">
+                <div class="testimonial-meta">
+                  <div class="testimonial-name">Fatmata Bangura</div>
+                  <div class="testimonial-role">Director, Bangura & Associates</div>
+                </div>
+                <div class="testimonial-stars">
+                  <i class="ri-star-fill"></i><i class="ri-star-fill"></i><i class="ri-star-fill"></i><i class="ri-star-fill"></i><i class="ri-star-fill"></i>
+                </div>
+              </div>
+            </div>
+            <div class="testimonial-card">
+              <div class="quote-mark">"</div>
+              <p class="testimonial-text">Three cars purchased, three flawless experiences. Prestige Motors understands what luxury really means — it's not just the vehicle, it's every touchpoint from first enquiry to after-sales support. Sierra Leone's finest.</p>
+              <div class="testimonial-author">
+                <img src="https://i.pravatar.cc/150?img=7" alt="Ibrahim Sesay" class="testimonial-avatar">
+                <div class="testimonial-meta">
+                  <div class="testimonial-name">Ibrahim Sesay</div>
+                  <div class="testimonial-role">Entrepreneur & Investor — Bo</div>
+                </div>
+                <div class="testimonial-stars">
+                  <i class="ri-star-fill"></i><i class="ri-star-fill"></i><i class="ri-star-fill"></i><i class="ri-star-fill"></i><i class="ri-star-fill"></i>
+                </div>
+              </div>
+            </div>
+            <div class="testimonial-card">
+              <div class="quote-mark">"</div>
+              <p class="testimonial-text">From the moment I booked online to receiving my Lamborghini Huracán, every step was seamless. The online finance calculator gave me confidence before I even stepped in. Prestige Motors is in a class of its own.</p>
+              <div class="testimonial-author">
+                <img src="https://i.pravatar.cc/150?img=9" alt="Mariatu Kamara" class="testimonial-avatar">
+                <div class="testimonial-meta">
+                  <div class="testimonial-name">Mariatu Kamara</div>
+                  <div class="testimonial-role">Managing Director, Kamara Holdings</div>
+                </div>
+                <div class="testimonial-stars">
+                  <i class="ri-star-fill"></i><i class="ri-star-fill"></i><i class="ri-star-fill"></i><i class="ri-star-fill"></i><i class="ri-star-fill"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="carousel-controls">
+          <button class="carousel-btn" id="carouselPrev" aria-label="Previous"><i class="ri-arrow-left-s-line"></i></button>
+          <div class="carousel-dots" id="carouselDots">
+            <div class="carousel-dot active"></div>
+            <div class="carousel-dot"></div>
+            <div class="carousel-dot"></div>
+            <div class="carousel-dot"></div>
+          </div>
+          <button class="carousel-btn" id="carouselNext" aria-label="Next"><i class="ri-arrow-right-s-line"></i></button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       DEALER DASHBOARD PREVIEW
+       ============================================================ -->
+  <section class="dashboard-preview-section">
+    <div class="section-container">
+      <div class="dashboard-preview-layout">
+        <div class="dashboard-preview-info">
+          <span class="section-kicker">Dealer Portal</span>
+          <h2 class="section-title">Powerful Dealer<br>Dashboard</h2>
+          <p class="section-desc">Managing your inventory has never been this elegant. Our control suite gives you everything you need to list, manage, and sell — beautifully.</p>
+          <ul class="dashboard-features-list">
+            <li><i class="ri-checkbox-circle-fill"></i> Real-time inventory management</li>
+            <li><i class="ri-checkbox-circle-fill"></i> Advanced analytics & revenue tracking</li>
+            <li><i class="ri-checkbox-circle-fill"></i> Appointment & test drive management</li>
+            <li><i class="ri-checkbox-circle-fill"></i> Photo & video showcase uploads</li>
+            <li><i class="ri-checkbox-circle-fill"></i> Enquiry & lead management</li>
+          </ul>
+          <a href="admin.html" class="btn-dashboard-access">
+            <i class="ri-dashboard-3-fill"></i> Access Dealer Dashboard <i class="ri-arrow-right-line"></i>
+          </a>
+        </div>
+
+        <div class="dashboard-preview-cards">
+          <div class="dash-preview-card dash-preview-card--main">
+            <div class="dash-preview-header">
+              <span class="dash-preview-title">Monthly Revenue</span>
+              <span class="dash-trend up"><i class="ri-arrow-up-line"></i> 24.1%</span>
+            </div>
+            <div class="dash-preview-value">NLE 48,200,000</div>
+            <div class="mini-chart">
+              <div class="mini-bar" style="height:40%"></div>
+              <div class="mini-bar" style="height:60%"></div>
+              <div class="mini-bar" style="height:45%"></div>
+              <div class="mini-bar" style="height:75%"></div>
+              <div class="mini-bar" style="height:55%"></div>
+              <div class="mini-bar" style="height:90%"></div>
+              <div class="mini-bar active" style="height:100%"></div>
+            </div>
+          </div>
+          <div class="dash-preview-card">
+            <div class="dash-preview-header"><span class="dash-preview-title">Cars Listed</span><i class="ri-car-fill"></i></div>
+            <div class="dash-preview-value">156</div>
+            <div class="dash-preview-sub">12 added this month</div>
+          </div>
+          <div class="dash-preview-card">
+            <div class="dash-preview-header"><span class="dash-preview-title">Appointments</span><i class="ri-calendar-event-fill"></i></div>
+            <div class="dash-preview-value">24</div>
+            <div class="dash-preview-sub">8 this week</div>
+          </div>
+          <div class="dash-preview-card">
+            <div class="dash-preview-header"><span class="dash-preview-title">Enquiries</span><i class="ri-message-2-fill"></i></div>
+            <div class="dash-preview-value">89</div>
+            <div class="dash-preview-sub"><span class="live-dot">●</span> 3 new today</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       CTA SECTION
+       ============================================================ -->
+  <section class="cta-section">
+    <div class="cta-bg-gradient"></div>
+    <div class="section-container">
+      <div class="cta-content">
+        <span class="section-kicker cta-kicker">Your Dream Awaits</span>
+        <h2 class="cta-headline">Ready to Drive Your<br><span class="cta-accent">Dream Car?</span></h2>
+        <p class="cta-desc">Join thousands of satisfied clients who found their perfect vehicle with Prestige Motors. Your journey begins with a single click.</p>
+        <div class="cta-actions">
+          <a href="#inventory" class="btn-cta-primary"><i class="ri-car-line"></i> Browse Inventory</a>
+          <button class="btn-cta-secondary" id="ctaTestDriveBtn"><i class="ri-steering-2-line"></i> Book a Test Drive</button>
+        </div>
+        <div class="cta-trust-row">
+          <div class="trust-badge"><i class="ri-shield-check-fill"></i> Secure & Verified</div>
+          <div class="trust-badge"><i class="ri-lock-fill"></i> Safe Payments</div>
+          <div class="trust-badge"><i class="ri-customer-service-fill"></i> 24/7 Support</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       FOOTER
+       ============================================================ -->
+  <footer class="footer" id="contact">
+    <div class="footer-top">
+      <div class="footer-container">
+        <div class="footer-brand-col">
+          <a href="#home" class="footer-logo-link">
+            <div class="logo-mark-nav">🚘</div>
+            <div>
+              <div class="brand-name-nav">PRESTIGE</div>
+              <div class="brand-sub-nav">MOTORS</div>
+            </div>
+          </a>
+          <p class="footer-brand-desc">Sierra Leone's most exclusive automotive destination. Where luxury meets performance, and every drive is an experience.</p>
+          <div class="footer-social">
+            <a href="#" class="social-btn" aria-label="Instagram"><i class="ri-instagram-line"></i></a>
+            <a href="#" class="social-btn" aria-label="Facebook"><i class="ri-facebook-fill"></i></a>
+            <a href="#" class="social-btn" aria-label="Twitter/X"><i class="ri-twitter-x-line"></i></a>
+            <a href="#" class="social-btn" aria-label="YouTube"><i class="ri-youtube-fill"></i></a>
+            <a href="https://wa.me/23276637648" target="_blank" class="social-btn" aria-label="WhatsApp" style="color:#25D366;border-color:#25D366"><i class="ri-whatsapp-line"></i></a>
+          </div>
+        </div>
+
+        <div class="footer-nav-col">
+          <h4 class="footer-nav-title">Navigation</h4>
+          <ul class="footer-nav-list">
+            <li><a href="#inventory">Inventory</a></li>
+            <li><a href="#new-cars">New Cars</a></li>
+            <li><a href="#used-cars">Pre-Owned</a></li>
+            <li><a href="#brands">All Brands</a></li>
+
+            <li><a href="#about">About Us</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-nav-col">
+          <h4 class="footer-nav-title">Top Brands</h4>
+          <ul class="footer-nav-list">
+            <li><a href="#">BMW</a></li>
+            <li><a href="#">Mercedes-Benz</a></li>
+            <li><a href="#">Porsche</a></li>
+            <li><a href="#">Ferrari</a></li>
+            <li><a href="#">Lamborghini</a></li>
+            <li><a href="#">Rolls-Royce</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-nav-col">
+          <h4 class="footer-nav-title">Services</h4>
+          <ul class="footer-nav-list">
+            <li><a href="#">Test Drive</a></li>
+
+            <li><a href="#">Vehicle History</a></li>
+            <li><a href="#">Trade-In</a></li>
+            <li><a href="#">Warranty</a></li>
+            <li><a href="admin.html">Dealer Portal</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-newsletter-col">
+          <h4 class="footer-nav-title">Stay Updated</h4>
+          <p class="footer-newsletter-desc">Get exclusive access to new arrivals, special offers, and automotive news.</p>
+          <div class="footer-newsletter-form">
+            <input type="email" placeholder="Your email address" class="newsletter-input" id="newsletterEmail">
+            <button class="newsletter-btn" id="newsletterBtn"><i class="ri-send-plane-fill"></i></button>
+          </div>
+          <div class="footer-contact-info">
+            <div class="contact-item"><i class="ri-whatsapp-line"></i><a href="https://wa.me/23276637648" target="_blank" style="color:var(--text-muted);transition:color 0.2s" onmouseover="this.style.color='#25D366'" onmouseout="this.style.color=''">+232 76 637 648 (WhatsApp)</a></div>
+            <div class="contact-item"><i class="ri-phone-fill"></i><span>+232 76 637 648</span></div>
+            <div class="contact-item"><i class="ri-mail-fill"></i><span>hello@prestigemotors.sl</span></div>
+            <div class="contact-item"><i class="ri-map-pin-fill"></i><span>Wilkinson Road, Freetown</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <div class="footer-container footer-bottom-inner">
+        <p class="footer-copy">© 2025 Prestige Motors Executive Ltd. All Rights Reserved. Sierra Leone.</p>
+        <div class="footer-bottom-links">
+          <a href="#">Privacy Policy</a>
+          <a href="#">Terms of Service</a>
+          <a href="#">Cookie Policy</a>
+        </div>
+        <div class="footer-bottom-badges">
+          <span class="footer-badge">🇸🇱 Sierra Leone</span>
+          <span class="footer-badge">NLE</span>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ============================================================
+       MODALS
+       ============================================================ -->
+
+  <!-- Quick View Modal -->
+  <div class="modal-overlay" id="quickViewModal" role="dialog" aria-modal="true" aria-label="Quick View">
+    <div class="qv-modal">
+      <button class="modal-close-btn" id="quickViewClose" aria-label="Close"><i class="ri-close-line"></i></button>
+      <div class="qv-content" id="quickViewContent"></div>
+    </div>
+  </div>
+
+  <!-- Test Drive Modal -->
+  <div class="modal-overlay" id="testDriveModal" role="dialog" aria-modal="true" aria-label="Book Test Drive">
+    <div class="td-modal">
+      <div class="td-modal-header">
+        <div>
+          <h3 class="td-modal-title"><i class="ri-steering-2-line"></i> Book a Test Drive</h3>
+          <p class="td-modal-sub">Experience the thrill — no obligation required</p>
+        </div>
+        <button class="modal-close-btn" id="testDriveClose" aria-label="Close"><i class="ri-close-line"></i></button>
+      </div>
+      <div class="td-modal-body">
+        <div class="td-form-grid">
+          <div class="td-form-group">
+            <label>Full Name</label>
+            <input type="text" placeholder="Your full name" class="td-input" id="tdName">
+          </div>
+          <div class="td-form-group">
+            <label>Phone Number</label>
+            <input type="tel" placeholder="+232 76 000 000" class="td-input" id="tdPhone">
+          </div>
+          <div class="td-form-group">
+            <label>Email Address</label>
+            <input type="email" placeholder="your@email.com" class="td-input" id="tdEmail">
+          </div>
+          <div class="td-form-group">
+            <label>Vehicle of Interest</label>
+            <select class="td-input td-select" id="tdVehicle">
+              <option>BMW M8 Competition</option>
+              <option>Mercedes-AMG GT 63 S</option>
+              <option>Porsche 911 Turbo S</option>
+              <option>Ferrari 296 GTB</option>
+              <option>Lamborghini Huracán Tecnica</option>
+              <option>Audi R8 V10 Performance</option>
+            </select>
+          </div>
+          <div class="td-form-group">
+            <label>Preferred Date</label>
+            <input type="date" class="td-input" id="tdDate">
+          </div>
+          <div class="td-form-group">
+            <label>Preferred Time</label>
+            <select class="td-input td-select" id="tdTime">
+              <option>9:00 AM</option><option>10:00 AM</option><option>11:00 AM</option>
+              <option>12:00 PM</option><option>2:00 PM</option><option>3:00 PM</option><option>4:00 PM</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn-td-submit" id="testDriveSubmit">
+          <i class="ri-calendar-check-fill"></i> Confirm Booking
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+  <!-- Back to Top -->
+  <button class="back-to-top hidden" id="backToTop" aria-label="Back to top">
+    <i class="ri-arrow-up-line"></i>
+  </button>
+
+  <!-- WhatsApp Floating Button -->
+  <a href="https://wa.me/23276637648" target="_blank" id="waFloat" class="wa-float" aria-label="Chat on WhatsApp" title="Chat with us on WhatsApp">
+    <i class="ri-whatsapp-line"></i>
+    <span class="wa-float-label">Chat Now</span>
+  </a>
+
+  <script src="js/main.js"></script>
+</body>
+</html>
