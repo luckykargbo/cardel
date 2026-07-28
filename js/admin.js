@@ -101,7 +101,74 @@ function showToast(msg, type = 'info', duration = 3500) {
 }
 
 // ============================================================
-// AUTH
+// SESSION COOKIES & ROUTE PROTECTION MIDDLEWARE
+// ============================================================
+const COOKIE_NAME = 'pm_session_token';
+const AUTH_TOKEN_VAL = 'authenticated_onyx_admin_2026';
+
+function setAuthCookie(days = 1) {
+  const expires = new Date(Date.now() + days * 864e5).toUTCString();
+  document.cookie = `${COOKIE_NAME}=${AUTH_TOKEN_VAL}; expires=${expires}; path=/; SameSite=Lax`;
+  localStorage.setItem('pm_admin_auth', '1');
+}
+
+function hasAuthCookie() {
+  const matches = document.cookie.match(new RegExp('(?:^|; )' + COOKIE_NAME.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + '=([^;]*)'));
+  const cookieVal = matches ? decodeURIComponent(matches[1]) : null;
+  const localVal = localStorage.getItem('pm_admin_auth');
+  return cookieVal === AUTH_TOKEN_VAL || localVal === '1';
+}
+
+function clearAuthCookie() {
+  document.cookie = `${COOKIE_NAME}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+  localStorage.removeItem('pm_admin_auth');
+}
+
+function getNormalizedHashRoute() {
+  const hash = window.location.hash.replace('#', '').trim();
+  const path = window.location.pathname.trim();
+  if (hash) return hash;
+  if (path.includes('app-admin-gate')) return '/app-admin-gate';
+  if (path.includes('admin-dashboard')) return '/admin-dashboard';
+  return '';
+}
+
+function checkAuthAndRoute() {
+  const route = getNormalizedHashRoute();
+  const isAuth = hasAuthCookie();
+
+  if (route === '/app-admin-gate' || route === 'app-admin-gate') {
+    // HIDDEN LOGIN GATE
+    if (isAuth) {
+      window.location.hash = '/admin-dashboard';
+      showPage('app');
+      initAppOnLogin();
+    } else {
+      showPage('login');
+    }
+  } else if (route === '/admin-dashboard' || route === 'admin-dashboard') {
+    // PROTECTED DASHBOARD ROUTE
+    if (!isAuth) {
+      showToast('Access Blocked. Restricted Route.', 'error');
+      showPage('404');
+    } else {
+      showPage('app');
+      initAppOnLogin();
+    }
+  } else {
+    // SECURITY BY OBSCURITY BLOCK (Direct access to bare admin.html or /admin or /login)
+    if (isAuth) {
+      window.location.hash = '/admin-dashboard';
+      showPage('app');
+      initAppOnLogin();
+    } else {
+      showPage('404');
+    }
+  }
+}
+
+// ============================================================
+// AUTH HANDLERS
 // ============================================================
 function handleLogin(e) {
   e.preventDefault();
@@ -114,9 +181,9 @@ function handleLogin(e) {
 
   setTimeout(() => {
     if (email === ADMIN_CREDENTIALS.email && pass === ADMIN_CREDENTIALS.password) {
-      localStorage.setItem('pm_admin_auth', '1');
-      showPage('app');
-      initAppOnLogin();
+      setAuthCookie(1);
+      window.location.hash = '/admin-dashboard';
+      checkAuthAndRoute();
       showToast('Welcome back, Super Admin! 🚘', 'success');
     } else {
       btn.disabled = false;
@@ -125,7 +192,7 @@ function handleLogin(e) {
       $('loginPassword').value = '';
       $('loginPassword').focus();
     }
-  }, 900);
+  }, 700);
 }
 
 function togglePwVisibility() {
@@ -140,11 +207,14 @@ function showLogoutModal() {
   $('logoutModal').classList.add('show');
 }
 function closeLogoutModal() { $('logoutModal').classList.remove('show'); }
+
 function performLogout() {
-  localStorage.removeItem('pm_admin_auth');
+  clearAuthCookie();
   closeLogoutModal();
-  showPage('login');
-  showToast('You have been signed out.', 'info');
+  showToast('Signed out. Redirecting to showroom...', 'info');
+  setTimeout(() => {
+    window.location.href = 'index.html';
+  }, 500);
 }
 
 // ============================================================
@@ -867,11 +937,10 @@ document.addEventListener('keydown', e => {
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
   applyTheme(currentTheme);
-  if (localStorage.getItem('pm_admin_auth') === '1') {
-    showPage('app');
-    initAppOnLogin();
-  }
+  checkAuthAndRoute();
 });
+
+window.addEventListener('hashchange', checkAuthAndRoute);
 
 // Global window bindings for inline HTML handlers
 window.handleLogin         = handleLogin;
