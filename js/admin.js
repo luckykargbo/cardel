@@ -126,10 +126,12 @@ function clearAuthCookie() {
 
 function getNormalizedHashRoute() {
   const hash = window.location.hash.replace('#', '').trim();
-  const path = window.location.pathname.trim();
-  if (hash) return hash;
+  const path = window.location.pathname.toLowerCase().trim();
+
+  if (hash) return hash.startsWith('/') ? hash : '/' + hash;
   if (path.includes('app-admin-gate')) return '/app-admin-gate';
   if (path.includes('admin-dashboard')) return '/admin-dashboard';
+  if (path.includes('admin') || path.includes('login')) return '/admin';
   return '';
 }
 
