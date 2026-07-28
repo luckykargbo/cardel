@@ -128,8 +128,12 @@ function getNormalizedHashRoute() {
   const hash = window.location.hash.replace('#', '').trim();
   const path = window.location.pathname.toLowerCase().trim();
 
-  if (hash) return hash.startsWith('/') ? hash : '/' + hash;
-  if (path.includes('app-admin-gate')) return '/app-admin-gate';
+  if (hash) {
+    const cleanHash = hash.startsWith('/') ? hash : '/' + hash;
+    if (cleanHash.includes('admin-gate')) return '/app-admin-gate';
+    return cleanHash;
+  }
+  if (path.includes('admin-gate') || path.includes('app-admin-gate')) return '/app-admin-gate';
   if (path.includes('admin-dashboard')) return '/admin-dashboard';
   if (path.includes('admin') || path.includes('login')) return '/admin';
   return '';

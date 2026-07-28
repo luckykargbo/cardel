@@ -8,6 +8,10 @@
       "destination": "/admin.html"
     },
     {
+      "source": "/admin-gate",
+      "destination": "/admin.html"
+    },
+    {
       "source": "/admin-dashboard",
       "destination": "/admin.html"
     },
