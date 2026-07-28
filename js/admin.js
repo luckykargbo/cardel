@@ -224,6 +224,29 @@ function performLogout() {
 }
 
 // ============================================================
+// MOBILE SIDEBAR DRAWER TOGGLE
+// ============================================================
+function toggleMobileSidebar() {
+  const sb = document.querySelector('.sidebar');
+  const backdrop = $('sidebarBackdrop');
+  const icon = $('adminHamburgerIcon');
+  if (!sb) return;
+
+  const isOpen = sb.classList.toggle('open');
+  if (backdrop) backdrop.classList.toggle('show', isOpen);
+  if (icon) icon.className = isOpen ? 'ri-close-line' : 'ri-menu-line';
+}
+
+function closeMobileSidebar() {
+  const sb = document.querySelector('.sidebar');
+  const backdrop = $('sidebarBackdrop');
+  const icon = $('adminHamburgerIcon');
+  if (sb) sb.classList.remove('open');
+  if (backdrop) backdrop.classList.remove('show');
+  if (icon) icon.className = 'ri-menu-line';
+}
+
+// ============================================================
 // PAGE / TAB ROUTER
 // ============================================================
 function showPage(name) {
@@ -233,6 +256,9 @@ function showPage(name) {
 }
 
 function navigate(tab) {
+  // Close mobile sidebar drawer if open
+  closeMobileSidebar();
+
   // Update sidebar active
   $$('.nav-item[id^="nav-"]').forEach(el => el.classList.remove('active'));
   const navEl = document.getElementById(`nav-${tab}`);
@@ -949,6 +975,8 @@ document.addEventListener('DOMContentLoaded', () => {
 window.addEventListener('hashchange', checkAuthAndRoute);
 
 // Global window bindings for inline HTML handlers
+window.toggleMobileSidebar  = toggleMobileSidebar;
+window.closeMobileSidebar   = closeMobileSidebar;
 window.handleLogin         = handleLogin;
 window.togglePwVisibility  = togglePwVisibility;
 window.navigate            = navigate;
