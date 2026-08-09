@@ -561,6 +561,33 @@ async function initLiveReviews() {
   initTestimonialsCarousel();
 }
 
+function initTestimonialsCarousel() {
+  const carousel = $('testimonialsCarousel');
+  const prev     = $('carouselPrev');
+  const next     = $('carouselNext');
+  const dotsWrap = $('carouselDots');
+  if (!carousel) return;
+
+  const cards = carousel.querySelectorAll('.testimonial-card');
+  if (!cards.length) return;
+  let current = 0;
+  let autoplay;
+
+  function goTo(idx) {
+    current = (idx + cards.length) % cards.length;
+    carousel.style.transform = `translateX(-${current * 100}%)`;
+    dotsWrap?.querySelectorAll('.carousel-dot').forEach((d, i) => {
+      d.classList.toggle('active', i === current);
+    });
+  }
+
+  if (prev) prev.onclick = () => { clearInterval(autoplay); goTo(current - 1); startAuto(); };
+  if (next) next.onclick = () => { clearInterval(autoplay); goTo(current + 1); startAuto(); };
+
+  function startAuto() { autoplay = setInterval(() => goTo(current + 1), 5000); }
+  startAuto();
+}
+
 // ──────────────────────────────────────────────
 // DYNAMIC FEATURED SHOWCASE
 // ──────────────────────────────────────────────
