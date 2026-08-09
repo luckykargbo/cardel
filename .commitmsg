@@ -1,4 +1,5 @@
-Fix favourites badge accuracy, deduplication, and ID type coercion in main.js
+Fix search overlay toggle and add quickSearch implementation
 
-- Add getValidFavourites() to filter out stale/deleted car IDs and enforce number type deduplication
-- Update toggleFav and updateFavBadge to calculate exact count of valid saved vehicles currently in database
+- Added .show class toggling to search overlay so search input opens reliably on clicking search button
+- Added real-time live input filtering as the user types in search box
+- Added quickSearch(term) function so popular tag buttons filter inventory and scroll smoothly to results

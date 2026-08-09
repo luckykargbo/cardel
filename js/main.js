@@ -695,20 +695,40 @@ function initSearchOverlay() {
   const close   = $('navSearchClose');
 
   toggle?.addEventListener('click', () => {
-    overlay?.classList.add('open');
-    setTimeout(() => input?.focus(), 100);
+    const isShowing = overlay?.classList.contains('show');
+    if (isShowing) {
+      overlay?.classList.remove('show', 'open');
+    } else {
+      overlay?.classList.add('show', 'open');
+      setTimeout(() => input?.focus(), 100);
+    }
   });
 
-  close?.addEventListener('click', () => overlay?.classList.remove('open'));
+  close?.addEventListener('click', () => {
+    overlay?.classList.remove('show', 'open');
+  });
+
+  input?.addEventListener('input', () => {
+    applyFilters();
+  });
 
   input?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
-      overlay?.classList.remove('open');
+      overlay?.classList.remove('show', 'open');
       applyFilters();
       document.getElementById('inventory')?.scrollIntoView({ behavior: 'smooth' });
     }
-    if (e.key === 'Escape') overlay?.classList.remove('open');
+    if (e.key === 'Escape') {
+      overlay?.classList.remove('show', 'open');
+    }
   });
+}
+
+function quickSearch(term) {
+  const input = $('navSearchInput');
+  if (input) input.value = term;
+  applyFilters();
+  document.getElementById('inventory')?.scrollIntoView({ behavior: 'smooth' });
 }
 
 function initModalListeners() {
