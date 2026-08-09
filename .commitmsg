@@ -1,5 +1,5 @@
-Fix internal server error on vehicle update & video upload
+Update inventory catalog to popular Sierra Leone vehicles and fix favourites counter
 
-- Added ALTER TABLE vehicles ADD COLUMN video_url migration to db.js so existing SQLite databases automatically include the video_url column
-- Wrapped POST and PUT vehicle routes in try-catch error handling with clean JSON error responses
-- Verified vehicle update and video link/file upload functionality in SQLite database
+- Replaced catalog with high-demand luxury & executive vehicles common in Sierra Leone: Toyota Land Cruiser V8 VXR, Lexus LX 600, Prado TX-L, G-Wagon G 63, Range Rover Vogue, Hilux GR Sport, Nissan Patrol V8, Lexus RX 350, Hyundai Santa Fe, GLE 450, Kia Sportage, Defender 110
+- Updated brand grid & footer top brands to Toyota, Lexus, Mercedes-Benz, Land Rover, Nissan, Hyundai, Kia, Honda
+- Fixed navbar favourites counter badge to dynamically hide when 0 and accurately show saved item count

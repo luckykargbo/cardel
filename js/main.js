@@ -267,8 +267,15 @@ function toggleFav(id, btn) {
 function updateFavBadge() {
   const badge = $('favCount');
   if (!badge) return;
-  badge.textContent = favourites.length;
-  badge.classList.toggle('hidden', favourites.length === 0);
+  const count = favourites.length;
+  badge.textContent = count;
+  if (count > 0) {
+    badge.classList.remove('hidden');
+    badge.style.display = 'flex';
+  } else {
+    badge.classList.add('hidden');
+    badge.style.display = 'none';
+  }
 }
 
 // ──────────────────────────────────────────────
@@ -610,6 +617,12 @@ async function initShowcase() {
 
   const waBtn = document.querySelector('.btn-showcase-primary');
   if (waBtn) waBtn.href = buildWALink(v);
+
+  const qvBtn = document.querySelector('.btn-showcase-icon[title="Quick View"]');
+  if (qvBtn) qvBtn.setAttribute('onclick', `openQuickView(${v.id})`);
+
+  const favBtn = document.querySelector('.btn-showcase-icon[title="Save to Favourites"]');
+  if (favBtn) favBtn.setAttribute('onclick', `toggleFav(${v.id})`);
 
   if (v.images && v.images.length > 1) {
     const thumbsWrap = $('showcaseThumbs');
