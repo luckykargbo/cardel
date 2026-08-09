@@ -233,31 +233,26 @@ async function loadDashboard() {
       <div class="metric-sub">${s.inventory.reserved} Reserved</div>
     </div>
     <div class="metric-card">
-      <div class="metric-icon-wrap blue"><i class="ri-message-2-fill"></i></div>
+      <div class="metric-icon-wrap blue"><i class="ri-eye-fill"></i></div>
       <div class="metric-info">
-        <div class="metric-value">${s.inquiries.total}</div>
-        <div class="metric-label">Enquiries</div>
+        <div class="metric-value">${s.inventory.drafts}</div>
+        <div class="metric-label">Draft (Hidden) Listings</div>
       </div>
-      ${s.inquiries.new > 0 ? `<div class="metric-sub new-sub"><span class="live-dot">●</span> ${s.inquiries.new} new</div>` : '<div class="metric-sub">All read</div>'}
+      <div class="metric-sub">Admin Only</div>
     </div>
     <div class="metric-card">
-      <div class="metric-icon-wrap purple"><i class="ri-bank-card-fill"></i></div>
+      <div class="metric-icon-wrap purple"><i class="ri-star-fill"></i></div>
       <div class="metric-info">
-        <div class="metric-value">${s.financing.total}</div>
-        <div class="metric-label">Finance Apps</div>
+        <div class="metric-value">${s.inventory.featured}</div>
+        <div class="metric-label">Featured Cars</div>
       </div>
-      <div class="metric-sub">${s.financing.pending} Pending</div>
+      <div class="metric-sub">Front Page</div>
     </div>
   `;
 
   // Inventory count badge
   const invBadge = $('inventoryCount');
   if (invBadge) invBadge.textContent = s.inventory.available;
-
-  // Notification badge
-  if (s.inquiries.new > 0) {
-    document.querySelectorAll('.badge-dot').forEach(b => b.style.display = 'block');
-  }
 
   // Recent vehicles table
   const tbody = $('dashTableBody');
@@ -286,7 +281,7 @@ async function loadInventoryTab() {
 
   tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--gold)"><i class="ri-loader-4-line" style="font-size:24px;animation:spin 1s linear infinite"></i></td></tr>`;
 
-  const data = await api('/vehicles?limit=500');
+  const data = await api('/vehicles?limit=500&all=true');
   if (!data.success) { showToast('Failed to load inventory.', 'error'); return; }
 
   inventoryData = data.vehicles || [];
@@ -463,6 +458,9 @@ function fillVehicleForm(v) {
   const featuredCb = $('vf-featured');
   if (featuredCb) featuredCb.checked = v.featured;
 
+  const videoUrlEl = $('vf-video-url');
+  if (videoUrlEl) videoUrlEl.value = v.video_url || '';
+
   // Show existing images
   const preview = $('imagePreviewGrid');
   if (preview && v.images && v.images.length) {
@@ -483,10 +481,21 @@ function fillVehicleForm(v) {
   }
 }
 
+function handleVideoFileChange(input) {
+  const notice = $('videoPreviewNotice');
+  const nameEl = $('videoFileName');
+  if (input.files && input.files[0]) {
+    if (notice) notice.style.display = 'block';
+    if (nameEl) nameEl.textContent = input.files[0].name;
+  } else {
+    if (notice) notice.style.display = 'none';
+  }
+}
+
 function clearVehicleForm() {
   ['vf-title','vf-brand','vf-model','vf-year','vf-price','vf-mileage',
    'vf-fuel','vf-hp','vf-engine','vf-transmission','vf-body','vf-colour',
-   'vf-location','vf-condition','vf-status','vf-description'].forEach(id => {
+   'vf-location','vf-condition','vf-status','vf-description','vf-video-url'].forEach(id => {
     const el = $(id);
     if (el) el.value = '';
   });
@@ -496,6 +505,10 @@ function clearVehicleForm() {
   if (preview) preview.innerHTML = '';
   const fileInput = $('vf-images');
   if (fileInput) fileInput.value = '';
+  const videoInput = $('vf-video');
+  if (videoInput) videoInput.value = '';
+  const notice = $('videoPreviewNotice');
+  if (notice) notice.style.display = 'none';
   window._editingImages = [];
 }
 
@@ -575,6 +588,16 @@ async function saveVehicle(e) {
     Array.from(fileInput.files).forEach(file => formData.append('images', file));
   }
 
+  // Append video file or video URL
+  const videoInput = $('vf-video');
+  if (videoInput?.files?.length) {
+    formData.append('video', videoInput.files[0]);
+  }
+  const videoUrlVal = $('vf-video-url')?.value?.trim();
+  if (videoUrlVal) {
+    formData.append('video_url', videoUrlVal);
+  }
+
   const endpoint = editingVehicleId ? `/vehicles/${editingVehicleId}` : '/vehicles';
   const method   = editingVehicleId ? 'PUT' : 'POST';
 
@@ -633,9 +656,7 @@ async function executeDelete() {
 
   if (data.success) {
     showToast('Deleted successfully.', 'success');
-    if (type === 'vehicle')   { await loadInventoryTab(); await loadDashboard(); }
-    if (type === 'inquiry')   await loadInquiriesTab();
-    if (type === 'financing') await loadFinancingTab();
+    if (type === 'vehicle') { await loadInventoryTab(); await loadDashboard(); }
   } else {
     showToast(data.message || 'Deletion failed.', 'error');
   }
@@ -644,138 +665,6 @@ async function executeDelete() {
 function closeDeleteModal() {
   $('deleteModal')?.classList.remove('active');
   deleteTarget = { type: null, id: null };
-}
-
-// ──────────────────────────────────────────────
-// INQUIRIES TAB
-// ──────────────────────────────────────────────
-async function loadInquiriesTab() {
-  const tbody  = $('inquiriesTableBody');
-  const totalEl = $('inquiriesTotalCount');
-  if (!tbody) return;
-
-  tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--gold)"><i class="ri-loader-4-line" style="font-size:24px;animation:spin 1s linear infinite"></i></td></tr>`;
-
-  const data = await api('/inquiries');
-  if (!data.success) { showToast('Failed to load inquiries.', 'error'); return; }
-
-  const inquiries = data.inquiries || [];
-  if (totalEl) totalEl.textContent = `${inquiries.length} Total`;
-
-  if (inquiries.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted)">No enquiries yet.</td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = inquiries.map(inq => {
-    const statusMap = {
-      'new':       '<span class="status-pill available">New</span>',
-      'read':      '<span class="status-pill draft">Read</span>',
-      'responded': '<span class="status-pill sold">Responded</span>'
-    };
-    return `
-      <tr>
-        <td>
-          <div class="table-vehicle-name">${inq.name}</div>
-          <div class="table-vehicle-sub">${inq.email}</div>
-          ${inq.phone ? `<div class="table-vehicle-sub">${inq.phone}</div>` : ''}
-        </td>
-        <td>${inq.vehicle || '—'}</td>
-        <td style="max-width:220px;white-space:normal;font-size:12px;color:var(--text-muted)">${inq.message?.substring(0,100)}${inq.message?.length > 100 ? '...' : ''}</td>
-        <td>${fmtDate(inq.created_at)}</td>
-        <td>${statusMap[inq.status] || statusMap['new']}</td>
-        <td class="actions-col text-right">
-          <select class="status-select-mini" onchange="updateInquiryStatus(${inq.id}, this.value)">
-            <option value="new"       ${inq.status==='new'       ?'selected':''}>New</option>
-            <option value="read"      ${inq.status==='read'      ?'selected':''}>Read</option>
-            <option value="responded" ${inq.status==='responded' ?'selected':''}>Responded</option>
-          </select>
-          <button class="icon-btn sm" onclick="openWAReply('${inq.phone || ''}','${inq.name}')" title="Reply on WhatsApp">
-            <i class="ri-whatsapp-line" style="color:#25D366"></i>
-          </button>
-          <button class="icon-btn sm danger" onclick="confirmDelete('inquiry',${inq.id},'${inq.name.replace(/'/g,"\\'")}','Enquiry')" title="Delete">
-            <i class="ri-delete-bin-line"></i>
-          </button>
-        </td>
-      </tr>`;
-  }).join('');
-}
-
-async function updateInquiryStatus(id, status) {
-  const data = await api(`/inquiries/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
-  if (data.success) showToast(`Marked as ${status}`, 'success');
-  else showToast(data.message || 'Failed to update.', 'error');
-}
-
-function openWAReply(phone, name) {
-  if (!phone) { showToast('No phone number available.', 'warning'); return; }
-  const cleaned = phone.replace(/\s+/g, '').replace(/^\+/, '');
-  const msg = encodeURIComponent(`Hello ${name}, thank you for your enquiry with Prestige Motors! 🚘`);
-  window.open(`https://wa.me/${cleaned}?text=${msg}`, '_blank');
-}
-
-// ──────────────────────────────────────────────
-// FINANCING TAB
-// ──────────────────────────────────────────────
-async function loadFinancingTab() {
-  const tbody  = $('financingTableBody');
-  const totalEl = $('financingTotalCount');
-  if (!tbody) return;
-
-  tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--gold)"><i class="ri-loader-4-line" style="font-size:24px;animation:spin 1s linear infinite"></i></td></tr>`;
-
-  const data = await api('/financing');
-  if (!data.success) { showToast('Failed to load financing applications.', 'error'); return; }
-
-  const apps = data.applications || [];
-  if (totalEl) totalEl.textContent = `${apps.length} Applications`;
-
-  if (apps.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted)">No financing applications yet.</td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = apps.map(app => {
-    const statusMap = {
-      'pending':   '<span class="status-pill reserved">Pending</span>',
-      'reviewing': '<span class="status-pill draft">Reviewing</span>',
-      'approved':  '<span class="status-pill available">Approved</span>',
-      'rejected':  '<span class="status-pill sold">Rejected</span>'
-    };
-    return `
-      <tr>
-        <td>
-          <div class="table-vehicle-name">${app.name}</div>
-          <div class="table-vehicle-sub">${app.email}</div>
-          ${app.phone ? `<div class="table-vehicle-sub">${app.phone}</div>` : ''}
-        </td>
-        <td>${app.vehicle || '—'}</td>
-        <td>
-          ${app.monthly_income ? `Income: ${fmtNLE(app.monthly_income)}<br>` : ''}
-          ${app.down_payment ? `Down: ${fmtNLE(app.down_payment)}<br>` : ''}
-          ${app.loan_term_months ? `${app.loan_term_months} months` : ''}
-        </td>
-        <td>${app.employment || '—'}</td>
-        <td>${fmtDate(app.created_at)}</td>
-        <td class="actions-col text-right">
-          <select class="status-select-mini" onchange="updateFinancingStatus(${app.id}, this.value)">
-            <option value="pending"   ${app.status==='pending'   ?'selected':''}>Pending</option>
-            <option value="reviewing" ${app.status==='reviewing' ?'selected':''}>Reviewing</option>
-            <option value="approved"  ${app.status==='approved'  ?'selected':''}>Approved</option>
-            <option value="rejected"  ${app.status==='rejected'  ?'selected':''}>Rejected</option>
-          </select>
-          <button class="icon-btn sm danger" onclick="confirmDelete('financing',${app.id},'${app.name.replace(/'/g,"\\'")}','Finance Application')" title="Delete">
-            <i class="ri-delete-bin-line"></i>
-          </button>
-        </td>
-      </tr>`;
-  }).join('');
-}
-
-async function updateFinancingStatus(id, status) {
-  const data = await api(`/financing/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
-  if (data.success) showToast(`Application marked as ${status}`, 'success');
-  else showToast(data.message || 'Failed to update.', 'error');
 }
 
 // ──────────────────────────────────────────────

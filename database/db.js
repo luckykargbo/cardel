@@ -87,35 +87,19 @@ function createSchema() {
       featured        INTEGER NOT NULL DEFAULT 0,
       description     TEXT,
       images          TEXT    NOT NULL DEFAULT '[]',
+      video_url       TEXT,
       created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
       updated_at      TEXT    NOT NULL DEFAULT (datetime('now'))
     );
 
-    CREATE TABLE IF NOT EXISTS inquiries (
-      id         INTEGER PRIMARY KEY AUTOINCREMENT,
-      name       TEXT    NOT NULL,
-      email      TEXT    NOT NULL,
-      phone      TEXT,
-      vehicle_id INTEGER,
-      vehicle    TEXT,
-      message    TEXT    NOT NULL,
-      status     TEXT    NOT NULL DEFAULT 'new',
-      created_at TEXT    NOT NULL DEFAULT (datetime('now'))
-    );
-
-    CREATE TABLE IF NOT EXISTS financing (
-      id               INTEGER PRIMARY KEY AUTOINCREMENT,
-      name             TEXT    NOT NULL,
-      email            TEXT    NOT NULL,
-      phone            TEXT,
-      vehicle_id       INTEGER,
-      vehicle          TEXT,
-      employment       TEXT,
-      monthly_income   INTEGER,
-      down_payment     INTEGER,
-      loan_term_months INTEGER,
-      status           TEXT    NOT NULL DEFAULT 'pending',
-      created_at       TEXT    NOT NULL DEFAULT (datetime('now'))
+    CREATE TABLE IF NOT EXISTS reviews (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      name        TEXT    NOT NULL,
+      role        TEXT,
+      rating      INTEGER NOT NULL DEFAULT 5,
+      comment     TEXT    NOT NULL,
+      status      TEXT    NOT NULL DEFAULT 'approved',
+      created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
     );
 
     CREATE TABLE IF NOT EXISTS subscribers (
@@ -169,6 +153,21 @@ async function seedData() {
       `, v);
     }
     console.log(`✅  Seeded ${vehicles.length} sample vehicles`);
+  }
+
+  // Reviews
+  const revCountRows = db.exec('SELECT COUNT(*) as c FROM reviews');
+  const revCount = revCountRows[0]?.values[0]?.[0] || 0;
+  if (revCount === 0) {
+    const sampleReviews = [
+      ['Ahmed Koroma', 'CEO, Koroma Industries — Freetown', 5, 'The experience at Prestige Motors was extraordinary. I walked in looking for a BMW M8 and walked out with not just a car, but a lifestyle upgrade.'],
+      ['Fatmata Bangura', 'Director, Bangura & Associates', 5, 'I always wanted a Porsche 911. Prestige Motors made it happen with a financing deal that fit my budget perfectly. 48-hour delivery to my doorstep!'],
+      ['Ibrahim Sesay', 'Entrepreneur & Investor — Bo', 5, 'Three cars purchased, three flawless experiences. Prestige Motors understands what true luxury means in Sierra Leone.']
+    ];
+    for (const r of sampleReviews) {
+      db.run("INSERT INTO reviews (name, role, rating, comment, status) VALUES (?, ?, ?, ?, 'approved')", r);
+    }
+    console.log(`✅  Seeded ${sampleReviews.length} client reviews`);
   }
 }
 

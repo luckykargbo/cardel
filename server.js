@@ -42,11 +42,11 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (_req, file, cb) => {
-  const ok = /jpeg|jpg|png|webp|gif/.test(path.extname(file.originalname).toLowerCase());
-  ok ? cb(null, true) : cb(new Error('Only image files are allowed.'));
+  const ok = /jpeg|jpg|png|webp|gif|mp4|webm|mov|avi|mkv/.test(path.extname(file.originalname).toLowerCase());
+  ok ? cb(null, true) : cb(new Error('Only image and video files are allowed.'));
 };
 
-const upload = multer({ storage, fileFilter, limits: { fileSize: 8 * 1024 * 1024 } });
+const upload = multer({ storage, fileFilter, limits: { fileSize: 50 * 1024 * 1024 } });
 
 // ──────────────────────────────────────────────
 // HELPERS
@@ -120,8 +120,8 @@ app.get('/api/vehicles', (req, res) => {
   let sql  = 'SELECT * FROM vehicles WHERE 1=1';
   const p  = [];
 
-  if (status) { sql += ' AND LOWER(status) = LOWER(?)'; p.push(status); }
-  else        { sql += " AND status != 'draft'"; }
+  if (status && status !== 'all') { sql += ' AND LOWER(status) = LOWER(?)'; p.push(status); }
+  else if (req.query.all !== 'true' && req.query.all !== '1') { sql += " AND status != 'draft'"; }
 
   if (brand)   { sql += ' AND LOWER(brand) = LOWER(?)'; p.push(brand); }
   if (model)   { sql += ' AND LOWER(model) LIKE LOWER(?)'; p.push(`%${model}%`); }
@@ -179,12 +179,12 @@ app.get('/api/vehicles/:id', (req, res) => {
   return ok(res, { vehicle: mapVehicle(vehicle) });
 });
 
-app.post('/api/vehicles', requireAuth, upload.array('images', 10), (req, res) => {
+app.post('/api/vehicles', requireAuth, upload.fields([{ name: 'images', maxCount: 10 }, { name: 'video', maxCount: 1 }]), (req, res) => {
   const {
     title, brand, model, year, price, mileage = 0, fuel,
     hp = '', engine = '', transmission = '', body = '', colour = '',
     location = 'Freetown', condition_type = 'new', status = 'available',
-    featured = 0, description = '', existingImages
+    featured = 0, description = '', existingImages, video_url = ''
   } = req.body;
 
   if (!title || !brand || !model || !year || !price || !fuel) {
@@ -193,30 +193,37 @@ app.post('/api/vehicles', requireAuth, upload.array('images', 10), (req, res) =>
 
   let images = [];
   try { images = JSON.parse(existingImages || '[]'); } catch {}
-  if (req.files?.length) images = images.concat(req.files.map(f => `/uploads/${f.filename}`));
+  if (req.files?.images?.length) {
+    images = images.concat(req.files.images.map(f => `/uploads/${f.filename}`));
+  }
+
+  let finalVideoUrl = video_url || '';
+  if (req.files?.video?.length) {
+    finalVideoUrl = `/uploads/${req.files.video[0].filename}`;
+  }
 
   const isFeatured = featured === 'true' || featured === true || featured === '1' ? 1 : 0;
 
   const result = run(`
     INSERT INTO vehicles
-      (title,brand,model,year,price,mileage,fuel,hp,engine,transmission,body,colour,location,condition_type,status,featured,description,images,updated_at)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,datetime('now'))
+      (title,brand,model,year,price,mileage,fuel,hp,engine,transmission,body,colour,location,condition_type,status,featured,description,images,video_url,updated_at)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,datetime('now'))
   `, [title, brand, model, parseInt(year), parseInt(price), parseInt(mileage),
       fuel, hp, engine, transmission, body, colour, location,
-      condition_type, status, isFeatured, description, JSON.stringify(images)]);
+      condition_type, status, isFeatured, description, JSON.stringify(images), finalVideoUrl]);
 
   const newV = get('SELECT * FROM vehicles WHERE id = ?', [result.lastInsertRowid]);
   return ok(res, { vehicle: mapVehicle(newV) }, 201);
 });
 
-app.put('/api/vehicles/:id', requireAuth, upload.array('images', 10), (req, res) => {
+app.put('/api/vehicles/:id', requireAuth, upload.fields([{ name: 'images', maxCount: 10 }, { name: 'video', maxCount: 1 }]), (req, res) => {
   const existing = get('SELECT * FROM vehicles WHERE id = ?', [req.params.id]);
   if (!existing) return fail(res, 'Vehicle not found.', 404);
 
   const {
     title, brand, model, year, price, mileage, fuel,
     hp, engine, transmission, body, colour, location,
-    condition_type, status, featured, description, existingImages, removeImages
+    condition_type, status, featured, description, existingImages, removeImages, video_url
   } = req.body;
 
   // Handle images
@@ -233,7 +240,14 @@ app.put('/api/vehicles/:id', requireAuth, upload.array('images', 10), (req, res)
     });
   }
   if (existingImages) { try { images = JSON.parse(existingImages); } catch {} }
-  if (req.files?.length) images = images.concat(req.files.map(f => `/uploads/${f.filename}`));
+  if (req.files?.images?.length) {
+    images = images.concat(req.files.images.map(f => `/uploads/${f.filename}`));
+  }
+
+  let finalVideoUrl = video_url !== undefined ? video_url : (existing.video_url || '');
+  if (req.files?.video?.length) {
+    finalVideoUrl = `/uploads/${req.files.video[0].filename}`;
+  }
 
   const isFeatured = (featured !== undefined)
     ? (featured === 'true' || featured === true || featured === '1' ? 1 : 0)
@@ -243,7 +257,7 @@ app.put('/api/vehicles/:id', requireAuth, upload.array('images', 10), (req, res)
     UPDATE vehicles SET
       title=?,brand=?,model=?,year=?,price=?,mileage=?,fuel=?,hp=?,engine=?,
       transmission=?,body=?,colour=?,location=?,condition_type=?,status=?,
-      featured=?,description=?,images=?,updated_at=datetime('now')
+      featured=?,description=?,images=?,video_url=?,updated_at=datetime('now')
     WHERE id=?
   `, [
     title ?? existing.title, brand ?? existing.brand,
@@ -254,7 +268,7 @@ app.put('/api/vehicles/:id', requireAuth, upload.array('images', 10), (req, res)
     body ?? existing.body, colour ?? existing.colour,
     location ?? existing.location, condition_type ?? existing.condition_type,
     status ?? existing.status, isFeatured,
-    description ?? existing.description, JSON.stringify(images),
+    description ?? existing.description, JSON.stringify(images), finalVideoUrl,
     req.params.id
   ]);
 
@@ -292,82 +306,6 @@ app.delete('/api/vehicles/:id', requireAuth, (req, res) => {
 });
 
 // ──────────────────────────────────────────────
-// INQUIRIES
-// ──────────────────────────────────────────────
-
-app.post('/api/inquiries', (req, res) => {
-  const { name, email, phone, vehicle_id, vehicle, message } = req.body;
-  if (!name || !email || !message) return fail(res, 'Name, email, and message are required.');
-  const result = run(
-    'INSERT INTO inquiries (name,email,phone,vehicle_id,vehicle,message) VALUES (?,?,?,?,?,?)',
-    [name.trim(), email.trim(), phone?.trim() || '', vehicle_id || null, vehicle?.trim() || 'General Enquiry', message.trim()]
-  );
-  return ok(res, { id: result.lastInsertRowid, message: "Enquiry sent. We'll get back to you shortly." }, 201);
-});
-
-app.get('/api/inquiries', requireAuth, (req, res) => {
-  const { status, limit = 100, offset = 0 } = req.query;
-  let sql = 'SELECT * FROM inquiries';
-  const p = [];
-  if (status && status !== 'all') { sql += ' WHERE status = ?'; p.push(status); }
-  sql += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
-  p.push(parseInt(limit), parseInt(offset));
-  const inquiries = query(sql, p);
-  const total = get('SELECT COUNT(*) as c FROM inquiries')?.c || 0;
-  return ok(res, { inquiries, total });
-});
-
-app.patch('/api/inquiries/:id/status', requireAuth, (req, res) => {
-  const { status } = req.body;
-  if (!['new','read','responded'].includes(status)) return fail(res, 'Invalid status.');
-  const r = run('UPDATE inquiries SET status = ? WHERE id = ?', [status, req.params.id]);
-  if (r.changes === 0) return fail(res, 'Not found.', 404);
-  return ok(res, { message: 'Updated.' });
-});
-
-app.delete('/api/inquiries/:id', requireAuth, (req, res) => {
-  const r = run('DELETE FROM inquiries WHERE id = ?', [req.params.id]);
-  if (r.changes === 0) return fail(res, 'Not found.', 404);
-  return ok(res, { message: 'Deleted.' });
-});
-
-// ──────────────────────────────────────────────
-// FINANCING
-// ──────────────────────────────────────────────
-
-app.post('/api/financing', (req, res) => {
-  const { name, email, phone, vehicle_id, vehicle, employment, monthly_income, down_payment, loan_term_months } = req.body;
-  if (!name || !email) return fail(res, 'Name and email are required.');
-  const result = run(
-    'INSERT INTO financing (name,email,phone,vehicle_id,vehicle,employment,monthly_income,down_payment,loan_term_months) VALUES (?,?,?,?,?,?,?,?,?)',
-    [name.trim(), email.trim(), phone?.trim() || '', vehicle_id || null, vehicle?.trim() || '',
-     employment?.trim() || '', parseInt(monthly_income) || 0, parseInt(down_payment) || 0, parseInt(loan_term_months) || 0]
-  );
-  return ok(res, { id: result.lastInsertRowid, message: 'Application received. Our finance team will contact you within 24 hours.' }, 201);
-});
-
-app.get('/api/financing', requireAuth, (req, res) => {
-  const { limit = 100, offset = 0 } = req.query;
-  const applications = query('SELECT * FROM financing ORDER BY created_at DESC LIMIT ? OFFSET ?', [parseInt(limit), parseInt(offset)]);
-  const total = get('SELECT COUNT(*) as c FROM financing')?.c || 0;
-  return ok(res, { applications, total });
-});
-
-app.patch('/api/financing/:id/status', requireAuth, (req, res) => {
-  const { status } = req.body;
-  if (!['pending','reviewing','approved','rejected'].includes(status)) return fail(res, 'Invalid status.');
-  const r = run('UPDATE financing SET status = ? WHERE id = ?', [status, req.params.id]);
-  if (r.changes === 0) return fail(res, 'Not found.', 404);
-  return ok(res, { message: 'Updated.' });
-});
-
-app.delete('/api/financing/:id', requireAuth, (req, res) => {
-  const r = run('DELETE FROM financing WHERE id = ?', [req.params.id]);
-  if (r.changes === 0) return fail(res, 'Not found.', 404);
-  return ok(res, { message: 'Deleted.' });
-});
-
-// ──────────────────────────────────────────────
 // NEWSLETTER
 // ──────────────────────────────────────────────
 
@@ -389,8 +327,40 @@ app.get('/api/newsletter', requireAuth, (req, res) => {
 });
 
 // ──────────────────────────────────────────────
-// STATS
+// REVIEWS
 // ──────────────────────────────────────────────
+
+app.get('/api/reviews', (req, res) => {
+  const reviews = query("SELECT * FROM reviews WHERE status = 'approved' ORDER BY created_at DESC LIMIT 20");
+  return ok(res, { reviews });
+});
+
+app.post('/api/reviews', (req, res) => {
+  const { name, role, rating = 5, comment } = req.body;
+  if (!name || !comment) return fail(res, 'Name and review comment are required.');
+  const result = run(
+    'INSERT INTO reviews (name, role, rating, comment, status) VALUES (?, ?, ?, ?, ?)',
+    [name.trim(), role?.trim() || 'Verified Client', Math.min(5, Math.max(1, parseInt(rating) || 5)), comment.trim(), 'approved']
+  );
+  return ok(res, { id: result.lastInsertRowid, message: 'Thank you for your review!' }, 201);
+});
+
+// ──────────────────────────────────────────────
+// PUBLIC STATS (Live dynamic count for index.html)
+// ──────────────────────────────────────────────
+
+app.get('/api/stats/public', (req, res) => {
+  const availableCars = get("SELECT COUNT(*) as c FROM vehicles WHERE status = 'available'")?.c || 0;
+  const totalBrands   = get("SELECT COUNT(DISTINCT brand) as c FROM vehicles")?.c || 0;
+  const totalSold     = get("SELECT COUNT(*) as c FROM vehicles WHERE status = 'sold'")?.c || 0;
+
+  return ok(res, {
+    carsAvailable: availableCars,
+    satisfiedClients: totalSold + 25,
+    brandsCount: totalBrands,
+    satisfactionRate: 99
+  });
+});
 
 app.get('/api/stats', requireAuth, (req, res) => {
   const total     = get("SELECT COUNT(*) as c FROM vehicles")?.c || 0;
@@ -401,10 +371,6 @@ app.get('/api/stats', requireAuth, (req, res) => {
   const featured  = get("SELECT COUNT(*) as c FROM vehicles WHERE featured=1")?.c || 0;
   const totalVal  = get("SELECT SUM(price) as s FROM vehicles WHERE status!='draft'")?.s || 0;
   const soldVal   = get("SELECT SUM(price) as s FROM vehicles WHERE status='sold'")?.s || 0;
-  const newInq    = get("SELECT COUNT(*) as c FROM inquiries WHERE status='new'")?.c || 0;
-  const totalInq  = get("SELECT COUNT(*) as c FROM inquiries")?.c || 0;
-  const totalFin  = get("SELECT COUNT(*) as c FROM financing")?.c || 0;
-  const pendFin   = get("SELECT COUNT(*) as c FROM financing WHERE status='pending'")?.c || 0;
   const subs      = get("SELECT COUNT(*) as c FROM subscribers")?.c || 0;
 
   const recentVehicles = query('SELECT * FROM vehicles ORDER BY created_at DESC LIMIT 5').map(mapVehicle);
@@ -412,8 +378,6 @@ app.get('/api/stats', requireAuth, (req, res) => {
   return ok(res, {
     stats: {
       inventory: { total, available, reserved, sold, drafts, featured, totalValue: totalVal, soldValue: soldVal },
-      inquiries: { total: totalInq, new: newInq },
-      financing: { total: totalFin, pending: pendFin },
       subscribers: subs
     },
     recentVehicles

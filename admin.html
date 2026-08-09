@@ -154,12 +154,6 @@
               <i class="ri-car-fill nav-icon"></i> Car Inventory
               <span class="nav-badge" id="inventoryCount">0</span>
             </li>
-            <li class="nav-item" onclick="navigate('inquiries')" id="nav-inquiries">
-              <i class="ri-message-2-fill nav-icon"></i> Enquiries
-            </li>
-            <li class="nav-item" onclick="navigate('financing')" id="nav-financing">
-              <i class="ri-bank-card-fill nav-icon"></i> Financing
-            </li>
 
             <li class="nav-section-label">System</li>
             <li class="nav-item" onclick="navigate('settings')" id="nav-settings">
@@ -268,70 +262,6 @@
                     </tr>
                   </thead>
                   <tbody id="inventoryTableBody"></tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-
-          <!-- ====== INQUIRIES TAB ====== -->
-          <div class="tab-view" id="tab-inquiries">
-            <div class="view-header">
-              <div>
-                <span class="section-kicker">Customer Relations</span>
-                <h2 class="view-title">Enquiries</h2>
-                <p class="view-desc" id="inquiriesTotalCount">Loading...</p>
-              </div>
-              <div class="view-actions">
-                <button class="btn btn-secondary btn-sm" onclick="loadInquiriesTab()"><i class="ri-refresh-line"></i> Refresh</button>
-              </div>
-            </div>
-
-            <div class="card">
-              <div class="table-responsive">
-                <table class="data-table">
-                  <thead>
-                    <tr>
-                      <th>Customer</th>
-                      <th>Vehicle</th>
-                      <th>Message</th>
-                      <th>Date</th>
-                      <th>Status</th>
-                      <th class="text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="inquiriesTableBody"></tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-
-          <!-- ====== FINANCING TAB ====== -->
-          <div class="tab-view" id="tab-financing">
-            <div class="view-header">
-              <div>
-                <span class="section-kicker">Finance Management</span>
-                <h2 class="view-title">Financing Applications</h2>
-                <p class="view-desc" id="financingTotalCount">Loading...</p>
-              </div>
-              <div class="view-actions">
-                <button class="btn btn-secondary btn-sm" onclick="loadFinancingTab()"><i class="ri-refresh-line"></i> Refresh</button>
-              </div>
-            </div>
-
-            <div class="card">
-              <div class="table-responsive">
-                <table class="data-table">
-                  <thead>
-                    <tr>
-                      <th>Applicant</th>
-                      <th>Vehicle</th>
-                      <th>Finance Details</th>
-                      <th>Employment</th>
-                      <th>Date</th>
-                      <th class="text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="financingTableBody"></tbody>
                 </table>
               </div>
             </div>
@@ -552,6 +482,22 @@
                 <div class="upload-zone-sub">JPG, PNG, WebP · Max 8MB per file</div>
               </div>
               <div class="upload-previews" id="imagePreviewGrid" style="margin-top:12px"></div>
+            </div>
+            <div class="form-group full-width">
+              <label><i class="ri-video-line" style="color:var(--gold)"></i> Vehicle Showcase Video (File Upload or URL)</label>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px">
+                <div class="upload-zone" style="position:relative;cursor:pointer;padding:16px" onclick="document.getElementById('vf-video').click()">
+                  <input type="file" id="vf-video" accept="video/mp4,video/webm,video/ogg,video/quicktime" style="display:none" onchange="handleVideoFileChange(this)">
+                  <div class="upload-zone-icon" style="font-size:24px"><i class="ri-video-upload-fill" style="color:var(--gold)"></i></div>
+                  <div class="upload-zone-title" style="font-size:13px" id="videoFileLabel">Upload MP4/MOV Video</div>
+                  <div class="upload-zone-sub" style="font-size:11px">Max 50MB video file</div>
+                </div>
+                <div style="display:flex;flex-direction:column;justify-content:center">
+                  <label style="font-size:11px;color:var(--text-muted);margin-bottom:4px">OR Video URL (YouTube / Vimeo / MP4)</label>
+                  <input type="url" id="vf-video-url" placeholder="https://www.youtube.com/watch?v=..." style="font-size:13px">
+                </div>
+              </div>
+              <div id="videoPreviewNotice" style="display:none;font-size:12px;color:var(--gold);margin-top:8px"><i class="ri-checkbox-circle-fill"></i> Video selected: <span id="videoFileName"></span></div>
             </div>
           </div>
           <div class="modal-footer" style="margin-top:24px;padding:0;border:none;justify-content:flex-end">

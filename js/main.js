@@ -6,14 +6,11 @@
 'use strict';
 
 // ──────────────────────────────────────────────
-// CONFIG
+// CONFIG & STATE
 // ──────────────────────────────────────────────
 const API_BASE   = window.location.origin + '/api';
 const WA_NUMBER  = '23276637648';
 
-// ──────────────────────────────────────────────
-// STATE
-// ──────────────────────────────────────────────
 let allVehicles      = [];
 let filteredVehicles = [];
 let displayedCount   = 0;
@@ -40,7 +37,6 @@ function fmtFull(n) {
 }
 
 function fmtMonthly(price) {
-  // Simple estimate: 24-month plan at flat rate
   return fmtPrice(Math.round(price / 24));
 }
 
@@ -50,7 +46,6 @@ function fmtMileage(km) {
 }
 
 function buildWALink(v) {
-  const imgList = (v.images || []).length ? v.images[0] : '';
   const msg = encodeURIComponent(
     `🚘 *Prestige Motors Enquiry*\n\n` +
     `I am interested in the following vehicle:\n\n` +
@@ -70,12 +65,7 @@ function buildWALink(v) {
 }
 
 function showToast(msg, type = 'info', duration = 3500) {
-  const icons = {
-    info:    'ri-information-line',
-    success: 'ri-checkbox-circle-fill',
-    error:   'ri-error-warning-fill',
-    warning: 'ri-alert-fill'
-  };
+  const icons = { info: 'ri-information-line', success: 'ri-checkbox-circle-fill', error: 'ri-error-warning-fill', warning: 'ri-alert-fill' };
   const container = $('toastContainer');
   if (!container) return;
   const t = document.createElement('div');
@@ -165,13 +155,11 @@ function renderPage() {
     grid.insertAdjacentHTML('beforeend', card);
   });
 
-  // Load more button visibility
   const lb = $('loadMoreBtn');
   if (lb) {
     lb.style.display = displayedCount >= filteredVehicles.length ? 'none' : 'flex';
   }
 
-  // Re-attach card animations
   attachCardEvents();
 }
 
@@ -199,6 +187,10 @@ function buildVehicleCard(v) {
     ? `<span class="car-badge electric-badge"><i class="ri-flashlight-fill"></i> EV</span>`
     : '';
 
+  const hasVideoBadge = v.video_url
+    ? `<span class="car-badge" style="background:rgba(229,169,92,0.2);color:var(--gold);border:1px solid rgba(229,169,92,0.4)"><i class="ri-video-line"></i> Video</span>`
+    : '';
+
   return `
     <article class="vehicle-card reveal-item" data-id="${v.id}" data-brand="${v.brand}" data-type="${v.condition_type}" data-fuel="${v.fuel}">
       <div class="car-img-wrap">
@@ -208,6 +200,7 @@ function buildVehicleCard(v) {
           ${statusBadge}
           ${featuredBadge}
           ${electricBadge}
+          ${hasVideoBadge}
         </div>
         <div class="car-img-actions">
           <button class="car-action-btn fav-toggle ${isFav ? 'active' : ''}"
@@ -234,7 +227,6 @@ function buildVehicleCard(v) {
         <div class="car-footer">
           <div class="car-price-col">
             <div class="car-price">${fmtPrice(v.price)}</div>
-            <div class="car-monthly">From ${fmtMonthly(v.price)}/mo</div>
           </div>
           <div class="car-cta-row">
             ${!isSold ? `
@@ -252,7 +244,6 @@ function buildVehicleCard(v) {
 }
 
 function attachCardEvents() {
-  // Intersection Observer for reveal animations
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(e => {
       if (e.isIntersecting) {
@@ -320,64 +311,46 @@ function applyFilters() {
     if (loc    && v.location?.toLowerCase() !== loc) return false;
 
     if (price) {
-      if (price.endsWith('+')) {
-        const min = parseInt(price);
-        if (v.price < min) return false;
+      const parts = price.split('-');
+      const p = v.price;
+      if (parts[1] && parts[1] !== '+') {
+        if (p < parseInt(parts[0]) || p > parseInt(parts[1])) return false;
       } else {
-        const [pMin, pMax] = price.split('-').map(Number);
-        if (v.price < pMin || v.price > pMax) return false;
+        if (p < parseInt(parts[0])) return false;
       }
     }
 
     if (mil) {
       if (mil === '0' && v.mileage !== 0) return false;
-      else if (mil !== '0' && v.mileage > parseInt(mil)) return false;
+      if (mil !== '0' && v.mileage > parseInt(mil)) return false;
     }
 
     return true;
   });
 
   displayedCount = 0;
-  const grid = $('vehiclesGrid');
-  if (grid) grid.innerHTML = '';
   renderPage();
 }
 
 function resetAllFilters() {
   ['filterBrand','filterModel','filterYear','filterBody','filterTransmission',
-   'filterFuel','filterPrice','filterMileage','filterColour','filterLocation'].forEach(id => {
+   'filterFuel','filterPrice','filterMileage','filterColour','filterLocation','navSearchInput'].forEach(id => {
     const el = $(id);
     if (el) el.value = '';
   });
-  const nsi = $('navSearchInput');
-  if (nsi) nsi.value = '';
+  $$('.filter-pill').forEach((p, i) => p.classList.toggle('active', i === 0));
   filteredVehicles = [...allVehicles];
   displayedCount = 0;
-  const grid = $('vehiclesGrid');
-  if (grid) grid.innerHTML = '';
   renderPage();
 }
 
-function quickSearch(term) {
-  const nsi = $('navSearchInput');
-  if (nsi) nsi.value = term;
+function filterByBrand(brandName) {
+  const select = $('filterBrand');
+  if (select) select.value = brandName;
   applyFilters();
   document.getElementById('inventory')?.scrollIntoView({ behavior: 'smooth' });
 }
 
-function filterByBrand(brand) {
-  const fb = $('filterBrand');
-  if (fb) {
-    // Match the option value (case-insensitive)
-    const opt = Array.from(fb.options).find(o => o.value.toLowerCase() === brand.toLowerCase());
-    if (opt) fb.value = opt.value;
-    else fb.value = brand;
-  }
-  applyFilters();
-  document.getElementById('inventory')?.scrollIntoView({ behavior: 'smooth' });
-}
-
-// Filter pills (All / New / Pre-Owned / Electric)
 function initFilterPills() {
   $$('.filter-pill').forEach(pill => {
     pill.addEventListener('click', () => {
@@ -431,6 +404,28 @@ async function openQuickView(id) {
        </div>`
     : '';
 
+  let videoHtml = '';
+  if (v.video_url) {
+    if (v.video_url.startsWith('/uploads/') || /\.(mp4|webm|mov|ogg)$/i.test(v.video_url)) {
+      videoHtml = `
+        <div class="qv-video-wrap" style="margin-top:16px">
+          <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:6px;display:flex;align-items:center;gap:6px">
+            <i class="ri-video-line"></i> Vehicle Video Showcase
+          </div>
+          <video controls preload="metadata" style="width:100%;max-height:240px;border-radius:12px;background:#000;border:1px solid var(--border)" src="${v.video_url}"></video>
+        </div>`;
+    } else if (/youtube\.com|youtu\.be|vimeo\.com/i.test(v.video_url)) {
+      const embedUrl = v.video_url.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/');
+      videoHtml = `
+        <div class="qv-video-wrap" style="margin-top:16px">
+          <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:6px;display:flex;align-items:center;gap:6px">
+            <i class="ri-video-line"></i> Vehicle Video Showcase
+          </div>
+          <iframe src="${embedUrl}" style="width:100%;height:220px;border-radius:12px;border:none" allowfullscreen></iframe>
+        </div>`;
+    }
+  }
+
   content.innerHTML = `
     <div class="qv-layout">
       <div class="qv-media">
@@ -445,6 +440,7 @@ async function openQuickView(id) {
           </div>
         </div>
         ${thumbsHtml}
+        ${videoHtml}
       </div>
 
       <div class="qv-info">
@@ -470,18 +466,14 @@ async function openQuickView(id) {
         <div class="qv-price-block">
           <div>
             <div class="qv-price">${fmtFull(v.price)}</div>
-            <div class="qv-monthly">Financing from ${fmtMonthly(v.price)}/month</div>
           </div>
         </div>
 
         <div class="qv-actions">
           ${!isSold ? `
           <a href="${waLink}" target="_blank" class="btn-hero-primary" style="text-decoration:none">
-            <i class="ri-whatsapp-line"></i> WhatsApp Enquiry
-          </a>
-          <button class="btn-qv-secondary" onclick="openInquiryModal(${v.id}, '${v.title.replace(/'/g,'\\'')}')">
-            <i class="ri-mail-send-line"></i> Send Enquiry
-          </button>` : `
+            <i class="ri-whatsapp-line"></i> Contact Showroom
+          </a>` : `
           <div class="sold-notice"><i class="ri-check-double-line"></i> This vehicle has been sold</div>`}
           <button class="btn-qv-icon fav-toggle ${favourites.includes(v.id)?'active':''}"
                   onclick="toggleFav(${v.id}, this)" title="Save to Favourites">
@@ -520,262 +512,131 @@ function closeQuickView() {
 
 // ──────────────────────────────────────────────
 // INQUIRY MODAL
+
+
 // ──────────────────────────────────────────────
-function openInquiryModal(vehicleId, vehicleTitle) {
-  // Close quick view first
-  closeQuickView();
+// DYNAMIC REAL STATS (Fetches live SQLite counts)
+// ──────────────────────────────────────────────
+async function initLiveStats() {
+  const data = await apiFetch('/stats/public');
+  if (!data.success) return;
 
-  let modal = $('inquiryModal');
-  if (!modal) {
-    modal = document.createElement('div');
-    modal.className = 'modal-overlay';
-    modal.id = 'inquiryModal';
-    document.body.appendChild(modal);
-  }
+  const s = data;
+  const numEls = $$('.stat-num[data-target]');
+  if (numEls[0]) numEls[0].setAttribute('data-target', s.carsAvailable || allVehicles.length || 10);
+  if (numEls[1]) numEls[1].setAttribute('data-target', s.satisfiedClients || 50);
+  if (numEls[2]) numEls[2].setAttribute('data-target', s.satisfactionRate || 99);
+  if (numEls[3]) numEls[3].setAttribute('data-target', s.brandsCount || 8);
 
-  modal.innerHTML = `
-    <div class="qv-modal inquiry-modal" style="max-width:500px">
-      <button class="modal-close-btn" onclick="closeInquiryModal()"><i class="ri-close-line"></i></button>
-      <div style="padding:32px">
-        <span class="section-kicker">Send Enquiry</span>
-        <h2 class="view-title" style="font-size:22px;margin:8px 0 4px">${vehicleTitle || 'General Enquiry'}</h2>
-        <p style="color:var(--text-muted);font-size:13px;margin-bottom:24px">
-          Fill in your details and we'll get back to you within a few hours.
-        </p>
-        <form id="inquiryForm" onsubmit="submitInquiry(event, ${vehicleId || 'null'}, '${(vehicleTitle||'').replace(/'/g,"\\'")}')">
-          <div class="inq-field">
-            <label>Full Name *</label>
-            <input type="text" id="inqName" placeholder="e.g. Ibrahim Kamara" required>
-          </div>
-          <div class="inq-field">
-            <label>Email Address *</label>
-            <input type="email" id="inqEmail" placeholder="you@example.com" required>
-          </div>
-          <div class="inq-field">
-            <label>Phone Number</label>
-            <input type="tel" id="inqPhone" placeholder="+232 76 000 000">
-          </div>
-          <div class="inq-field">
-            <label>Your Message *</label>
-            <textarea id="inqMessage" rows="4" placeholder="Tell us what you'd like to know about this vehicle..." required></textarea>
-          </div>
-          <button type="submit" class="btn-hero-primary" style="width:100%;justify-content:center;margin-top:8px" id="inqSubmitBtn">
-            <i class="ri-send-plane-fill"></i> Send Enquiry
-          </button>
-        </form>
+  initStatsCounter();
+}
+
+// ──────────────────────────────────────────────
+// DYNAMIC REVIEWS (Loads live reviews from SQLite)
+// ──────────────────────────────────────────────
+async function initLiveReviews() {
+  const data = await apiFetch('/reviews');
+  if (!data.success || !data.reviews?.length) return;
+
+  const carousel = $('testimonialsCarousel');
+  if (!carousel) return;
+
+  carousel.innerHTML = data.reviews.map(r => `
+    <div class="testimonial-card">
+      <div class="quote-mark">"</div>
+      <p class="testimonial-text">${r.comment}</p>
+      <div class="testimonial-author">
+        <img src="https://i.pravatar.cc/150?u=${r.id}" alt="${r.name}" class="testimonial-avatar">
+        <div class="testimonial-meta">
+          <div class="testimonial-name">${r.name}</div>
+          <div class="testimonial-role">${r.role || 'Verified Client'}</div>
+        </div>
+        <div class="testimonial-stars">
+          ${Array(r.rating || 5).fill('<i class="ri-star-fill"></i>').join('')}
+        </div>
       </div>
     </div>
-  `;
+  `).join('');
 
-  modal.classList.add('active');
-  document.body.classList.add('modal-open');
+  initTestimonialsCarousel();
 }
 
-function closeInquiryModal() {
-  const modal = $('inquiryModal');
-  if (modal) { modal.classList.remove('active'); document.body.classList.remove('modal-open'); }
-}
+// ──────────────────────────────────────────────
+// DYNAMIC FEATURED SHOWCASE
+// ──────────────────────────────────────────────
+async function initShowcase() {
+  const data = await apiFetch('/vehicles?featured=1&limit=1&status=available');
+  if (!data.success || !data.vehicles?.length) return;
 
-async function submitInquiry(e, vehicleId, vehicleTitle) {
-  e.preventDefault();
-  const btn  = $('inqSubmitBtn');
-  const name = $('inqName').value.trim();
-  const email= $('inqEmail').value.trim();
-  const phone= $('inqPhone')?.value.trim() || '';
-  const msg  = $('inqMessage').value.trim();
+  const v = data.vehicles[0];
+  const img = (v.images && v.images[0]) ? v.images[0] : null;
 
-  if (!name || !email || !msg) { showToast('Please fill in all required fields.', 'error'); return; }
+  const showcaseImg = $('showcaseImg');
+  if (showcaseImg && img) { showcaseImg.src = img; showcaseImg.alt = v.title; }
+  const showcaseTitle = document.querySelector('.showcase-title');
+  if (showcaseTitle) showcaseTitle.textContent = v.title;
 
-  btn.disabled = true;
-  btn.innerHTML = '<i class="ri-loader-4-line" style="animation:spin 1s linear infinite"></i> Sending...';
+  const yearTagEl = document.querySelector('.showcase-year-tag');
+  if (yearTagEl) {
+    yearTagEl.textContent = `${v.year} · ${v.colour || ''} · ${fmtMileage(v.mileage)} · ${v.location || 'Freetown'}`;
+  }
 
-  const data = await apiFetch('/inquiries', {
-    method: 'POST',
-    body: JSON.stringify({ name, email, phone, vehicle_id: vehicleId || null, vehicle: vehicleTitle || 'General Enquiry', message: msg })
-  });
+  const priceEl = document.querySelector('.showcase-price');
+  if (priceEl) priceEl.textContent = fmtFull(v.price);
 
-  btn.disabled = false;
-  btn.innerHTML = '<i class="ri-send-plane-fill"></i> Send Enquiry';
+  const monthlyEl = document.querySelector('.showcase-monthly');
+  if (monthlyEl) monthlyEl.textContent = `From ${fmtMonthly(v.price)} / month`;
 
-  if (data.success) {
-    showToast('Enquiry sent! We\'ll be in touch soon. 🚘', 'success', 5000);
-    closeInquiryModal();
-  } else {
-    showToast(data.message || 'Failed to send. Please try again.', 'error');
+  const specValues = document.querySelectorAll('.spec-value');
+  const specs = [v.hp, '', '', v.transmission, v.fuel, v.engine];
+  specValues.forEach((el, i) => { if (specs[i]) el.textContent = specs[i]; });
+
+  const waBtn = document.querySelector('.btn-showcase-primary');
+  if (waBtn) waBtn.href = buildWALink(v);
+
+  if (v.images && v.images.length > 1) {
+    const thumbsWrap = $('showcaseThumbs');
+    if (thumbsWrap) {
+      thumbsWrap.innerHTML = v.images.slice(0, 4).map((url, i) => `
+        <img src="${url}" alt="View ${i+1}" class="showcase-thumb ${i===0?'active':''}"
+             onclick="changeShowcaseImg(this,'${url}')">
+      `).join('');
+    }
   }
 }
 
-// ──────────────────────────────────────────────
-// FINANCING MODAL
-// ──────────────────────────────────────────────
-function openFinancingModal(vehicleId, vehicleTitle) {
-  let modal = $('financingModal');
-  if (!modal) {
-    modal = document.createElement('div');
-    modal.className = 'modal-overlay';
-    modal.id = 'financingModal';
-    document.body.appendChild(modal);
-  }
-
-  modal.innerHTML = `
-    <div class="qv-modal inquiry-modal" style="max-width:540px">
-      <button class="modal-close-btn" onclick="closeFinancingModal()"><i class="ri-close-line"></i></button>
-      <div style="padding:32px">
-        <span class="section-kicker">Financing Application</span>
-        <h2 class="view-title" style="font-size:22px;margin:8px 0 4px">${vehicleTitle || 'Vehicle Financing'}</h2>
-        <p style="color:var(--text-muted);font-size:13px;margin-bottom:24px">
-          Complete your financing application and our team will review it within 24 hours.
-        </p>
-        <form id="financingForm" onsubmit="submitFinancing(event, ${vehicleId || 'null'}, '${(vehicleTitle||'').replace(/'/g,"\\'")}')">
-          <div class="inq-field">
-            <label>Full Name *</label>
-            <input type="text" id="finName" placeholder="Your full name" required>
-          </div>
-          <div class="inq-field">
-            <label>Email *</label>
-            <input type="email" id="finEmail" placeholder="you@example.com" required>
-          </div>
-          <div class="inq-field">
-            <label>Phone</label>
-            <input type="tel" id="finPhone" placeholder="+232 76 000 000">
-          </div>
-          <div class="inq-field">
-            <label>Employment Status</label>
-            <select id="finEmployment">
-              <option value="">Select...</option>
-              <option>Employed Full-Time</option>
-              <option>Self-Employed</option>
-              <option>Business Owner</option>
-              <option>Government Employee</option>
-              <option>Other</option>
-            </select>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-            <div class="inq-field">
-              <label>Monthly Income (NLE)</label>
-              <input type="number" id="finIncome" placeholder="e.g. 500000" min="0">
-            </div>
-            <div class="inq-field">
-              <label>Down Payment (NLE)</label>
-              <input type="number" id="finDown" placeholder="e.g. 200000" min="0">
-            </div>
-          </div>
-          <div class="inq-field">
-            <label>Preferred Loan Term</label>
-            <select id="finTerm">
-              <option value="12">12 Months</option>
-              <option value="24" selected>24 Months</option>
-              <option value="36">36 Months</option>
-              <option value="48">48 Months</option>
-            </select>
-          </div>
-          <button type="submit" class="btn-hero-primary" style="width:100%;justify-content:center;margin-top:8px" id="finSubmitBtn">
-            <i class="ri-bank-card-line"></i> Submit Application
-          </button>
-        </form>
-      </div>
-    </div>
-  `;
-
-  modal.classList.add('active');
-  document.body.classList.add('modal-open');
-}
-
-function closeFinancingModal() {
-  const modal = $('financingModal');
-  if (modal) { modal.classList.remove('active'); document.body.classList.remove('modal-open'); }
-}
-
-async function submitFinancing(e, vehicleId, vehicleTitle) {
-  e.preventDefault();
-  const btn = $('finSubmitBtn');
-  btn.disabled = true;
-  btn.innerHTML = '<i class="ri-loader-4-line" style="animation:spin 1s linear infinite"></i> Submitting...';
-
-  const payload = {
-    name:            $('finName').value.trim(),
-    email:           $('finEmail').value.trim(),
-    phone:           $('finPhone')?.value.trim() || '',
-    vehicle_id:      vehicleId || null,
-    vehicle:         vehicleTitle || '',
-    employment:      $('finEmployment')?.value || '',
-    monthly_income:  parseInt($('finIncome')?.value) || 0,
-    down_payment:    parseInt($('finDown')?.value) || 0,
-    loan_term_months: parseInt($('finTerm')?.value) || 24
-  };
-
-  const data = await apiFetch('/financing', { method: 'POST', body: JSON.stringify(payload) });
-
-  btn.disabled = false;
-  btn.innerHTML = '<i class="ri-bank-card-line"></i> Submit Application';
-
-  if (data.success) {
-    showToast('Application submitted! Our finance team will contact you within 24 hours. 🏦', 'success', 6000);
-    closeFinancingModal();
-  } else {
-    showToast(data.message || 'Submission failed. Please try again.', 'error');
-  }
+function changeShowcaseImg(el, url) {
+  const main = $('showcaseImg');
+  if (main) main.src = url;
+  $$('.showcase-thumb').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
 }
 
 // ──────────────────────────────────────────────
-// NEWSLETTER
-// ──────────────────────────────────────────────
-async function subscribeNewsletter() {
-  const input = $('newsletterEmail');
-  if (!input) return;
-  const email = input.value.trim();
-  if (!email) { showToast('Please enter your email address.', 'warning'); return; }
-
-  const btn = $('newsletterBtn');
-  if (btn) { btn.disabled = true; }
-
-  const data = await apiFetch('/newsletter', { method: 'POST', body: JSON.stringify({ email }) });
-
-  if (btn) { btn.disabled = false; }
-
-  if (data.success) {
-    showToast(data.message, 'success', 5000);
-    input.value = '';
-  } else {
-    showToast(data.message || 'Subscription failed. Please try again.', 'error');
-  }
-}
-
-// ──────────────────────────────────────────────
-// NAVBAR
+// NAVBAR & LISTENERS
 // ──────────────────────────────────────────────
 function initNavbar() {
   const navbar = $('navbar');
   const hamburger = $('hamburger');
   const mobileMenu = $('mobileMenu');
 
-  // Scroll effect
   window.addEventListener('scroll', () => {
     navbar?.classList.toggle('scrolled', window.scrollY > 50);
-    $('backToTop')?.classList.toggle('hidden', window.scrollY < 400);
   }, { passive: true });
 
-  // Hamburger
   hamburger?.addEventListener('click', () => {
     hamburger.classList.toggle('open');
     mobileMenu?.classList.toggle('open');
   });
 
-  // Close mobile menu on link click
   $$('[data-close]').forEach(el => {
     el.addEventListener('click', () => {
       hamburger?.classList.remove('open');
       mobileMenu?.classList.remove('open');
     });
   });
-
-  // Back to top
-  $('backToTop')?.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 }
 
-// ──────────────────────────────────────────────
-// SEARCH OVERLAY
-// ──────────────────────────────────────────────
 function initSearchOverlay() {
   const toggle  = $('searchToggle');
   const overlay = $('navSearchOverlay');
@@ -797,36 +658,21 @@ function initSearchOverlay() {
     }
     if (e.key === 'Escape') overlay?.classList.remove('open');
   });
-
-  overlay?.addEventListener('click', (e) => {
-    if (e.target === overlay) overlay.classList.remove('open');
-  });
 }
 
-// ──────────────────────────────────────────────
-// MODALS — CLOSE ON OVERLAY CLICK & ESC
-// ──────────────────────────────────────────────
 function initModalListeners() {
   document.addEventListener('click', (e) => {
     if (e.target?.id === 'quickViewModal') closeQuickView();
     if (e.target?.id === 'inquiryModal')   closeInquiryModal();
-    if (e.target?.id === 'financingModal') closeFinancingModal();
   });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       closeQuickView();
       closeInquiryModal();
-      closeFinancingModal();
     }
   });
-
-  // Quick view close button
-  $('quickViewClose')?.addEventListener('click', closeQuickView);
 }
 
-// ──────────────────────────────────────────────
-// LOAD MORE
-// ──────────────────────────────────────────────
 function initLoadMore() {
   const btn = $('loadMoreBtn');
   btn?.addEventListener('click', () => {
@@ -840,26 +686,14 @@ function initLoadMore() {
   });
 }
 
-// ──────────────────────────────────────────────
-// SEARCH PANEL — BUTTONS
-// ──────────────────────────────────────────────
 function initSearchPanel() {
   $('searchBtn')?.addEventListener('click', () => {
     applyFilters();
     document.getElementById('inventory')?.scrollIntoView({ behavior: 'smooth' });
   });
   $('searchReset')?.addEventListener('click', resetAllFilters);
-
-  // Newsletter submit
-  $('newsletterBtn')?.addEventListener('click', subscribeNewsletter);
-  $('newsletterEmail')?.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') subscribeNewsletter();
-  });
 }
 
-// ──────────────────────────────────────────────
-// HERO STATS COUNTER ANIMATION
-// ──────────────────────────────────────────────
 function initStatsCounter() {
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
@@ -867,95 +701,44 @@ function initStatsCounter() {
       const el = entry.target;
       const target = parseInt(el.dataset.target);
       let current = 0;
-      const step = Math.max(1, Math.floor(target / 80));
+      const step = Math.max(1, Math.floor(target / 40));
       const timer = setInterval(() => {
         current = Math.min(current + step, target);
         el.textContent = current.toLocaleString();
         if (current >= target) clearInterval(timer);
-      }, 16);
+      }, 30);
       observer.unobserve(el);
     });
-  }, { threshold: 0.5 });
+  }, { threshold: 0.3 });
 
   $$('.stat-num[data-target]').forEach(el => observer.observe(el));
 }
 
-// ──────────────────────────────────────────────
-// HERO PARTICLES
-// ──────────────────────────────────────────────
-function initParticles() {
-  const canvas = $('particlesCanvas');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  let W, H, particles = [];
-
-  function resize() {
-    W = canvas.width  = canvas.offsetWidth;
-    H = canvas.height = canvas.offsetHeight;
-  }
-  resize();
-  window.addEventListener('resize', resize, { passive: true });
-
-  for (let i = 0; i < 60; i++) {
-    particles.push({
-      x: Math.random() * 1200,
-      y: Math.random() * 700,
-      r: Math.random() * 1.5 + 0.3,
-      dx: (Math.random() - 0.5) * 0.3,
-      dy: -Math.random() * 0.5 - 0.1,
-      alpha: Math.random() * 0.6 + 0.1
+function initBrandFilters() {
+  $$('.brand-circle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const brand = btn.dataset.brand;
+      if (brand) filterByBrand(brand);
     });
-  }
-
-  function draw() {
-    ctx.clearRect(0, 0, W, H);
-    particles.forEach(p => {
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(229,169,92,${p.alpha})`;
-      ctx.fill();
-      p.x += p.dx; p.y += p.dy;
-      if (p.y < 0)  p.y = H;
-      if (p.x < 0)  p.x = W;
-      if (p.x > W)  p.x = 0;
-    });
-    requestAnimationFrame(draw);
-  }
-  draw();
+  });
 }
 
-// ──────────────────────────────────────────────
-// TESTIMONIALS CAROUSEL
-// ──────────────────────────────────────────────
-function initTestimonialsCarousel() {
-  const carousel = $('testimonialsCarousel');
-  const prev     = $('carouselPrev');
-  const next     = $('carouselNext');
-  const dotsWrap = $('carouselDots');
-  if (!carousel) return;
-
-  const cards  = carousel.querySelectorAll('.testimonial-card');
-  let current  = 0;
-  let autoplay;
-
-  function goTo(idx) {
-    current = (idx + cards.length) % cards.length;
-    carousel.style.transform = `translateX(-${current * 100}%)`;
-    dotsWrap?.querySelectorAll('.carousel-dot').forEach((d, i) => {
-      d.classList.toggle('active', i === current);
+function initFilterPills() {
+  $$('.filter-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      $$('.filter-pill').forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      const f = pill.dataset.filter;
+      if (f === 'all')      filteredVehicles = [...allVehicles];
+      else if (f === 'new') filteredVehicles = allVehicles.filter(v => v.condition_type === 'new');
+      else if (f === 'used') filteredVehicles = allVehicles.filter(v => v.condition_type === 'used');
+      else if (f === 'electric') filteredVehicles = allVehicles.filter(v => v.fuel === 'Electric');
+      displayedCount = 0;
+      renderPage();
     });
-  }
-
-  prev?.addEventListener('click', () => { clearInterval(autoplay); goTo(current - 1); startAuto(); });
-  next?.addEventListener('click', () => { clearInterval(autoplay); goTo(current + 1); startAuto(); });
-
-  function startAuto() { autoplay = setInterval(() => goTo(current + 1), 5000); }
-  startAuto();
+  });
 }
 
-// ──────────────────────────────────────────────
-// FAV DRAWER (click fav icon in navbar)
-// ──────────────────────────────────────────────
 function initFavBtn() {
   const btn = $('favBtn');
   btn?.addEventListener('click', () => {
@@ -982,139 +765,25 @@ function initFavBtn() {
             ${favVehicles.map(v => {
               const img = (v.images && v.images[0]) ? v.images[0] : 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=300&q=70';
               return `
-                <div style="display:flex;gap:16px;align-items:center;background:var(--glass-bg);padding:16px;border-radius:12px;border:1px solid var(--border-color)">
-                  <img src="${img}" alt="${v.title}" style="width:100px;height:68px;object-fit:cover;border-radius:8px"
-                       onerror="this.src='https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=300&q=70'">
+                <div style="display:flex;gap:16px;align-items:center;background:var(--bg-card);padding:16px;border-radius:12px;border:1px solid var(--border)">
+                  <img src="${img}" alt="${v.title}" style="width:100px;height:68px;object-fit:cover;border-radius:8px">
                   <div style="flex:1">
-                    <div style="font-weight:600;color:var(--text-primary)">${v.title}</div>
+                    <div style="font-weight:600;color:var(--text)">${v.title}</div>
                     <div style="color:var(--gold);font-weight:700;margin-top:4px">${fmtPrice(v.price)}</div>
                   </div>
-                  <div style="display:flex;gap:8px">
-                    <button class="btn-car-view" onclick="document.getElementById('favModal').classList.remove('active');openQuickView(${v.id})">
-                      View
-                    </button>
-                    <button class="car-action-btn" onclick="toggleFavFromModal(${v.id})" title="Remove">
-                      <i class="ri-heart-fill" style="color:var(--gold)"></i>
-                    </button>
-                  </div>
-                </div>
-              `;
+                  <button class="btn-car-view" onclick="document.getElementById('favModal').classList.remove('active');openQuickView(${v.id})">View</button>
+                </div>`;
             }).join('')}
           </div>
         </div>
-      </div>
-    `;
+      </div>`;
     modal.classList.add('active');
     document.body.classList.add('modal-open');
   });
 }
 
-function toggleFavFromModal(id) {
-  toggleFav(id, null);
-  // Rebuild modal
-  $('favModal')?.classList.remove('active');
-  document.body.classList.remove('modal-open');
-  setTimeout(() => $('favBtn')?.click(), 100);
-}
-
 // ──────────────────────────────────────────────
-// HERO SHOWCASE — Dynamic (loads featured vehicle from API)
-// ──────────────────────────────────────────────
-async function initShowcase() {
-  const data = await apiFetch('/vehicles?featured=1&limit=1&status=available');
-  if (!data.success || !data.vehicles?.length) return;
-
-  const v = data.vehicles[0];
-  const img = (v.images && v.images[0]) ? v.images[0] : null;
-
-  const showcaseImg = $('showcaseImg');
-  if (showcaseImg && img) {
-    showcaseImg.src = img;
-    showcaseImg.alt = v.title;
-  }
-  const showcaseTitle = document.querySelector('.showcase-title');
-  if (showcaseTitle) showcaseTitle.textContent = v.title;
-
-  const yearTagEl = document.querySelector('.showcase-year-tag');
-  if (yearTagEl) {
-    yearTagEl.textContent = `${v.year} · ${v.colour || ''} · ${fmtMileage(v.mileage)} · ${v.location || 'Freetown'}`;
-  }
-
-  const priceEl = document.querySelector('.showcase-price');
-  if (priceEl) priceEl.textContent = fmtFull(v.price);
-
-  const monthlyEl = document.querySelector('.showcase-monthly');
-  if (monthlyEl) monthlyEl.textContent = `From ${fmtMonthly(v.price)} / month`;
-
-  // Specs
-  const specValues = document.querySelectorAll('.spec-value');
-  const specs = [v.hp, '', '', v.transmission, v.fuel, v.engine];
-  specValues.forEach((el, i) => { if (specs[i]) el.textContent = specs[i]; });
-
-  // WA link
-  const waBtn = document.querySelector('.btn-showcase-primary');
-  if (waBtn) {
-    waBtn.href = buildWALink(v);
-  }
-
-  // Thumbs — multiple images
-  if (v.images && v.images.length > 1) {
-    const thumbsWrap = $('showcaseThumbs');
-    if (thumbsWrap) {
-      thumbsWrap.innerHTML = v.images.slice(0, 4).map((url, i) => `
-        <img src="${url}" alt="View ${i+1}" class="showcase-thumb ${i===0?'active':''}"
-             onclick="changeShowcaseImg(this,'${url}')"
-             onerror="this.onerror=null;this.src='${url}'">
-      `).join('');
-    }
-  }
-}
-
-function changeShowcaseImg(el, url) {
-  const main = $('showcaseImg');
-  if (main) main.src = url;
-  $$('.showcase-thumb').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
-}
-
-// ──────────────────────────────────────────────
-// SCROLL REVEAL
-// ──────────────────────────────────────────────
-function initScrollReveal() {
-  const obs = new IntersectionObserver((entries) => {
-    entries.forEach(e => {
-      if (e.isIntersecting) { e.target.classList.add('revealed'); obs.unobserve(e.target); }
-    });
-  }, { threshold: 0.1 });
-  $$('.reveal-item').forEach(el => obs.observe(el));
-}
-
-// ──────────────────────────────────────────────
-// BRAND FILTER BUTTONS (brands section)
-// ──────────────────────────────────────────────
-function initBrandFilters() {
-  $$('.brand-circle').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const brand = btn.dataset.brand;
-      if (brand) filterByBrand(brand);
-    });
-  });
-}
-
-// ──────────────────────────────────────────────
-// DASHBOARD PREVIEW — Update live stats
-// ──────────────────────────────────────────────
-async function updateDashboardPreview() {
-  // Just show live inventory count in the preview cards
-  const totalEl = document.querySelector('.dash-preview-value');
-  if (totalEl && allVehicles.length > 0) {
-    const listed = document.querySelectorAll('.dash-preview-value');
-    if (listed[1]) listed[1].textContent = allVehicles.length;
-  }
-}
-
-// ──────────────────────────────────────────────
-// MAIN INIT
+// MAIN INITIALIZATION
 // ──────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
   initNavbar();
@@ -1123,19 +792,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   initFilterPills();
   initLoadMore();
   initModalListeners();
-  initStatsCounter();
-  initParticles();
-  initTestimonialsCarousel();
-  initScrollReveal();
   initBrandFilters();
   initFavBtn();
 
-  // Load inventory from SQLite API
+  // Load inventory from live SQLite API
   await initInventory();
 
-  // Load featured showcase
-  await initShowcase();
+  // Load dynamic live statistics
+  await initLiveStats();
 
-  // Update dashboard preview
-  updateDashboardPreview();
+  // Load dynamic reviews
+  await initLiveReviews();
+
+  // Load dynamic featured showcase
+  await initShowcase();
 });

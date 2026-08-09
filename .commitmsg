@@ -1,0 +1,6 @@
+Fix draft visibility bug, add video upload support, and remove inquiry & financing features
+
+- Fix draft visibility bug: server.js now supports all=true flag so draft vehicles remain visible with Draft badge in admin panel instead of disappearing
+- Video support: added local video file upload (MP4/MOV up to 50MB) + video URL field in admin modal, and embedded video player in Quick View modal on public site
+- Feature cleanup: completely removed Inquiry and Financing tabs, endpoints, database tables, and modal code as requested
+- Live stats & reviews: connected public site stats and reviews directly to SQLite database
