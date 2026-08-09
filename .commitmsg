@@ -1,4 +1,4 @@
-Fix vehicle card class names matching style.css design system
+Fix Quick View modal close button positioning and click listener
 
-- Updated buildVehicleCard template in js/main.js to match exact card-media, card-badges, card-hover-actions, card-specs, and card-meta CSS classes from style.css
-- Vehicle cards now render beautifully with photos, specs, prices, location, and hover Quick View
+- Fixed close button X overlapping vehicle year (2024) by setting absolute positioning, high z-index (100), and right margin spacing in qv-brand-row
+- Added explicit click event listener to #quickViewClose button to ensure reliable closing on click

@@ -2547,9 +2547,11 @@ ul { list-style: none; }
 
 .qv-close {
   position: absolute;
-  top: 16px;
-  right: 16px;
-  z-index: 5;
+  top: 20px;
+  right: 20px;
+  z-index: 100;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
 }
 
 .qv-content { padding: 0; }
@@ -2786,12 +2788,23 @@ ul { list-style: none; }
   font-size: 16px;
 }
 
-.qv-details {
-  padding: 32px;
+.qv-details, .qv-info {
+  padding: 32px 48px 32px 32px;
   display: flex;
   flex-direction: column;
   gap: 16px;
   overflow-y: auto;
+  position: relative;
+}
+
+.qv-brand-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-right: 32px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gold);
 }
 
 .qv-title { font-family: var(--font-head); font-size: 22px; font-weight: 800; }

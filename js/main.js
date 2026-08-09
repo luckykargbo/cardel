@@ -678,14 +678,13 @@ function initSearchOverlay() {
 }
 
 function initModalListeners() {
+  $('quickViewClose')?.addEventListener('click', closeQuickView);
   document.addEventListener('click', (e) => {
     if (e.target?.id === 'quickViewModal') closeQuickView();
-    if (e.target?.id === 'inquiryModal')   closeInquiryModal();
   });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       closeQuickView();
-      closeInquiryModal();
     }
   });
 }
