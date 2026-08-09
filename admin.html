@@ -74,6 +74,9 @@
       <!-- TOP HEADER -->
       <header class="top-header">
         <div class="header-left">
+          <button class="admin-hamburger" id="adminHamburger" onclick="toggleMobileSidebar()" aria-label="Toggle Navigation Menu">
+            <i class="ri-menu-line" id="adminHamburgerIcon"></i>
+          </button>
           <div class="brand-logo">
             <div class="logo-mark">🚘</div>
             <div class="logo-text">
@@ -120,11 +123,21 @@
         </div>
       </header>
 
+      <!-- BACKDROP OVERLAY FOR MOBILE SIDEBAR DRAWER -->
+      <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+
       <!-- MAIN CONTAINER -->
       <div class="main-container">
 
         <!-- SIDEBAR -->
         <nav class="sidebar">
+          <div class="sidebar-header-mobile">
+            <span class="sb-mobile-title"><i class="ri-navigation-line"></i> Admin Menu</span>
+            <button class="sb-close-btn" onclick="closeMobileSidebar()" aria-label="Close Menu">
+              <i class="ri-close-line"></i>
+            </button>
+          </div>
+
           <div class="sidebar-badge">
             <i class="ri-verified-badge-fill"></i>
             <div>

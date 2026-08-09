@@ -1,0 +1,19 @@
+{
+  "routes": [
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/app-admin-gate(.*)",
+      "dest": "/admin.html#/app-admin-gate"
+    },
+    {
+      "src": "/admin-gate(.*)",
+      "dest": "/admin.html#/app-admin-gate"
+    },
+    {
+      "src": "/admin-dashboard(.*)",
+      "dest": "/admin.html#/admin-dashboard"
+    }
+  ]
+}
