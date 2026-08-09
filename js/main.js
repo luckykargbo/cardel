@@ -166,77 +166,67 @@ function renderPage() {
 function buildVehicleCard(v) {
   const img     = (v.images && v.images[0]) ? v.images[0] : 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80';
   const isFav   = favourites.includes(v.id);
-  const waLink  = buildWALink(v);
   const isNew   = v.condition_type === 'new';
   const isSold  = v.status === 'sold';
   const isResv  = v.status === 'reserved';
 
   const statusBadge = isSold
-    ? `<span class="car-badge sold-badge">Sold</span>`
+    ? `<span class="card-badge badge-limited">Sold</span>`
     : isResv
-    ? `<span class="car-badge reserved-badge">Reserved</span>`
+    ? `<span class="card-badge badge-used">Reserved</span>`
     : isNew
-    ? `<span class="car-badge new-badge">New</span>`
-    : `<span class="car-badge used-badge">Pre-Owned</span>`;
+    ? `<span class="card-badge badge-new">New</span>`
+    : `<span class="card-badge badge-used">Pre-Owned</span>`;
 
   const featuredBadge = v.featured
-    ? `<span class="car-badge featured-badge"><i class="ri-star-fill"></i> Featured</span>`
+    ? `<span class="card-badge badge-verified"><i class="ri-star-fill"></i> Featured</span>`
     : '';
 
   const electricBadge = v.fuel === 'Electric'
-    ? `<span class="car-badge electric-badge"><i class="ri-flashlight-fill"></i> EV</span>`
-    : '';
-
-  const hasVideoBadge = v.video_url
-    ? `<span class="car-badge" style="background:rgba(229,169,92,0.2);color:var(--gold);border:1px solid rgba(229,169,92,0.4)"><i class="ri-video-line"></i> Video</span>`
+    ? `<span class="card-badge badge-electric"><i class="ri-flashlight-fill"></i> EV</span>`
     : '';
 
   return `
-    <article class="vehicle-card reveal-item" data-id="${v.id}" data-brand="${v.brand}" data-type="${v.condition_type}" data-fuel="${v.fuel}">
-      <div class="car-img-wrap">
-        <img src="${img}" alt="${v.title}" class="car-img" loading="lazy"
+    <article class="vehicle-card" onclick="openQuickView(${v.id})">
+      <div class="card-media">
+        <img src="${img}" alt="${v.title}" loading="lazy"
              onerror="this.src='https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80'">
-        <div class="car-badges-row">
+        <div class="card-badges">
           ${statusBadge}
           ${featuredBadge}
           ${electricBadge}
-          ${hasVideoBadge}
         </div>
-        <div class="car-img-actions">
-          <button class="car-action-btn fav-toggle ${isFav ? 'active' : ''}"
-                  onclick="toggleFav(${v.id}, this)" title="${isFav ? 'Remove from favourites' : 'Add to favourites'}">
+        <div class="card-hover-actions">
+          <button class="card-action-btn ${isFav ? 'faved' : ''}"
+                  onclick="event.stopPropagation();toggleFav(${v.id}, this)" title="${isFav ? 'Remove from favourites' : 'Add to favourites'}">
             <i class="ri-heart-${isFav ? 'fill' : 'line'}"></i>
           </button>
-          <button class="car-action-btn" onclick="openQuickView(${v.id})" title="Quick View">
-            <i class="ri-eye-line"></i>
-          </button>
         </div>
+        <div class="card-media-overlay"></div>
+        <div class="card-quick-view"><i class="ri-eye-line"></i> Quick View</div>
       </div>
-      <div class="car-body">
-        <div class="car-top-row">
-          <span class="car-brand">${v.brand}</span>
-          <span class="car-year">${v.year}</span>
+      <div class="card-body">
+        <div class="card-title">${v.title}</div>
+        <div class="card-price-row">
+          <div class="card-price">${fmtPrice(v.price)}</div>
         </div>
-        <h3 class="car-title">${v.title}</h3>
-        <div class="car-meta-grid">
-          <div class="car-meta-item"><i class="ri-route-line"></i><span>${fmtMileage(v.mileage)}</span></div>
-          <div class="car-meta-item"><i class="ri-gas-station-line"></i><span>${v.fuel}</span></div>
-          <div class="car-meta-item"><i class="ri-settings-3-line"></i><span>${v.transmission || 'N/A'}</span></div>
-          <div class="car-meta-item"><i class="ri-map-pin-line"></i><span>${v.location || 'Freetown'}</span></div>
+        <div class="card-specs">
+          <div class="card-spec">
+            <span class="spec-label">YEAR</span>
+            <span class="spec-val">${v.year}</span>
+          </div>
+          <div class="card-spec">
+            <span class="spec-label">MILEAGE</span>
+            <span class="spec-val">${fmtMileage(v.mileage)}</span>
+          </div>
+          <div class="card-spec">
+            <span class="spec-label">FUEL</span>
+            <span class="spec-val">${v.fuel}</span>
+          </div>
         </div>
-        <div class="car-footer">
-          <div class="car-price-col">
-            <div class="car-price">${fmtPrice(v.price)}</div>
-          </div>
-          <div class="car-cta-row">
-            ${!isSold ? `
-            <a href="${waLink}" target="_blank" class="btn-car-wa" title="Enquire on WhatsApp">
-              <i class="ri-whatsapp-line"></i>
-            </a>` : ''}
-            <button class="btn-car-view" onclick="openQuickView(${v.id})">
-              View Details <i class="ri-arrow-right-line"></i>
-            </button>
-          </div>
+        <div class="card-meta">
+          <div class="card-dealer"><i class="ri-verified-badge-fill"></i> ${v.brand}</div>
+          <div class="card-location"><i class="ri-map-pin-2-line"></i> ${v.location || 'Freetown'}</div>
         </div>
       </div>
     </article>
