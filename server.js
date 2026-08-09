@@ -180,99 +180,109 @@ app.get('/api/vehicles/:id', (req, res) => {
 });
 
 app.post('/api/vehicles', requireAuth, upload.fields([{ name: 'images', maxCount: 10 }, { name: 'video', maxCount: 1 }]), (req, res) => {
-  const {
-    title, brand, model, year, price, mileage = 0, fuel,
-    hp = '', engine = '', transmission = '', body = '', colour = '',
-    location = 'Freetown', condition_type = 'new', status = 'available',
-    featured = 0, description = '', existingImages, video_url = ''
-  } = req.body;
+  try {
+    const {
+      title, brand, model, year, price, mileage = 0, fuel,
+      hp = '', engine = '', transmission = '', body = '', colour = '',
+      location = 'Freetown', condition_type = 'new', status = 'available',
+      featured = 0, description = '', existingImages, video_url = ''
+    } = req.body;
 
-  if (!title || !brand || !model || !year || !price || !fuel) {
-    return fail(res, 'Title, brand, model, year, price, and fuel are required.');
+    if (!title || !brand || !model || !year || !price || !fuel) {
+      return fail(res, 'Title, brand, model, year, price, and fuel are required.');
+    }
+
+    let images = [];
+    try { images = JSON.parse(existingImages || '[]'); } catch {}
+    if (req.files?.images?.length) {
+      images = images.concat(req.files.images.map(f => `/uploads/${f.filename}`));
+    }
+
+    let finalVideoUrl = video_url || '';
+    if (req.files?.video?.length) {
+      finalVideoUrl = `/uploads/${req.files.video[0].filename}`;
+    }
+
+    const isFeatured = featured === 'true' || featured === true || featured === '1' ? 1 : 0;
+
+    const result = run(`
+      INSERT INTO vehicles
+        (title,brand,model,year,price,mileage,fuel,hp,engine,transmission,body,colour,location,condition_type,status,featured,description,images,video_url,updated_at)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,datetime('now'))
+    `, [title, brand, model, parseInt(year), parseInt(price), parseInt(mileage),
+        fuel, hp, engine, transmission, body, colour, location,
+        condition_type, status, isFeatured, description, JSON.stringify(images), finalVideoUrl]);
+
+    const newV = get('SELECT * FROM vehicles WHERE id = ?', [result.lastInsertRowid]);
+    return ok(res, { vehicle: mapVehicle(newV) }, 201);
+  } catch (err) {
+    console.error('Error adding vehicle:', err);
+    return fail(res, err.message || 'Failed to add vehicle.', 500);
   }
-
-  let images = [];
-  try { images = JSON.parse(existingImages || '[]'); } catch {}
-  if (req.files?.images?.length) {
-    images = images.concat(req.files.images.map(f => `/uploads/${f.filename}`));
-  }
-
-  let finalVideoUrl = video_url || '';
-  if (req.files?.video?.length) {
-    finalVideoUrl = `/uploads/${req.files.video[0].filename}`;
-  }
-
-  const isFeatured = featured === 'true' || featured === true || featured === '1' ? 1 : 0;
-
-  const result = run(`
-    INSERT INTO vehicles
-      (title,brand,model,year,price,mileage,fuel,hp,engine,transmission,body,colour,location,condition_type,status,featured,description,images,video_url,updated_at)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,datetime('now'))
-  `, [title, brand, model, parseInt(year), parseInt(price), parseInt(mileage),
-      fuel, hp, engine, transmission, body, colour, location,
-      condition_type, status, isFeatured, description, JSON.stringify(images), finalVideoUrl]);
-
-  const newV = get('SELECT * FROM vehicles WHERE id = ?', [result.lastInsertRowid]);
-  return ok(res, { vehicle: mapVehicle(newV) }, 201);
 });
 
 app.put('/api/vehicles/:id', requireAuth, upload.fields([{ name: 'images', maxCount: 10 }, { name: 'video', maxCount: 1 }]), (req, res) => {
-  const existing = get('SELECT * FROM vehicles WHERE id = ?', [req.params.id]);
-  if (!existing) return fail(res, 'Vehicle not found.', 404);
+  try {
+    const existing = get('SELECT * FROM vehicles WHERE id = ?', [req.params.id]);
+    if (!existing) return fail(res, 'Vehicle not found.', 404);
 
-  const {
-    title, brand, model, year, price, mileage, fuel,
-    hp, engine, transmission, body, colour, location,
-    condition_type, status, featured, description, existingImages, removeImages, video_url
-  } = req.body;
+    const {
+      title, brand, model, year, price, mileage, fuel,
+      hp, engine, transmission, body, colour, location,
+      condition_type, status, featured, description, existingImages, removeImages, video_url
+    } = req.body;
 
-  // Handle images
-  let images = parseImages(existing.images);
-  if (removeImages) {
-    let toRemove = [];
-    try { toRemove = JSON.parse(removeImages); } catch {}
-    images = images.filter(img => !toRemove.includes(img));
-    toRemove.forEach(img => {
-      if (img.startsWith('/uploads/')) {
-        const fp = path.join(__dirname, img);
-        if (fs.existsSync(fp)) { try { fs.unlinkSync(fp); } catch {} }
-      }
-    });
+    // Handle images
+    let images = parseImages(existing.images);
+    if (removeImages) {
+      let toRemove = [];
+      try { toRemove = JSON.parse(removeImages); } catch {}
+      images = images.filter(img => !toRemove.includes(img));
+      toRemove.forEach(img => {
+        if (img.startsWith('/uploads/')) {
+          const fp = path.join(__dirname, img);
+          if (fs.existsSync(fp)) { try { fs.unlinkSync(fp); } catch {} }
+        }
+      });
+    }
+    if (existingImages) { try { images = JSON.parse(existingImages); } catch {} }
+    if (req.files?.images?.length) {
+      images = images.concat(req.files.images.map(f => `/uploads/${f.filename}`));
+    }
+
+    let finalVideoUrl = video_url !== undefined ? video_url : (existing.video_url || '');
+    if (req.files?.video?.length) {
+      finalVideoUrl = `/uploads/${req.files.video[0].filename}`;
+    }
+
+    const isFeatured = (featured !== undefined)
+      ? (featured === 'true' || featured === true || featured === '1' ? 1 : 0)
+      : existing.featured;
+
+    run(`
+      UPDATE vehicles SET
+        title=?,brand=?,model=?,year=?,price=?,mileage=?,fuel=?,hp=?,engine=?,
+        transmission=?,body=?,colour=?,location=?,condition_type=?,status=?,
+        featured=?,description=?,images=?,video_url=?,updated_at=datetime('now')
+      WHERE id=?
+    `, [
+      title ?? existing.title, brand ?? existing.brand,
+      model ?? existing.model, parseInt(year ?? existing.year),
+      parseInt(price ?? existing.price), parseInt(mileage ?? existing.mileage),
+      fuel ?? existing.fuel, hp ?? existing.hp,
+      engine ?? existing.engine, transmission ?? existing.transmission,
+      body ?? existing.body, colour ?? existing.colour,
+      location ?? existing.location, condition_type ?? existing.condition_type,
+      status ?? existing.status, isFeatured,
+      description ?? existing.description, JSON.stringify(images), finalVideoUrl,
+      parseInt(req.params.id)
+    ]);
+
+    return ok(res, { vehicle: mapVehicle(get('SELECT * FROM vehicles WHERE id = ?', [req.params.id])) });
+  } catch (err) {
+    console.error('Error updating vehicle:', err);
+    return fail(res, err.message || 'Failed to update vehicle.', 500);
   }
-  if (existingImages) { try { images = JSON.parse(existingImages); } catch {} }
-  if (req.files?.images?.length) {
-    images = images.concat(req.files.images.map(f => `/uploads/${f.filename}`));
-  }
-
-  let finalVideoUrl = video_url !== undefined ? video_url : (existing.video_url || '');
-  if (req.files?.video?.length) {
-    finalVideoUrl = `/uploads/${req.files.video[0].filename}`;
-  }
-
-  const isFeatured = (featured !== undefined)
-    ? (featured === 'true' || featured === true || featured === '1' ? 1 : 0)
-    : existing.featured;
-
-  run(`
-    UPDATE vehicles SET
-      title=?,brand=?,model=?,year=?,price=?,mileage=?,fuel=?,hp=?,engine=?,
-      transmission=?,body=?,colour=?,location=?,condition_type=?,status=?,
-      featured=?,description=?,images=?,video_url=?,updated_at=datetime('now')
-    WHERE id=?
-  `, [
-    title ?? existing.title, brand ?? existing.brand,
-    model ?? existing.model, parseInt(year ?? existing.year),
-    parseInt(price ?? existing.price), parseInt(mileage ?? existing.mileage),
-    fuel ?? existing.fuel, hp ?? existing.hp,
-    engine ?? existing.engine, transmission ?? existing.transmission,
-    body ?? existing.body, colour ?? existing.colour,
-    location ?? existing.location, condition_type ?? existing.condition_type,
-    status ?? existing.status, isFeatured,
-    description ?? existing.description, JSON.stringify(images), finalVideoUrl,
-    req.params.id
-  ]);
-
-  return ok(res, { vehicle: mapVehicle(get('SELECT * FROM vehicles WHERE id = ?', [req.params.id])) });
 });
 
 app.patch('/api/vehicles/:id/status', requireAuth, (req, res) => {

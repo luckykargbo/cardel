@@ -108,6 +108,9 @@ function createSchema() {
       created_at TEXT    NOT NULL DEFAULT (datetime('now'))
     );
   `);
+
+  // Ensure video_url column exists on existing databases
+  try { db.run("ALTER TABLE vehicles ADD COLUMN video_url TEXT;"); } catch {}
 }
 
 // ──────────────────────────────────────────────
