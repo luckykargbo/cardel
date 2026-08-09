@@ -1,5 +1,4 @@
-Update admin vehicle modal brand select options and search filter selects to match Sierra Leone luxury brands
+Fix favourites badge accuracy, deduplication, and ID type coercion in main.js
 
-- Updated admin vehicle modal brand select dropdown to include Toyota, Lexus, Mercedes-Benz, Land Rover, Nissan, Hyundai, Kia, Honda, Ford, Mitsubishi, Jeep, BMW, Audi
-- Updated admin vehicle title and model placeholders with realistic Sierra Leone vehicle examples (e.g., Toyota Land Cruiser V8 VXR)
-- Updated public site search tags, filterBrand dropdown, and filterModel dropdown in index.html to match Sierra Leone popular vehicles
+- Add getValidFavourites() to filter out stale/deleted car IDs and enforce number type deduplication
+- Update toggleFav and updateFavBadge to calculate exact count of valid saved vehicles currently in database

@@ -247,27 +247,48 @@ function attachCardEvents() {
 }
 
 // ──────────────────────────────────────────────
-// FAVOURITES
-// ──────────────────────────────────────────────
+function getValidFavourites() {
+  let clean = Array.from(new Set(favourites.map(x => parseInt(x)).filter(Boolean)));
+  if (allVehicles && allVehicles.length) {
+    clean = clean.filter(id => allVehicles.some(v => v.id === id));
+  }
+  if (clean.length !== favourites.length) {
+    favourites = clean;
+    localStorage.setItem('pm_favourites', JSON.stringify(favourites));
+  }
+  return favourites;
+}
+
 function toggleFav(id, btn) {
-  const idx = favourites.indexOf(id);
+  const numId = parseInt(id);
+  if (!numId) return;
+
+  favourites = getValidFavourites();
+  const idx = favourites.indexOf(numId);
   if (idx === -1) {
-    favourites.push(id);
-    if (btn) { btn.classList.add('active'); btn.querySelector('i').className = 'ri-heart-fill'; }
+    favourites.push(numId);
     showToast('Added to favourites!', 'success');
   } else {
     favourites.splice(idx, 1);
-    if (btn) { btn.classList.remove('active'); btn.querySelector('i').className = 'ri-heart-line'; }
     showToast('Removed from favourites', 'info');
   }
   localStorage.setItem('pm_favourites', JSON.stringify(favourites));
   updateFavBadge();
+
+  if (btn) {
+    const isFaved = favourites.includes(numId);
+    btn.classList.toggle('active', isFaved);
+    btn.classList.toggle('faved', isFaved);
+    const icon = btn.querySelector('i');
+    if (icon) icon.className = `ri-heart-${isFaved ? 'fill' : 'line'}`;
+  }
 }
 
 function updateFavBadge() {
   const badge = $('favCount');
   if (!badge) return;
-  const count = favourites.length;
+  const valid = getValidFavourites();
+  const count = valid.length;
   badge.textContent = count;
   if (count > 0) {
     badge.classList.remove('hidden');
@@ -771,9 +792,10 @@ function initFilterPills() {
 function initFavBtn() {
   const btn = $('favBtn');
   btn?.addEventListener('click', () => {
-    if (favourites.length === 0) { showToast('No saved favourites yet.', 'info'); return; }
-    const favVehicles = allVehicles.filter(v => favourites.includes(v.id));
-    if (favVehicles.length === 0) { showToast('Saved vehicles not in current inventory.', 'warning'); return; }
+    const valid = getValidFavourites();
+    if (valid.length === 0) { showToast('No saved favourites yet.', 'info'); return; }
+    const favVehicles = allVehicles.filter(v => valid.includes(v.id));
+    if (favVehicles.length === 0) { showToast('No saved favourites in active inventory.', 'info'); return; }
 
     let modal = $('favModal');
     if (!modal) {
