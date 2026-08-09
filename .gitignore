@@ -1,0 +1,16 @@
+node_modules/
+database/prestige_motors.db
+database/prestige_motors.db-shm
+database/prestige_motors.db-wal
+uploads/*.jpg
+uploads/*.jpeg
+uploads/*.png
+uploads/*.gif
+uploads/*.webp
+uploads/*.mp4
+!uploads/.gitkeep
+.env
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db

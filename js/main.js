@@ -1,927 +1,1141 @@
 /* ============================================================
    PRESTIGE MOTORS — PUBLIC SITE JAVASCRIPT
+   100% Live API — SQLite Backend Powered
    ============================================================ */
 
-// ============================================================
+'use strict';
+
+// ──────────────────────────────────────────────
 // CONFIG
-// ============================================================
-const WA_NUMBER = '23276637648'; // +232 76 637 648 (Sierra Leone)
+// ──────────────────────────────────────────────
+const API_BASE   = window.location.origin + '/api';
+const WA_NUMBER  = '23276637648';
+
+// ──────────────────────────────────────────────
+// STATE
+// ──────────────────────────────────────────────
+let allVehicles      = [];
+let filteredVehicles = [];
+let displayedCount   = 0;
+let PAGE_SIZE        = 9;
+let favourites       = JSON.parse(localStorage.getItem('pm_favourites') || '[]');
+let currentQuickId   = null;
+
+// ──────────────────────────────────────────────
+// UTILITIES
+// ──────────────────────────────────────────────
+const $ = (id) => document.getElementById(id);
+const $$ = (sel) => document.querySelectorAll(sel);
+
+function fmtPrice(n) {
+  if (!n && n !== 0) return 'N/A';
+  if (n >= 1000000) return 'NLE ' + (n / 1000000).toFixed(2).replace(/\.?0+$/, '') + 'M';
+  if (n >= 1000)    return 'NLE ' + (n / 1000).toFixed(0) + 'K';
+  return 'NLE ' + n.toLocaleString();
+}
+
+function fmtFull(n) {
+  if (!n && n !== 0) return 'N/A';
+  return 'NLE ' + n.toLocaleString();
+}
+
+function fmtMonthly(price) {
+  // Simple estimate: 24-month plan at flat rate
+  return fmtPrice(Math.round(price / 24));
+}
+
+function fmtMileage(km) {
+  if (km === 0) return 'Brand New';
+  return Number(km).toLocaleString() + ' km';
+}
 
 function buildWALink(v) {
+  const imgList = (v.images || []).length ? v.images[0] : '';
   const msg = encodeURIComponent(
     `🚘 *Prestige Motors Enquiry*\n\n` +
-    `I'm interested in the following vehicle:\n\n` +
+    `I am interested in the following vehicle:\n\n` +
     `*${v.title}*\n` +
     `📅 Year: ${v.year}\n` +
     `⛽ Fuel: ${v.fuel}\n` +
-    `⚙️ Engine: ${v.engine}\n` +
-    `💪 Power: ${v.hp}\n` +
-    `🔄 Transmission: ${v.transmission}\n` +
-    `🛣️ Mileage: ${v.mileage}\n` +
-    `🎨 Colour: ${v.colour}\n` +
-    `📍 Location: ${v.location}\n` +
+    `⚙️ Engine: ${v.engine || 'N/A'}\n` +
+    `💪 Power: ${v.hp || 'N/A'}\n` +
+    `🔄 Transmission: ${v.transmission || 'N/A'}\n` +
+    `🛣️ Mileage: ${fmtMileage(v.mileage)}\n` +
+    `🎨 Colour: ${v.colour || 'N/A'}\n` +
+    `📍 Location: ${v.location || 'Freetown'}\n` +
     `💰 Price: ${fmtFull(v.price)}\n\n` +
     `Please get back to me as soon as possible. Thank you!`
   );
   return `https://wa.me/${WA_NUMBER}?text=${msg}`;
 }
-const VEHICLES = [
-  {
-    id: 1,
-    title: 'BMW M8 Competition Coupé',
-    brand: 'BMW',
-    model: 'M8 Competition',
-    year: 2024,
-    price: 2450000,
-    monthly: 46200,
-    mileage: '2,100 km',
-    fuel: 'Petrol',
-    hp: '625 hp',
-    transmission: 'Automatic',
-    engine: '4.4L V8',
-    colour: 'Obsidian Black',
-    location: 'Freetown',
-    body: 'Coupé',
-    type: 'new',
-    verified: true,
-    badge360: true,
-    videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-sports-car-driving-on-a-road-at-sunset-41481-large.mp4',
-    image: 'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800&q=85',
-    dealer: 'Prestige West Africa'
-  },
-  {
-    id: 2,
-    title: 'Mercedes-AMG GT 63 S',
-    brand: 'Mercedes-Benz',
-    model: 'AMG GT 63',
-    year: 2024,
-    price: 3200000,
-    monthly: 60300,
-    mileage: '480 km',
-    fuel: 'Petrol',
-    hp: '639 hp',
-    transmission: 'Automatic',
-    engine: '4.0L V8',
-    colour: 'Polar White',
-    location: 'Freetown',
-    body: 'Sedan',
-    type: 'new',
-    verified: true,
-    badge: 'Best Seller',
-    videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-car-driving-on-a-highway-at-dusk-41477-large.mp4',
-    image: 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=800&q=85',
-    dealer: 'Prestige West Africa'
-  },
-  {
-    id: 3,
-    title: 'Porsche 911 Turbo S',
-    brand: 'Porsche',
-    model: '911 Turbo S',
-    year: 2024,
-    price: 4100000,
-    monthly: 77400,
-    mileage: '480 km',
-    fuel: 'Petrol',
-    hp: '650 hp',
-    transmission: 'PDK',
-    engine: '3.8L Twin-Turbo',
-    colour: 'Midnight Blue',
-    location: 'Freetown',
-    body: 'Coupé',
-    type: 'new',
-    verified: true,
-    badge360: true,
-    badge: 'Editor\'s Choice',
-    videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-sports-car-drifting-on-a-track-41476-large.mp4',
-    image: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&q=85',
-    dealer: 'Prestige West Africa'
-  },
-  {
-    id: 4,
-    title: 'Ferrari 296 GTB',
-    brand: 'Ferrari',
-    model: '296 GTB',
-    year: 2023,
-    price: 6800000,
-    monthly: 128200,
-    mileage: '1,200 km',
-    fuel: 'Hybrid',
-    hp: '830 hp',
-    transmission: 'DCT',
-    engine: '3.0L V6 + Electric',
-    colour: 'Rosso Corsa',
-    location: 'Freetown',
-    body: 'Coupé',
-    type: 'used',
-    verified: true,
-    badge: 'Limited Offer',
-    videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-red-sports-car-driving-on-a-curved-road-41475-large.mp4',
-    image: 'https://images.unsplash.com/photo-1592198084033-aade902d1aae?w=800&q=85',
-    dealer: 'Prestige West Africa'
-  },
-  {
-    id: 5,
-    title: 'Lamborghini Huracán Tecnica',
-    brand: 'Lamborghini',
-    model: 'Huracán Tecnica',
-    year: 2024,
-    price: 7900000,
-    monthly: 149000,
-    mileage: '0 km',
-    fuel: 'Petrol',
-    hp: '640 hp',
-    transmission: 'DCT',
-    engine: '5.2L V10',
-    colour: 'Racing Yellow',
-    location: 'Freetown',
-    body: 'Coupé',
-    type: 'new',
-    verified: true,
-    badge360: true,
-    videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-sports-car-speeding-on-a-race-track-41474-large.mp4',
-    image: 'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=800&q=85',
-    dealer: 'Prestige West Africa'
-  },
-  {
-    id: 6,
-    title: 'Audi R8 V10 Performance',
-    brand: 'Audi',
-    model: 'R8 V10',
-    year: 2024,
-    price: 3600000,
-    monthly: 67900,
-    mileage: '3,800 km',
-    fuel: 'Petrol',
-    hp: '620 hp',
-    transmission: 'DCT',
-    engine: '5.2L V10',
-    colour: 'Nardo Grey',
-    location: 'Bo',
-    body: 'Coupé',
-    type: 'used',
-    verified: true,
-    image: 'https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800&q=85',
-    dealer: 'AutoElite SL'
-  },
-  {
-    id: 7,
-    title: 'Tesla Model S Plaid',
-    brand: 'Tesla',
-    model: 'Model S Plaid',
-    year: 2024,
-    price: 1950000,
-    monthly: 36800,
-    mileage: '0 km',
-    fuel: 'Electric',
-    hp: '1,020 hp',
-    transmission: 'Electric',
-    engine: 'Tri-Motor Electric',
-    colour: 'Midnight Silver',
-    location: 'Freetown',
-    body: 'Sedan',
-    type: 'electric',
-    verified: true,
-    badge: 'Electric',
-    image: 'https://images.unsplash.com/photo-1560958089-b8a1929cea89?w=800&q=85',
-    dealer: 'Prestige West Africa'
-  },
-  {
-    id: 8,
-    title: 'Bentley Continental GT V8',
-    brand: 'Bentley',
-    model: 'Continental GT',
-    year: 2023,
-    price: 9200000,
-    monthly: 173500,
-    mileage: '5,400 km',
-    fuel: 'Petrol',
-    hp: '542 hp',
-    transmission: 'Automatic',
-    engine: '4.0L V8',
-    colour: 'Tungsten',
-    location: 'Freetown',
-    body: 'Coupé',
-    type: 'used',
-    verified: true,
-    badge: 'New Arrival',
-    image: 'https://images.unsplash.com/photo-1617469767053-d3b523a0b982?w=800&q=85',
-    dealer: 'Prestige West Africa'
-  },
-  {
-    id: 9,
-    title: 'Rolls-Royce Ghost Series II',
-    brand: 'Rolls-Royce',
-    model: 'Ghost',
-    year: 2024,
-    price: 14500000,
-    monthly: 273400,
-    mileage: '1,050 km',
-    fuel: 'Petrol',
-    hp: '563 hp',
-    transmission: 'Automatic',
-    engine: '6.75L V12',
-    colour: 'Arctic White',
-    location: 'Freetown',
-    body: 'Sedan',
-    type: 'new',
-    verified: true,
-    badge360: true,
-    badge: 'Best Seller',
-    image: 'https://images.unsplash.com/photo-1631295868223-63265b40d9e4?w=800&q=85',
-    dealer: 'Prestige West Africa'
-  }
-];
 
-// ============================================================
-// STATE
-// ============================================================
-let favourites = JSON.parse(localStorage.getItem('pm_favourites') || '[]');
-const isFav = (id) => favourites.includes(id);
-let currentFilter = 'all';
-let carouselIndex = 0;
-let carouselTimer;
-const TOTAL_SLIDES = 4;
-
-// ============================================================
-// UTILITY HELPERS
-// ============================================================
-const $ = (s) => document.querySelector(s);
-const $$ = (s) => document.querySelectorAll(s);
-
-function fmtNLE(num) {
-  if (num >= 1000000) return 'NLE ' + (num / 1000000).toFixed(2).replace(/\.?0+$/, '') + 'M';
-  if (num >= 1000) return 'NLE ' + (num / 1000).toFixed(0) + 'K';
-  return 'NLE ' + num.toLocaleString();
+function showToast(msg, type = 'info', duration = 3500) {
+  const icons = {
+    info:    'ri-information-line',
+    success: 'ri-checkbox-circle-fill',
+    error:   'ri-error-warning-fill',
+    warning: 'ri-alert-fill'
+  };
+  const container = $('toastContainer');
+  if (!container) return;
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.innerHTML = `<i class="${icons[type] || icons.info}"></i><span>${msg}</span>`;
+  container.appendChild(t);
+  setTimeout(() => { t.classList.add('fade-out'); setTimeout(() => t.remove(), 400); }, duration);
 }
 
-function fmtFull(num) {
-  return 'NLE ' + num.toLocaleString();
-}
-
-function showToast(msg, type = 'gold', duration = 3500) {
-  const icons = { gold: 'ri-star-fill', success: 'ri-checkbox-circle-fill', error: 'ri-error-warning-fill' };
-  const toast = document.createElement('div');
-  toast.className = `toast ${type}`;
-  toast.innerHTML = `<i class="${icons[type] || icons.gold}"></i><span>${msg}</span>`;
-  $('#toastContainer').appendChild(toast);
-  setTimeout(() => { toast.classList.add('fade-out'); setTimeout(() => toast.remove(), 400); }, duration);
-}
-
-// ============================================================
-// NAVBAR SCROLL BEHAVIOUR
-// ============================================================
-function initNavbar() {
-  const navbar = $('#navbar');
-  window.addEventListener('scroll', () => {
-    navbar.classList.toggle('scrolled', window.scrollY > 60);
-    $('#backToTop').classList.toggle('hidden', window.scrollY < 400);
-  }, { passive: true });
-
-  // Hamburger
-  const hamburger = $('#hamburger');
-  const mobileMenu = $('#mobileMenu');
-  hamburger.addEventListener('click', () => {
-    hamburger.classList.toggle('open');
-    mobileMenu.classList.toggle('show');
-  });
-
-  // Close mobile menu on link click
-  $$('[data-close]').forEach(el => {
-    el.addEventListener('click', () => {
-      hamburger.classList.remove('open');
-      mobileMenu.classList.remove('show');
+// ──────────────────────────────────────────────
+// API CALLS
+// ──────────────────────────────────────────────
+async function apiFetch(endpoint, options = {}) {
+  try {
+    const res  = await fetch(API_BASE + endpoint, {
+      headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+      ...options
     });
-  });
-
-  // Search toggle
-  const overlay = $('#navSearchOverlay');
-  $('#searchToggle').addEventListener('click', () => {
-    overlay.classList.add('show');
-    setTimeout(() => $('#navSearchInput').focus(), 50);
-  });
-  $('#navSearchClose').addEventListener('click', () => overlay.classList.remove('show'));
-  $('#navSearchInput').addEventListener('keydown', e => { if (e.key === 'Escape') overlay.classList.remove('show'); });
-
-  // Back to top
-  $('#backToTop').addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+    return await res.json();
+  } catch (err) {
+    console.error('API Error:', err);
+    return { success: false, message: 'Network error. Please try again.' };
+  }
 }
 
-// ============================================================
-// PARTICLES CANVAS
-// ============================================================
-function initParticles() {
-  const canvas = $('#particlesCanvas');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  let particles = [];
-  let W, H;
-
-  function resize() {
-    W = canvas.width = canvas.offsetWidth;
-    H = canvas.height = canvas.offsetHeight;
-  }
-
-  function createParticle() {
-    return {
-      x: Math.random() * W,
-      y: Math.random() * H,
-      r: Math.random() * 1.8 + 0.4,
-      vx: (Math.random() - 0.5) * 0.4,
-      vy: -Math.random() * 0.5 - 0.2,
-      a: Math.random() * 0.6 + 0.2,
-      fade: Math.random() * 0.002 + 0.001
-    };
-  }
-
-  function init() {
-    resize();
-    particles = Array.from({ length: 120 }, createParticle);
-  }
-
-  function draw() {
-    ctx.clearRect(0, 0, W, H);
-    particles.forEach((p, i) => {
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(229,169,92,${p.a})`;
-      ctx.fill();
-
-      p.x += p.vx;
-      p.y += p.vy;
-      p.a -= p.fade;
-
-      if (p.a <= 0 || p.y < -10) particles[i] = createParticle();
-    });
-    requestAnimationFrame(draw);
-  }
-
-  window.addEventListener('resize', resize, { passive: true });
-  init();
-  draw();
+// ──────────────────────────────────────────────
+// VEHICLE LOADING
+// ──────────────────────────────────────────────
+async function loadVehicles(params = {}) {
+  const query = new URLSearchParams(params).toString();
+  const data  = await apiFetch(`/vehicles${query ? '?' + query : ''}`);
+  if (!data.success) { showToast('Failed to load inventory.', 'error'); return []; }
+  return data.vehicles || [];
 }
 
-// ============================================================
-// VEHICLE CARDS RENDERING
-// ============================================================
-function renderVehicles(filter = 'all') {
-  const grid = $('#vehiclesGrid');
+async function initInventory() {
+  const grid = $('vehiclesGrid');
   if (!grid) return;
 
-  const filtered = filter === 'all' ? VEHICLES : VEHICLES.filter(v => v.type === filter);
+  showLoadingSkeleton(grid);
+  allVehicles      = await loadVehicles({ limit: 100 });
+  filteredVehicles = [...allVehicles];
+  displayedCount   = 0;
+  renderPage();
+  updateFavBadge();
+}
 
-  grid.innerHTML = filtered.map(v => `
-    <div class="vehicle-card reveal-item" data-id="${v.id}" data-type="${v.type}" onclick="openQuickView(${v.id})">
-      <div class="card-media">
-        <img src="${v.image}" alt="${v.title}" loading="lazy">
-        <div class="card-badges">
-          ${v.type === 'new' ? '<span class="card-badge badge-new">New</span>' : ''}
-          ${v.type === 'electric' ? '<span class="card-badge badge-electric">⚡ Electric</span>' : ''}
-          ${v.badge ? `<span class="card-badge badge-limited">${v.badge}</span>` : ''}
-          ${v.verified ? '<span class="card-badge badge-verified"><i class="ri-verified-badge-fill"></i> Verified</span>' : ''}
-        </div>
-        <div class="card-hover-actions" onclick="event.stopPropagation()">
-          <button class="card-action-btn ${isFav(v.id) ? 'faved' : ''}" data-fav-id="${v.id}" onclick="toggleFav(${v.id})" title="Save to Favourites">
-            <i class="${isFav(v.id) ? 'ri-heart-fill' : 'ri-heart-line'}"></i>
-          </button>
-          <button class="card-action-btn" onclick="openQuickView(${v.id})" title="Quick View">
-            <i class="ri-eye-line"></i>
-          </button>
-          <a class="card-action-btn" href="${buildWALink(v)}" target="_blank" title="WhatsApp Enquiry" onclick="event.stopPropagation()" style="text-decoration:none">
-            <i class="ri-whatsapp-line" style="color:#25D366"></i>
-          </a>
-        </div>
-        <div class="card-media-overlay"></div>
-        <div class="card-quick-view"><i class="ri-eye-line"></i> Quick View</div>
-      </div>
-      <div class="card-body">
-        <h3 class="card-title">${v.title}</h3>
-        <div class="card-price-row">
-          <span class="card-price">${fmtNLE(v.price)}</span>
-        </div>
-        <div class="card-specs">
-          <div class="card-spec"><span class="spec-label">Year</span><span class="spec-val">${v.year}</span></div>
-          <div class="card-spec"><span class="spec-label">Fuel</span><span class="spec-val">${v.fuel}</span></div>
-          <div class="card-spec"><span class="spec-label">Power</span><span class="spec-val">${v.hp}</span></div>
-          <div class="card-spec"><span class="spec-label">Gearbox</span><span class="spec-val">${v.transmission}</span></div>
-          <div class="card-spec"><span class="spec-label">Engine</span><span class="spec-val">${v.engine}</span></div>
-          <div class="card-spec"><span class="spec-label">Mileage</span><span class="spec-val">${v.mileage}</span></div>
-        </div>
-        <div class="card-meta">
-          <div class="card-dealer">
-            <i class="ri-verified-badge-fill"></i>
-            <span>${v.dealer}</span>
-          </div>
-          <div class="card-location"><i class="ri-map-pin-line"></i>${v.location}</div>
-        </div>
-      </div>
+function showLoadingSkeleton(grid) {
+  grid.innerHTML = Array(6).fill(0).map(() => `
+    <div class="vehicle-card skeleton-card">
+      <div class="skeleton skeleton-img"></div>
+      <div class="skeleton skeleton-title"></div>
+      <div class="skeleton skeleton-text"></div>
+      <div class="skeleton skeleton-text short"></div>
     </div>
   `).join('');
-
-  // Re-observe reveal items
-  observeReveal();
 }
 
-function toggleFav(id) {
-  const btns = document.querySelectorAll(`[data-fav-id="${id}"]`);
+// ──────────────────────────────────────────────
+// RENDER
+// ──────────────────────────────────────────────
+function renderPage() {
+  const grid = $('vehiclesGrid');
+  if (!grid) return;
+  if (displayedCount === 0) grid.innerHTML = '';
 
-  if (favourites.includes(id)) {
-    favourites = favourites.filter(f => f !== id);
-    btns.forEach(btn => {
-      btn.classList.remove('faved');
-      btn.innerHTML = '<i class="ri-heart-line"></i>';
+  const slice = filteredVehicles.slice(displayedCount, displayedCount + PAGE_SIZE);
+  displayedCount += slice.length;
+
+  if (slice.length === 0 && displayedCount === 0) {
+    grid.innerHTML = `
+      <div class="empty-state" style="grid-column:1/-1;text-align:center;padding:60px 20px">
+        <i class="ri-car-line" style="font-size:48px;color:var(--gold);opacity:0.5;display:block;margin-bottom:16px"></i>
+        <h3 style="color:var(--text-primary);margin-bottom:8px">No vehicles found</h3>
+        <p style="color:var(--text-muted)">Try adjusting your filters or browse all vehicles.</p>
+        <button class="btn-hero-primary" style="margin-top:20px;display:inline-flex" onclick="resetAllFilters()">
+          <i class="ri-refresh-line"></i> Clear Filters
+        </button>
+      </div>`;
+    const lb = $('loadMoreBtn');
+    if (lb) lb.style.display = 'none';
+    return;
+  }
+
+  slice.forEach(v => {
+    const card = buildVehicleCard(v);
+    grid.insertAdjacentHTML('beforeend', card);
+  });
+
+  // Load more button visibility
+  const lb = $('loadMoreBtn');
+  if (lb) {
+    lb.style.display = displayedCount >= filteredVehicles.length ? 'none' : 'flex';
+  }
+
+  // Re-attach card animations
+  attachCardEvents();
+}
+
+function buildVehicleCard(v) {
+  const img     = (v.images && v.images[0]) ? v.images[0] : 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80';
+  const isFav   = favourites.includes(v.id);
+  const waLink  = buildWALink(v);
+  const isNew   = v.condition_type === 'new';
+  const isSold  = v.status === 'sold';
+  const isResv  = v.status === 'reserved';
+
+  const statusBadge = isSold
+    ? `<span class="car-badge sold-badge">Sold</span>`
+    : isResv
+    ? `<span class="car-badge reserved-badge">Reserved</span>`
+    : isNew
+    ? `<span class="car-badge new-badge">New</span>`
+    : `<span class="car-badge used-badge">Pre-Owned</span>`;
+
+  const featuredBadge = v.featured
+    ? `<span class="car-badge featured-badge"><i class="ri-star-fill"></i> Featured</span>`
+    : '';
+
+  const electricBadge = v.fuel === 'Electric'
+    ? `<span class="car-badge electric-badge"><i class="ri-flashlight-fill"></i> EV</span>`
+    : '';
+
+  return `
+    <article class="vehicle-card reveal-item" data-id="${v.id}" data-brand="${v.brand}" data-type="${v.condition_type}" data-fuel="${v.fuel}">
+      <div class="car-img-wrap">
+        <img src="${img}" alt="${v.title}" class="car-img" loading="lazy"
+             onerror="this.src='https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80'">
+        <div class="car-badges-row">
+          ${statusBadge}
+          ${featuredBadge}
+          ${electricBadge}
+        </div>
+        <div class="car-img-actions">
+          <button class="car-action-btn fav-toggle ${isFav ? 'active' : ''}"
+                  onclick="toggleFav(${v.id}, this)" title="${isFav ? 'Remove from favourites' : 'Add to favourites'}">
+            <i class="ri-heart-${isFav ? 'fill' : 'line'}"></i>
+          </button>
+          <button class="car-action-btn" onclick="openQuickView(${v.id})" title="Quick View">
+            <i class="ri-eye-line"></i>
+          </button>
+        </div>
+      </div>
+      <div class="car-body">
+        <div class="car-top-row">
+          <span class="car-brand">${v.brand}</span>
+          <span class="car-year">${v.year}</span>
+        </div>
+        <h3 class="car-title">${v.title}</h3>
+        <div class="car-meta-grid">
+          <div class="car-meta-item"><i class="ri-route-line"></i><span>${fmtMileage(v.mileage)}</span></div>
+          <div class="car-meta-item"><i class="ri-gas-station-line"></i><span>${v.fuel}</span></div>
+          <div class="car-meta-item"><i class="ri-settings-3-line"></i><span>${v.transmission || 'N/A'}</span></div>
+          <div class="car-meta-item"><i class="ri-map-pin-line"></i><span>${v.location || 'Freetown'}</span></div>
+        </div>
+        <div class="car-footer">
+          <div class="car-price-col">
+            <div class="car-price">${fmtPrice(v.price)}</div>
+            <div class="car-monthly">From ${fmtMonthly(v.price)}/mo</div>
+          </div>
+          <div class="car-cta-row">
+            ${!isSold ? `
+            <a href="${waLink}" target="_blank" class="btn-car-wa" title="Enquire on WhatsApp">
+              <i class="ri-whatsapp-line"></i>
+            </a>` : ''}
+            <button class="btn-car-view" onclick="openQuickView(${v.id})">
+              View Details <i class="ri-arrow-right-line"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function attachCardEvents() {
+  // Intersection Observer for reveal animations
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('revealed');
+        observer.unobserve(e.target);
+      }
     });
-    showToast('Removed from favourites', 'gold');
-  } else {
+  }, { threshold: 0.08 });
+
+  $$('.vehicle-card.reveal-item:not(.revealed)').forEach(el => observer.observe(el));
+}
+
+// ──────────────────────────────────────────────
+// FAVOURITES
+// ──────────────────────────────────────────────
+function toggleFav(id, btn) {
+  const idx = favourites.indexOf(id);
+  if (idx === -1) {
     favourites.push(id);
-    btns.forEach(btn => {
-      btn.classList.add('faved');
-      btn.innerHTML = '<i class="ri-heart-fill"></i>';
-    });
-    showToast('❤️ Saved to favourites!', 'success');
+    if (btn) { btn.classList.add('active'); btn.querySelector('i').className = 'ri-heart-fill'; }
+    showToast('Added to favourites!', 'success');
+  } else {
+    favourites.splice(idx, 1);
+    if (btn) { btn.classList.remove('active'); btn.querySelector('i').className = 'ri-heart-line'; }
+    showToast('Removed from favourites', 'info');
   }
   localStorage.setItem('pm_favourites', JSON.stringify(favourites));
-  updateFavCount();
+  updateFavBadge();
 }
 
-function updateFavCount() {
-  const badge = $('#favCount');
+function updateFavBadge() {
+  const badge = $('favCount');
   if (!badge) return;
   badge.textContent = favourites.length;
   badge.classList.toggle('hidden', favourites.length === 0);
 }
 
-// ============================================================
-// FILTER PILLS
-// ============================================================
-function initFilterPills() {
-  $$('#vehicleFilterPills .filter-pill').forEach(pill => {
-    pill.addEventListener('click', () => {
-      $$('#vehicleFilterPills .filter-pill').forEach(p => p.classList.remove('active'));
-      pill.classList.add('active');
-      currentFilter = pill.dataset.filter;
-      renderVehicles(currentFilter);
-    });
-  });
+// ──────────────────────────────────────────────
+// SEARCH & FILTER PANEL
+// ──────────────────────────────────────────────
+function applyFilters() {
+  const search = ($('navSearchInput')?.value || '').toLowerCase().trim();
+  const brand  = ($('filterBrand')?.value  || '').toLowerCase();
+  const model  = ($('filterModel')?.value  || '').toLowerCase();
+  const year   = $('filterYear')?.value  || '';
+  const body   = ($('filterBody')?.value   || '').toLowerCase();
+  const trans  = ($('filterTransmission')?.value || '').toLowerCase();
+  const fuel   = ($('filterFuel')?.value   || '').toLowerCase();
+  const price  = $('filterPrice')?.value  || '';
+  const mil    = $('filterMileage')?.value || '';
+  const colour = ($('filterColour')?.value  || '').toLowerCase();
+  const loc    = ($('filterLocation')?.value || '').toLowerCase();
 
-  const loadMore = $('#loadMoreBtn');
-  if (loadMore) {
-    loadMore.addEventListener('click', () => {
-      showToast('All vehicles displayed for this demo', 'gold');
-    });
-  }
-}
+  filteredVehicles = allVehicles.filter(v => {
+    if (search && !v.title.toLowerCase().includes(search) &&
+                  !v.brand.toLowerCase().includes(search) &&
+                  !v.model.toLowerCase().includes(search)) return false;
+    if (brand  && v.brand.toLowerCase() !== brand) return false;
+    if (model  && !v.model.toLowerCase().includes(model)) return false;
+    if (year   && String(v.year) !== year) return false;
+    if (body   && v.body?.toLowerCase() !== body) return false;
+    if (trans  && !v.transmission?.toLowerCase().includes(trans)) return false;
+    if (fuel   && v.fuel.toLowerCase() !== fuel) return false;
+    if (colour && !v.colour?.toLowerCase().includes(colour)) return false;
+    if (loc    && v.location?.toLowerCase() !== loc) return false;
 
-// ============================================================
-// BRAND FILTER
-// ============================================================
-function filterByBrand(brand) {
-  // Scroll to inventory
-  $('#inventory').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  setTimeout(() => {
-    const filtered = VEHICLES.filter(v => v.brand === brand || v.brand.includes(brand));
-    const grid = $('#vehiclesGrid');
-    if (grid) {
-      // Reset filter pills
-      $$('#vehicleFilterPills .filter-pill').forEach(p => p.classList.remove('active'));
-      $('[data-filter="all"]').classList.add('active');
-
-      grid.innerHTML = filtered.length > 0
-        ? filtered.map(v => renderCard(v)).join('')
-        : `<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-muted)">
-             <i class="ri-car-line" style="font-size:48px;margin-bottom:12px;color:var(--gold);display:block"></i>
-             <p>No ${brand} vehicles in demo. More coming soon!</p>
-             <button onclick="renderVehicles('all')" style="margin-top:16px" class="btn-view-all">Show All</button>
-           </div>`;
-      observeReveal();
+    if (price) {
+      if (price.endsWith('+')) {
+        const min = parseInt(price);
+        if (v.price < min) return false;
+      } else {
+        const [pMin, pMax] = price.split('-').map(Number);
+        if (v.price < pMin || v.price > pMax) return false;
+      }
     }
-    if (filtered.length > 0) showToast(`Showing ${filtered.length} ${brand} vehicle${filtered.length > 1 ? 's' : ''}`, 'gold');
-  }, 600);
+
+    if (mil) {
+      if (mil === '0' && v.mileage !== 0) return false;
+      else if (mil !== '0' && v.mileage > parseInt(mil)) return false;
+    }
+
+    return true;
+  });
+
+  displayedCount = 0;
+  const grid = $('vehiclesGrid');
+  if (grid) grid.innerHTML = '';
+  renderPage();
 }
 
-function renderCard(v) {
-  const isFav = favourites.includes(v.id);
-  return `
-    <div class="vehicle-card reveal-item" data-id="${v.id}" onclick="openQuickView(${v.id})">
-      <div class="card-media">
-        <img src="${v.image}" alt="${v.title}" loading="lazy">
-        <div class="card-badges">
-          ${v.type === 'new' ? '<span class="card-badge badge-new">New</span>' : ''}
-          ${v.type === 'electric' ? '<span class="card-badge badge-electric">⚡ Electric</span>' : ''}
-          ${v.badge ? `<span class="card-badge badge-limited">${v.badge}</span>` : ''}
-          ${v.verified ? '<span class="card-badge badge-verified"><i class="ri-verified-badge-fill"></i> Verified</span>' : ''}
-        </div>
-        <div class="card-hover-actions" onclick="event.stopPropagation()">
-          <button class="card-action-btn ${isFav ? 'faved' : ''}" data-fav-id="${v.id}" onclick="toggleFav(${v.id})" title="Save to Favourites">
-            <i class="${isFav ? 'ri-heart-fill' : 'ri-heart-line'}"></i>
-          </button>
-          <button class="card-action-btn" onclick="openQuickView(${v.id})" title="Quick View">
-            <i class="ri-eye-line"></i>
-          </button>
-          <a class="card-action-btn" href="${buildWALink(v)}" target="_blank" title="WhatsApp Enquiry" onclick="event.stopPropagation()" style="text-decoration:none">
-            <i class="ri-whatsapp-line" style="color:#25D366"></i>
-          </a>
-        </div>
-        <div class="card-media-overlay"></div>
-        <div class="card-quick-view"><i class="ri-eye-line"></i> Quick View</div>
-      </div>
-      <div class="card-body">
-        <h3 class="card-title">${v.title}</h3>
-        <div class="card-price-row">
-          <span class="card-price">${fmtNLE(v.price)}</span>
-        </div>
-        <div class="card-specs">
-          <div class="card-spec"><span class="spec-label">Year</span><span class="spec-val">${v.year}</span></div>
-          <div class="card-spec"><span class="spec-label">Fuel</span><span class="spec-val">${v.fuel}</span></div>
-          <div class="card-spec"><span class="spec-label">Power</span><span class="spec-val">${v.hp}</span></div>
-          <div class="card-spec"><span class="spec-label">Gearbox</span><span class="spec-val">${v.transmission}</span></div>
-          <div class="card-spec"><span class="spec-label">Engine</span><span class="spec-val">${v.engine}</span></div>
-          <div class="card-spec"><span class="spec-label">Mileage</span><span class="spec-val">${v.mileage}</span></div>
-        </div>
-        <div class="card-meta">
-          <div class="card-dealer"><i class="ri-verified-badge-fill"></i><span>${v.dealer}</span></div>
-          <div class="card-location"><i class="ri-map-pin-line"></i>${v.location}</div>
-        </div>
-      </div>
-    </div>
-  `;
+function resetAllFilters() {
+  ['filterBrand','filterModel','filterYear','filterBody','filterTransmission',
+   'filterFuel','filterPrice','filterMileage','filterColour','filterLocation'].forEach(id => {
+    const el = $(id);
+    if (el) el.value = '';
+  });
+  const nsi = $('navSearchInput');
+  if (nsi) nsi.value = '';
+  filteredVehicles = [...allVehicles];
+  displayedCount = 0;
+  const grid = $('vehiclesGrid');
+  if (grid) grid.innerHTML = '';
+  renderPage();
 }
 
-// ============================================================
-// QUICK SEARCH
-// ============================================================
 function quickSearch(term) {
-  const filtered = VEHICLES.filter(v =>
-    v.title.toLowerCase().includes(term.toLowerCase()) ||
-    v.brand.toLowerCase().includes(term.toLowerCase())
-  );
-  const grid = $('#vehiclesGrid');
-  if (grid) {
-    grid.innerHTML = filtered.map(v => renderCard(v)).join('');
-    observeReveal();
+  const nsi = $('navSearchInput');
+  if (nsi) nsi.value = term;
+  applyFilters();
+  document.getElementById('inventory')?.scrollIntoView({ behavior: 'smooth' });
+}
+
+function filterByBrand(brand) {
+  const fb = $('filterBrand');
+  if (fb) {
+    // Match the option value (case-insensitive)
+    const opt = Array.from(fb.options).find(o => o.value.toLowerCase() === brand.toLowerCase());
+    if (opt) fb.value = opt.value;
+    else fb.value = brand;
   }
-  $('#inventory').scrollIntoView({ behavior: 'smooth' });
-  showToast(`Showing results for "${term}"`, 'gold');
+  applyFilters();
+  document.getElementById('inventory')?.scrollIntoView({ behavior: 'smooth' });
 }
 
-// ============================================================
-// SEARCH PANEL
-// ============================================================
-function initSearch() {
-  $('#searchBtn').addEventListener('click', () => {
-    const brand = $('#filterBrand').value;
-    const filtered = brand
-      ? VEHICLES.filter(v => v.brand === brand || v.brand.includes(brand))
-      : VEHICLES;
-
-    const grid = $('#vehiclesGrid');
-    grid.innerHTML = filtered.length > 0
-      ? filtered.map(v => renderCard(v)).join('')
-      : `<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-muted)">
-           <i class="ri-search-line" style="font-size:48px;margin-bottom:12px;color:var(--gold);display:block"></i>
-           <p>No vehicles match your filters. Try adjusting your criteria.</p>
-         </div>`;
-
-    observeReveal();
-    $('#inventory').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    showToast(`Found ${filtered.length} vehicle${filtered.length !== 1 ? 's' : ''}`, 'success');
-  });
-
-  $('#searchReset').addEventListener('click', () => {
-    $$('.filter-select').forEach(s => s.value = '');
-    renderVehicles('all');
-    showToast('Filters cleared', 'gold');
+// Filter pills (All / New / Pre-Owned / Electric)
+function initFilterPills() {
+  $$('.filter-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      $$('.filter-pill').forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      const f = pill.dataset.filter;
+      if (f === 'all')      filteredVehicles = [...allVehicles];
+      else if (f === 'new') filteredVehicles = allVehicles.filter(v => v.condition_type === 'new');
+      else if (f === 'used') filteredVehicles = allVehicles.filter(v => v.condition_type === 'used');
+      else if (f === 'electric') filteredVehicles = allVehicles.filter(v => v.fuel === 'Electric');
+      displayedCount = 0;
+      const grid = $('vehiclesGrid');
+      if (grid) grid.innerHTML = '';
+      renderPage();
+    });
   });
 }
 
-// ============================================================
+// ──────────────────────────────────────────────
 // QUICK VIEW MODAL
-// ============================================================
-function openQuickView(id) {
-  const v = VEHICLES.find(v => v.id === id);
-  if (!v) return;
+// ──────────────────────────────────────────────
+async function openQuickView(id) {
+  const modal = $('quickViewModal');
+  const content = $('quickViewContent');
+  if (!modal || !content) return;
 
-  const hasVideo = Boolean(v.videoUrl);
+  currentQuickId = id;
+  modal.classList.add('active');
+  document.body.classList.add('modal-open');
+  content.innerHTML = `<div style="text-align:center;padding:60px;color:var(--gold)"><i class="ri-loader-4-line" style="font-size:40px;animation:spin 1s linear infinite"></i></div>`;
 
-  $('#quickViewContent').innerHTML = `
-    <div class="qv-inner">
-      <div class="qv-media" id="qvMediaContainer">
-        <div class="qv-media-wrapper" id="qvMediaWrapper">
-          <img src="${v.image}" alt="${v.title}" class="qv-main-image" id="qvMainImage">
-          ${hasVideo ? `
-            <div class="qv-video-badge-overlay" onclick="switchQVTab('video', '${v.videoUrl}', '${v.image}')">
-              <div class="qv-play-pulse"><i class="ri-play-fill"></i></div>
-              <span>Watch Video Tour</span>
-            </div>
-          ` : ''}
-        </div>
+  const data = await apiFetch(`/vehicles/${id}`);
+  if (!data.success) {
+    content.innerHTML = `<div style="text-align:center;padding:60px;color:var(--text-muted)">Failed to load vehicle details.</div>`;
+    return;
+  }
 
-        ${hasVideo ? `
-          <div class="qv-media-tabs">
-            <button class="qv-media-tab active" id="tabPhotoBtn" onclick="switchQVTab('photo', '${v.videoUrl}', '${v.image}')">
-              <i class="ri-image-fill"></i> Photo Gallery
-            </button>
-            <button class="qv-media-tab" id="tabVideoBtn" onclick="switchQVTab('video', '${v.videoUrl}', '${v.image}')">
-              <i class="ri-film-fill"></i> HD Video Tour <span class="live-dot">●</span>
-            </button>
+  const v = data.vehicle;
+  const img = (v.images && v.images[0]) ? v.images[0] : 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80';
+  const isSold = v.status === 'sold';
+  const isResv = v.status === 'reserved';
+  const waLink = buildWALink(v);
+
+  const thumbsHtml = v.images && v.images.length > 1
+    ? `<div class="qv-thumbs">
+        ${v.images.map((imgUrl, i) => `
+          <img src="${imgUrl}" alt="View ${i+1}" class="qv-thumb ${i===0?'active':''}"
+               onclick="qvChangeImg(this,'${imgUrl}')"
+               onerror="this.src='https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80'">
+        `).join('')}
+       </div>`
+    : '';
+
+  content.innerHTML = `
+    <div class="qv-layout">
+      <div class="qv-media">
+        <div class="qv-img-wrap">
+          <img src="${img}" alt="${v.title}" class="qv-main-img" id="qvMainImg"
+               onerror="this.src='https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80'">
+          <div class="qv-img-badges">
+            ${v.featured ? '<span class="car-badge featured-badge"><i class="ri-star-fill"></i> Featured</span>' : ''}
+            <span class="car-badge ${v.condition_type === 'new' ? 'new-badge' : 'used-badge'}">${v.condition_type === 'new' ? 'New' : 'Pre-Owned'}</span>
+            ${isSold ? '<span class="car-badge sold-badge">Sold</span>' : ''}
+            ${isResv ? '<span class="car-badge reserved-badge">Reserved</span>' : ''}
           </div>
-        ` : ''}
+        </div>
+        ${thumbsHtml}
       </div>
 
-      <div class="qv-details">
-        <div>
-          <span style="font-size:11px;font-weight:700;letter-spacing:1.5px;color:var(--gold);text-transform:uppercase">${v.brand} · ${v.year}</span>
-          <h2 class="qv-title">${v.title}</h2>
+      <div class="qv-info">
+        <div class="qv-brand-row">
+          <span class="car-brand">${v.brand}</span>
+          <span class="car-year">${v.year}</span>
         </div>
-        <div>
-          <div class="qv-price">${fmtFull(v.price)}</div>
-          <div class="qv-monthly">From ${fmtFull(v.monthly)} / month</div>
-        </div>
-
-        ${hasVideo ? `
-          <div class="qv-video-banner" onclick="switchQVTab('video', '${v.videoUrl}', '${v.image}')">
-            <div class="qv-vb-icon"><i class="ri-play-fill"></i></div>
-            <div>
-              <div style="font-weight:700;font-size:13px;color:var(--text)">HD Video Tour Available</div>
-              <div style="font-size:12px;color:var(--text-muted)">Watch walkaround video &amp; exhaust sound</div>
-            </div>
-            <i class="ri-arrow-right-s-line" style="margin-left:auto;font-size:18px;color:var(--gold)"></i>
-          </div>
-        ` : ''}
+        <h2 class="qv-title">${v.title}</h2>
+        <p class="qv-location"><i class="ri-map-pin-2-line"></i> ${v.location || 'Freetown'}, Sierra Leone</p>
 
         <div class="qv-specs-grid">
-          <div class="qv-spec"><div class="qv-spec-label">Horsepower</div><div class="qv-spec-val">${v.hp}</div></div>
-          <div class="qv-spec"><div class="qv-spec-label">Engine</div><div class="qv-spec-val">${v.engine}</div></div>
-          <div class="qv-spec"><div class="qv-spec-label">Transmission</div><div class="qv-spec-val">${v.transmission}</div></div>
-          <div class="qv-spec"><div class="qv-spec-label">Fuel</div><div class="qv-spec-val">${v.fuel}</div></div>
-          <div class="qv-spec"><div class="qv-spec-label">Mileage</div><div class="qv-spec-val">${v.mileage}</div></div>
-          <div class="qv-spec"><div class="qv-spec-label">Colour</div><div class="qv-spec-val">${v.colour}</div></div>
-          <div class="qv-spec"><div class="qv-spec-label">Body Type</div><div class="qv-spec-val">${v.body}</div></div>
-          <div class="qv-spec"><div class="qv-spec-label">Location</div><div class="qv-spec-val">${v.location}</div></div>
+          ${specItem('ri-route-line', 'Mileage', fmtMileage(v.mileage))}
+          ${specItem('ri-gas-station-line', 'Fuel', v.fuel)}
+          ${specItem('ri-settings-3-line', 'Transmission', v.transmission || 'N/A')}
+          ${specItem('ri-layout-3-line', 'Body', v.body || 'N/A')}
+          ${v.hp     ? specItem('ri-flashlight-line',  'Power',  v.hp)     : ''}
+          ${v.engine ? specItem('ri-settings-2-line',  'Engine', v.engine) : ''}
+          ${v.colour ? specItem('ri-palette-line',     'Colour', v.colour) : ''}
         </div>
 
-        <div style="font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:6px">
-          <i class="ri-verified-badge-fill" style="color:var(--gold)"></i> ${v.dealer} · Verified Dealer
+        ${v.description ? `<p class="qv-desc">${v.description}</p>` : ''}
+
+        <div class="qv-price-block">
+          <div>
+            <div class="qv-price">${fmtFull(v.price)}</div>
+            <div class="qv-monthly">Financing from ${fmtMonthly(v.price)}/month</div>
+          </div>
         </div>
+
         <div class="qv-actions">
-          <a class="btn-qv-primary" href="${buildWALink(v)}" target="_blank" style="text-decoration:none">
+          ${!isSold ? `
+          <a href="${waLink}" target="_blank" class="btn-hero-primary" style="text-decoration:none">
             <i class="ri-whatsapp-line"></i> WhatsApp Enquiry
           </a>
-          <button class="btn-qv-fav ${isFav(v.id) ? 'faved' : ''}" data-fav-id="${v.id}" onclick="toggleFav(${v.id})" title="Save to Favourites">
-            <i class="${isFav(v.id) ? 'ri-heart-fill' : 'ri-heart-line'}"></i>
+          <button class="btn-qv-secondary" onclick="openInquiryModal(${v.id}, '${v.title.replace(/'/g,'\\'')}')">
+            <i class="ri-mail-send-line"></i> Send Enquiry
+          </button>` : `
+          <div class="sold-notice"><i class="ri-check-double-line"></i> This vehicle has been sold</div>`}
+          <button class="btn-qv-icon fav-toggle ${favourites.includes(v.id)?'active':''}"
+                  onclick="toggleFav(${v.id}, this)" title="Save to Favourites">
+            <i class="ri-heart-${favourites.includes(v.id)?'fill':'line'}"></i>
           </button>
         </div>
       </div>
     </div>
   `;
-
-  $('#quickViewModal').classList.add('show');
-  document.body.style.overflow = 'hidden';
 }
 
-function switchQVTab(mode, videoUrl, imageUrl) {
-  const wrapper = $('#qvMediaWrapper');
-  const photoBtn = $('#tabPhotoBtn');
-  const videoBtn = $('#tabVideoBtn');
-  if (!wrapper) return;
-
-  if (mode === 'video') {
-    if (photoBtn) photoBtn.classList.remove('active');
-    if (videoBtn) videoBtn.classList.add('active');
-
-    if (videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be')) {
-      const id = videoUrl.split('v=')[1]?.split('&')[0] || videoUrl.split('/').pop();
-      wrapper.innerHTML = `<iframe src="https://www.youtube.com/embed/${id}?autoplay=1" allow="autoplay" allowfullscreen class="qv-video-frame"></iframe>`;
-    } else if (videoUrl.includes('vimeo.com')) {
-      const id = videoUrl.split('/').pop();
-      wrapper.innerHTML = `<iframe src="https://player.vimeo.com/video/${id}?autoplay=1" allow="autoplay" allowfullscreen class="qv-video-frame"></iframe>`;
-    } else {
-      wrapper.innerHTML = `
-        <video controls autoplay playsinline class="qv-video-element">
-          <source src="${videoUrl}">
-          Your browser does not support video playback.
-        </video>
-      `;
-    }
-  } else {
-    if (videoBtn) videoBtn.classList.remove('active');
-    if (photoBtn) photoBtn.classList.add('active');
-    wrapper.innerHTML = `
-      <img src="${imageUrl}" alt="Car Image" class="qv-main-image">
-      <div class="qv-video-badge-overlay" onclick="switchQVTab('video', '${videoUrl}', '${imageUrl}')">
-        <div class="qv-play-pulse"><i class="ri-play-fill"></i></div>
-        <span>Watch Video Tour</span>
+function specItem(icon, label, value) {
+  return `
+    <div class="qv-spec">
+      <i class="${icon}"></i>
+      <div>
+        <span class="qv-spec-label">${label}</span>
+        <span class="qv-spec-value">${value}</span>
       </div>
-    `;
-  }
+    </div>`;
 }
-window.switchQVTab = switchQVTab;
 
-function initModals() {
-  // Quick View close
-  if ($('#quickViewClose')) $('#quickViewClose').addEventListener('click', closeQuickView);
-  if ($('#quickViewModal')) $('#quickViewModal').addEventListener('click', e => { if (e.target === $('#quickViewModal')) closeQuickView(); });
-
-  // Escape key
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { closeQuickView(); }
-  });
+function qvChangeImg(el, url) {
+  const main = $('qvMainImg');
+  if (main) main.src = url;
+  $$('.qv-thumb').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
 }
 
 function closeQuickView() {
-  $('#quickViewModal').classList.remove('show');
-  document.body.style.overflow = '';
+  const modal = $('quickViewModal');
+  if (modal) modal.classList.remove('active');
+  document.body.classList.remove('modal-open');
+  currentQuickId = null;
 }
 
-function openTestDrive(vehicleTitle) {
-  if (vehicleTitle) {
-    const sel = $('#tdVehicle');
-    if (sel) {
-      const opt = Array.from(sel.options).find(o => o.text.includes(vehicleTitle.split(' ').slice(0, 2).join(' ')));
-      if (opt) sel.value = opt.value;
-    }
+// ──────────────────────────────────────────────
+// INQUIRY MODAL
+// ──────────────────────────────────────────────
+function openInquiryModal(vehicleId, vehicleTitle) {
+  // Close quick view first
+  closeQuickView();
+
+  let modal = $('inquiryModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'inquiryModal';
+    document.body.appendChild(modal);
   }
-  // Set min date to tomorrow
-  const tdDate = $('#tdDate');
-  if (tdDate) {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tdDate.min = tomorrow.toISOString().split('T')[0];
+
+  modal.innerHTML = `
+    <div class="qv-modal inquiry-modal" style="max-width:500px">
+      <button class="modal-close-btn" onclick="closeInquiryModal()"><i class="ri-close-line"></i></button>
+      <div style="padding:32px">
+        <span class="section-kicker">Send Enquiry</span>
+        <h2 class="view-title" style="font-size:22px;margin:8px 0 4px">${vehicleTitle || 'General Enquiry'}</h2>
+        <p style="color:var(--text-muted);font-size:13px;margin-bottom:24px">
+          Fill in your details and we'll get back to you within a few hours.
+        </p>
+        <form id="inquiryForm" onsubmit="submitInquiry(event, ${vehicleId || 'null'}, '${(vehicleTitle||'').replace(/'/g,"\\'")}')">
+          <div class="inq-field">
+            <label>Full Name *</label>
+            <input type="text" id="inqName" placeholder="e.g. Ibrahim Kamara" required>
+          </div>
+          <div class="inq-field">
+            <label>Email Address *</label>
+            <input type="email" id="inqEmail" placeholder="you@example.com" required>
+          </div>
+          <div class="inq-field">
+            <label>Phone Number</label>
+            <input type="tel" id="inqPhone" placeholder="+232 76 000 000">
+          </div>
+          <div class="inq-field">
+            <label>Your Message *</label>
+            <textarea id="inqMessage" rows="4" placeholder="Tell us what you'd like to know about this vehicle..." required></textarea>
+          </div>
+          <button type="submit" class="btn-hero-primary" style="width:100%;justify-content:center;margin-top:8px" id="inqSubmitBtn">
+            <i class="ri-send-plane-fill"></i> Send Enquiry
+          </button>
+        </form>
+      </div>
+    </div>
+  `;
+
+  modal.classList.add('active');
+  document.body.classList.add('modal-open');
+}
+
+function closeInquiryModal() {
+  const modal = $('inquiryModal');
+  if (modal) { modal.classList.remove('active'); document.body.classList.remove('modal-open'); }
+}
+
+async function submitInquiry(e, vehicleId, vehicleTitle) {
+  e.preventDefault();
+  const btn  = $('inqSubmitBtn');
+  const name = $('inqName').value.trim();
+  const email= $('inqEmail').value.trim();
+  const phone= $('inqPhone')?.value.trim() || '';
+  const msg  = $('inqMessage').value.trim();
+
+  if (!name || !email || !msg) { showToast('Please fill in all required fields.', 'error'); return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ri-loader-4-line" style="animation:spin 1s linear infinite"></i> Sending...';
+
+  const data = await apiFetch('/inquiries', {
+    method: 'POST',
+    body: JSON.stringify({ name, email, phone, vehicle_id: vehicleId || null, vehicle: vehicleTitle || 'General Enquiry', message: msg })
+  });
+
+  btn.disabled = false;
+  btn.innerHTML = '<i class="ri-send-plane-fill"></i> Send Enquiry';
+
+  if (data.success) {
+    showToast('Enquiry sent! We\'ll be in touch soon. 🚘', 'success', 5000);
+    closeInquiryModal();
+  } else {
+    showToast(data.message || 'Failed to send. Please try again.', 'error');
   }
-  $('#testDriveModal').classList.add('show');
-  document.body.style.overflow = 'hidden';
 }
 
-function closeTestDrive() {
-  $('#testDriveModal').classList.remove('show');
-  document.body.style.overflow = '';
+// ──────────────────────────────────────────────
+// FINANCING MODAL
+// ──────────────────────────────────────────────
+function openFinancingModal(vehicleId, vehicleTitle) {
+  let modal = $('financingModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'financingModal';
+    document.body.appendChild(modal);
+  }
+
+  modal.innerHTML = `
+    <div class="qv-modal inquiry-modal" style="max-width:540px">
+      <button class="modal-close-btn" onclick="closeFinancingModal()"><i class="ri-close-line"></i></button>
+      <div style="padding:32px">
+        <span class="section-kicker">Financing Application</span>
+        <h2 class="view-title" style="font-size:22px;margin:8px 0 4px">${vehicleTitle || 'Vehicle Financing'}</h2>
+        <p style="color:var(--text-muted);font-size:13px;margin-bottom:24px">
+          Complete your financing application and our team will review it within 24 hours.
+        </p>
+        <form id="financingForm" onsubmit="submitFinancing(event, ${vehicleId || 'null'}, '${(vehicleTitle||'').replace(/'/g,"\\'")}')">
+          <div class="inq-field">
+            <label>Full Name *</label>
+            <input type="text" id="finName" placeholder="Your full name" required>
+          </div>
+          <div class="inq-field">
+            <label>Email *</label>
+            <input type="email" id="finEmail" placeholder="you@example.com" required>
+          </div>
+          <div class="inq-field">
+            <label>Phone</label>
+            <input type="tel" id="finPhone" placeholder="+232 76 000 000">
+          </div>
+          <div class="inq-field">
+            <label>Employment Status</label>
+            <select id="finEmployment">
+              <option value="">Select...</option>
+              <option>Employed Full-Time</option>
+              <option>Self-Employed</option>
+              <option>Business Owner</option>
+              <option>Government Employee</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <div class="inq-field">
+              <label>Monthly Income (NLE)</label>
+              <input type="number" id="finIncome" placeholder="e.g. 500000" min="0">
+            </div>
+            <div class="inq-field">
+              <label>Down Payment (NLE)</label>
+              <input type="number" id="finDown" placeholder="e.g. 200000" min="0">
+            </div>
+          </div>
+          <div class="inq-field">
+            <label>Preferred Loan Term</label>
+            <select id="finTerm">
+              <option value="12">12 Months</option>
+              <option value="24" selected>24 Months</option>
+              <option value="36">36 Months</option>
+              <option value="48">48 Months</option>
+            </select>
+          </div>
+          <button type="submit" class="btn-hero-primary" style="width:100%;justify-content:center;margin-top:8px" id="finSubmitBtn">
+            <i class="ri-bank-card-line"></i> Submit Application
+          </button>
+        </form>
+      </div>
+    </div>
+  `;
+
+  modal.classList.add('active');
+  document.body.classList.add('modal-open');
 }
 
-// ============================================================
-// SHOWCASE IMAGE SWITCHER
-// ============================================================
-function changeShowcaseImg(thumb, src) {
-  $$('.showcase-thumb').forEach(t => t.classList.remove('active'));
-  thumb.classList.add('active');
-  const img = $('#showcaseImg');
-  img.style.opacity = '0';
-  img.style.transform = 'scale(1.02)';
-  img.style.transition = 'opacity 0.3s, transform 0.3s';
-  setTimeout(() => {
-    img.src = src;
-    img.style.opacity = '1';
-    img.style.transform = 'scale(1)';
-  }, 300);
+function closeFinancingModal() {
+  const modal = $('financingModal');
+  if (modal) { modal.classList.remove('active'); document.body.classList.remove('modal-open'); }
 }
 
+async function submitFinancing(e, vehicleId, vehicleTitle) {
+  e.preventDefault();
+  const btn = $('finSubmitBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ri-loader-4-line" style="animation:spin 1s linear infinite"></i> Submitting...';
 
-// ============================================================
-// TESTIMONIALS CAROUSEL
-// ============================================================
-function initCarousel() {
-  const track = $('#testimonialsCarousel');
-  if (!track) return;
+  const payload = {
+    name:            $('finName').value.trim(),
+    email:           $('finEmail').value.trim(),
+    phone:           $('finPhone')?.value.trim() || '',
+    vehicle_id:      vehicleId || null,
+    vehicle:         vehicleTitle || '',
+    employment:      $('finEmployment')?.value || '',
+    monthly_income:  parseInt($('finIncome')?.value) || 0,
+    down_payment:    parseInt($('finDown')?.value) || 0,
+    loan_term_months: parseInt($('finTerm')?.value) || 24
+  };
 
-  function goTo(index) {
-    carouselIndex = (index + TOTAL_SLIDES) % TOTAL_SLIDES;
-    track.style.transform = `translateX(-${carouselIndex * 100}%)`;
-    $$('#carouselDots .carousel-dot').forEach((dot, i) => {
-      dot.classList.toggle('active', i === carouselIndex);
+  const data = await apiFetch('/financing', { method: 'POST', body: JSON.stringify(payload) });
+
+  btn.disabled = false;
+  btn.innerHTML = '<i class="ri-bank-card-line"></i> Submit Application';
+
+  if (data.success) {
+    showToast('Application submitted! Our finance team will contact you within 24 hours. 🏦', 'success', 6000);
+    closeFinancingModal();
+  } else {
+    showToast(data.message || 'Submission failed. Please try again.', 'error');
+  }
+}
+
+// ──────────────────────────────────────────────
+// NEWSLETTER
+// ──────────────────────────────────────────────
+async function subscribeNewsletter() {
+  const input = $('newsletterEmail');
+  if (!input) return;
+  const email = input.value.trim();
+  if (!email) { showToast('Please enter your email address.', 'warning'); return; }
+
+  const btn = $('newsletterBtn');
+  if (btn) { btn.disabled = true; }
+
+  const data = await apiFetch('/newsletter', { method: 'POST', body: JSON.stringify({ email }) });
+
+  if (btn) { btn.disabled = false; }
+
+  if (data.success) {
+    showToast(data.message, 'success', 5000);
+    input.value = '';
+  } else {
+    showToast(data.message || 'Subscription failed. Please try again.', 'error');
+  }
+}
+
+// ──────────────────────────────────────────────
+// NAVBAR
+// ──────────────────────────────────────────────
+function initNavbar() {
+  const navbar = $('navbar');
+  const hamburger = $('hamburger');
+  const mobileMenu = $('mobileMenu');
+
+  // Scroll effect
+  window.addEventListener('scroll', () => {
+    navbar?.classList.toggle('scrolled', window.scrollY > 50);
+    $('backToTop')?.classList.toggle('hidden', window.scrollY < 400);
+  }, { passive: true });
+
+  // Hamburger
+  hamburger?.addEventListener('click', () => {
+    hamburger.classList.toggle('open');
+    mobileMenu?.classList.toggle('open');
+  });
+
+  // Close mobile menu on link click
+  $$('[data-close]').forEach(el => {
+    el.addEventListener('click', () => {
+      hamburger?.classList.remove('open');
+      mobileMenu?.classList.remove('open');
     });
-  }
-
-  $('#carouselPrev').addEventListener('click', () => { goTo(carouselIndex - 1); resetCarouselTimer(); });
-  $('#carouselNext').addEventListener('click', () => { goTo(carouselIndex + 1); resetCarouselTimer(); });
-
-  $$('#carouselDots .carousel-dot').forEach((dot, i) => {
-    dot.addEventListener('click', () => { goTo(i); resetCarouselTimer(); });
   });
 
-  function autoPlay() { goTo(carouselIndex + 1); }
-  carouselTimer = setInterval(autoPlay, 5000);
+  // Back to top
+  $('backToTop')?.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+}
 
-  // Touch swipe
-  let touchStartX = 0;
-  track.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
-  track.addEventListener('touchend', e => {
-    const diff = touchStartX - e.changedTouches[0].clientX;
-    if (Math.abs(diff) > 50) goTo(carouselIndex + (diff > 0 ? 1 : -1));
-    resetCarouselTimer();
+// ──────────────────────────────────────────────
+// SEARCH OVERLAY
+// ──────────────────────────────────────────────
+function initSearchOverlay() {
+  const toggle  = $('searchToggle');
+  const overlay = $('navSearchOverlay');
+  const input   = $('navSearchInput');
+  const close   = $('navSearchClose');
+
+  toggle?.addEventListener('click', () => {
+    overlay?.classList.add('open');
+    setTimeout(() => input?.focus(), 100);
+  });
+
+  close?.addEventListener('click', () => overlay?.classList.remove('open'));
+
+  input?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      overlay?.classList.remove('open');
+      applyFilters();
+      document.getElementById('inventory')?.scrollIntoView({ behavior: 'smooth' });
+    }
+    if (e.key === 'Escape') overlay?.classList.remove('open');
+  });
+
+  overlay?.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.classList.remove('open');
   });
 }
 
-function resetCarouselTimer() {
-  clearInterval(carouselTimer);
-  carouselTimer = setInterval(() => {
-    carouselIndex = (carouselIndex + 1) % TOTAL_SLIDES;
-    const track = $('#testimonialsCarousel');
-    if (track) track.style.transform = `translateX(-${carouselIndex * 100}%)`;
-    $$('#carouselDots .carousel-dot').forEach((dot, i) => dot.classList.toggle('active', i === carouselIndex));
-  }, 5000);
+// ──────────────────────────────────────────────
+// MODALS — CLOSE ON OVERLAY CLICK & ESC
+// ──────────────────────────────────────────────
+function initModalListeners() {
+  document.addEventListener('click', (e) => {
+    if (e.target?.id === 'quickViewModal') closeQuickView();
+    if (e.target?.id === 'inquiryModal')   closeInquiryModal();
+    if (e.target?.id === 'financingModal') closeFinancingModal();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeQuickView();
+      closeInquiryModal();
+      closeFinancingModal();
+    }
+  });
+
+  // Quick view close button
+  $('quickViewClose')?.addEventListener('click', closeQuickView);
 }
 
-// ============================================================
-// ANIMATED COUNTERS
-// ============================================================
-function initCounters() {
-  const counters = $$('.stat-num');
-  if (!counters.length) return;
+// ──────────────────────────────────────────────
+// LOAD MORE
+// ──────────────────────────────────────────────
+function initLoadMore() {
+  const btn = $('loadMoreBtn');
+  btn?.addEventListener('click', () => {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="ri-loader-4-line" style="animation:spin 1s linear infinite"></i> Loading...';
+    setTimeout(() => {
+      renderPage();
+      btn.disabled = false;
+      btn.innerHTML = '<i class="ri-refresh-line"></i> Load More Vehicles';
+    }, 400);
+  });
+}
 
+// ──────────────────────────────────────────────
+// SEARCH PANEL — BUTTONS
+// ──────────────────────────────────────────────
+function initSearchPanel() {
+  $('searchBtn')?.addEventListener('click', () => {
+    applyFilters();
+    document.getElementById('inventory')?.scrollIntoView({ behavior: 'smooth' });
+  });
+  $('searchReset')?.addEventListener('click', resetAllFilters);
+
+  // Newsletter submit
+  $('newsletterBtn')?.addEventListener('click', subscribeNewsletter);
+  $('newsletterEmail')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') subscribeNewsletter();
+  });
+}
+
+// ──────────────────────────────────────────────
+// HERO STATS COUNTER ANIMATION
+// ──────────────────────────────────────────────
+function initStatsCounter() {
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        const el = entry.target;
-        const target = parseInt(el.dataset.target);
-        const duration = 2000;
-        const step = target / (duration / 16);
-        let current = 0;
-        const timer = setInterval(() => {
-          current = Math.min(current + step, target);
-          el.textContent = Math.floor(current).toLocaleString();
-          if (current >= target) clearInterval(timer);
-        }, 16);
-        observer.unobserve(el);
-      }
+      if (!entry.isIntersecting) return;
+      const el = entry.target;
+      const target = parseInt(el.dataset.target);
+      let current = 0;
+      const step = Math.max(1, Math.floor(target / 80));
+      const timer = setInterval(() => {
+        current = Math.min(current + step, target);
+        el.textContent = current.toLocaleString();
+        if (current >= target) clearInterval(timer);
+      }, 16);
+      observer.unobserve(el);
     });
-  }, { threshold: 0.3 });
+  }, { threshold: 0.5 });
 
-  counters.forEach(c => observer.observe(c));
+  $$('.stat-num[data-target]').forEach(el => observer.observe(el));
 }
 
-// ============================================================
-// SCROLL REVEAL (INTERSECTION OBSERVER)
-// ============================================================
-function observeReveal() {
-  const io = new IntersectionObserver((entries) => {
-    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); } });
-  }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+// ──────────────────────────────────────────────
+// HERO PARTICLES
+// ──────────────────────────────────────────────
+function initParticles() {
+  const canvas = $('particlesCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let W, H, particles = [];
 
-  $$('.reveal-item').forEach(el => { if (!el.classList.contains('visible')) io.observe(el); });
+  function resize() {
+    W = canvas.width  = canvas.offsetWidth;
+    H = canvas.height = canvas.offsetHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize, { passive: true });
+
+  for (let i = 0; i < 60; i++) {
+    particles.push({
+      x: Math.random() * 1200,
+      y: Math.random() * 700,
+      r: Math.random() * 1.5 + 0.3,
+      dx: (Math.random() - 0.5) * 0.3,
+      dy: -Math.random() * 0.5 - 0.1,
+      alpha: Math.random() * 0.6 + 0.1
+    });
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    particles.forEach(p => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(229,169,92,${p.alpha})`;
+      ctx.fill();
+      p.x += p.dx; p.y += p.dy;
+      if (p.y < 0)  p.y = H;
+      if (p.x < 0)  p.x = W;
+      if (p.x > W)  p.x = 0;
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
 }
 
-// ============================================================
-// NEWSLETTER
-// ============================================================
-function initNewsletter() {
-  const btn = $('#newsletterBtn');
-  if (!btn) return;
-  btn.addEventListener('click', () => {
-    const email = $('#newsletterEmail').value.trim();
-    if (!email || !email.includes('@')) {
-      showToast('Please enter a valid email address', 'error');
-      return;
+// ──────────────────────────────────────────────
+// TESTIMONIALS CAROUSEL
+// ──────────────────────────────────────────────
+function initTestimonialsCarousel() {
+  const carousel = $('testimonialsCarousel');
+  const prev     = $('carouselPrev');
+  const next     = $('carouselNext');
+  const dotsWrap = $('carouselDots');
+  if (!carousel) return;
+
+  const cards  = carousel.querySelectorAll('.testimonial-card');
+  let current  = 0;
+  let autoplay;
+
+  function goTo(idx) {
+    current = (idx + cards.length) % cards.length;
+    carousel.style.transform = `translateX(-${current * 100}%)`;
+    dotsWrap?.querySelectorAll('.carousel-dot').forEach((d, i) => {
+      d.classList.toggle('active', i === current);
+    });
+  }
+
+  prev?.addEventListener('click', () => { clearInterval(autoplay); goTo(current - 1); startAuto(); });
+  next?.addEventListener('click', () => { clearInterval(autoplay); goTo(current + 1); startAuto(); });
+
+  function startAuto() { autoplay = setInterval(() => goTo(current + 1), 5000); }
+  startAuto();
+}
+
+// ──────────────────────────────────────────────
+// FAV DRAWER (click fav icon in navbar)
+// ──────────────────────────────────────────────
+function initFavBtn() {
+  const btn = $('favBtn');
+  btn?.addEventListener('click', () => {
+    if (favourites.length === 0) { showToast('No saved favourites yet.', 'info'); return; }
+    const favVehicles = allVehicles.filter(v => favourites.includes(v.id));
+    if (favVehicles.length === 0) { showToast('Saved vehicles not in current inventory.', 'warning'); return; }
+
+    let modal = $('favModal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'favModal';
+      modal.className = 'modal-overlay';
+      document.body.appendChild(modal);
     }
-    $('#newsletterEmail').value = '';
-    showToast('Welcome to Prestige Motors! 🎉', 'success');
+
+    modal.innerHTML = `
+      <div class="qv-modal" style="max-width:700px;max-height:90vh;overflow-y:auto">
+        <button class="modal-close-btn" onclick="document.getElementById('favModal').classList.remove('active');document.body.classList.remove('modal-open')">
+          <i class="ri-close-line"></i>
+        </button>
+        <div style="padding:32px">
+          <h2 style="font-size:22px;color:var(--text-primary);margin-bottom:20px"><i class="ri-heart-fill" style="color:var(--gold)"></i> Saved Vehicles (${favVehicles.length})</h2>
+          <div style="display:flex;flex-direction:column;gap:16px">
+            ${favVehicles.map(v => {
+              const img = (v.images && v.images[0]) ? v.images[0] : 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=300&q=70';
+              return `
+                <div style="display:flex;gap:16px;align-items:center;background:var(--glass-bg);padding:16px;border-radius:12px;border:1px solid var(--border-color)">
+                  <img src="${img}" alt="${v.title}" style="width:100px;height:68px;object-fit:cover;border-radius:8px"
+                       onerror="this.src='https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=300&q=70'">
+                  <div style="flex:1">
+                    <div style="font-weight:600;color:var(--text-primary)">${v.title}</div>
+                    <div style="color:var(--gold);font-weight:700;margin-top:4px">${fmtPrice(v.price)}</div>
+                  </div>
+                  <div style="display:flex;gap:8px">
+                    <button class="btn-car-view" onclick="document.getElementById('favModal').classList.remove('active');openQuickView(${v.id})">
+                      View
+                    </button>
+                    <button class="car-action-btn" onclick="toggleFavFromModal(${v.id})" title="Remove">
+                      <i class="ri-heart-fill" style="color:var(--gold)"></i>
+                    </button>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+    modal.classList.add('active');
+    document.body.classList.add('modal-open');
   });
 }
 
-// ============================================================
-// BRAND RIPPLE EFFECT
-// ============================================================
-function initBrandRipple() {
-  $$('.brand-circle').forEach(circle => {
-    circle.addEventListener('click', function(e) {
-      const ripple = this.querySelector('.brand-ripple');
-      if (!ripple) return;
-      ripple.style.width = '0';
-      ripple.style.height = '0';
-      ripple.style.opacity = '1';
-      ripple.style.transition = 'none';
-      setTimeout(() => {
-        ripple.style.transition = 'width 0.6s, height 0.6s, opacity 0.8s';
-        ripple.style.width = '200px';
-        ripple.style.height = '200px';
-        ripple.style.opacity = '0';
-      }, 10);
+function toggleFavFromModal(id) {
+  toggleFav(id, null);
+  // Rebuild modal
+  $('favModal')?.classList.remove('active');
+  document.body.classList.remove('modal-open');
+  setTimeout(() => $('favBtn')?.click(), 100);
+}
+
+// ──────────────────────────────────────────────
+// HERO SHOWCASE — Dynamic (loads featured vehicle from API)
+// ──────────────────────────────────────────────
+async function initShowcase() {
+  const data = await apiFetch('/vehicles?featured=1&limit=1&status=available');
+  if (!data.success || !data.vehicles?.length) return;
+
+  const v = data.vehicles[0];
+  const img = (v.images && v.images[0]) ? v.images[0] : null;
+
+  const showcaseImg = $('showcaseImg');
+  if (showcaseImg && img) {
+    showcaseImg.src = img;
+    showcaseImg.alt = v.title;
+  }
+  const showcaseTitle = document.querySelector('.showcase-title');
+  if (showcaseTitle) showcaseTitle.textContent = v.title;
+
+  const yearTagEl = document.querySelector('.showcase-year-tag');
+  if (yearTagEl) {
+    yearTagEl.textContent = `${v.year} · ${v.colour || ''} · ${fmtMileage(v.mileage)} · ${v.location || 'Freetown'}`;
+  }
+
+  const priceEl = document.querySelector('.showcase-price');
+  if (priceEl) priceEl.textContent = fmtFull(v.price);
+
+  const monthlyEl = document.querySelector('.showcase-monthly');
+  if (monthlyEl) monthlyEl.textContent = `From ${fmtMonthly(v.price)} / month`;
+
+  // Specs
+  const specValues = document.querySelectorAll('.spec-value');
+  const specs = [v.hp, '', '', v.transmission, v.fuel, v.engine];
+  specValues.forEach((el, i) => { if (specs[i]) el.textContent = specs[i]; });
+
+  // WA link
+  const waBtn = document.querySelector('.btn-showcase-primary');
+  if (waBtn) {
+    waBtn.href = buildWALink(v);
+  }
+
+  // Thumbs — multiple images
+  if (v.images && v.images.length > 1) {
+    const thumbsWrap = $('showcaseThumbs');
+    if (thumbsWrap) {
+      thumbsWrap.innerHTML = v.images.slice(0, 4).map((url, i) => `
+        <img src="${url}" alt="View ${i+1}" class="showcase-thumb ${i===0?'active':''}"
+             onclick="changeShowcaseImg(this,'${url}')"
+             onerror="this.onerror=null;this.src='${url}'">
+      `).join('');
+    }
+  }
+}
+
+function changeShowcaseImg(el, url) {
+  const main = $('showcaseImg');
+  if (main) main.src = url;
+  $$('.showcase-thumb').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ──────────────────────────────────────────────
+// SCROLL REVEAL
+// ──────────────────────────────────────────────
+function initScrollReveal() {
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) { e.target.classList.add('revealed'); obs.unobserve(e.target); }
+    });
+  }, { threshold: 0.1 });
+  $$('.reveal-item').forEach(el => obs.observe(el));
+}
+
+// ──────────────────────────────────────────────
+// BRAND FILTER BUTTONS (brands section)
+// ──────────────────────────────────────────────
+function initBrandFilters() {
+  $$('.brand-circle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const brand = btn.dataset.brand;
+      if (brand) filterByBrand(brand);
     });
   });
 }
 
-// ============================================================
-// INIT
-// ============================================================
-document.addEventListener('DOMContentLoaded', () => {
+// ──────────────────────────────────────────────
+// DASHBOARD PREVIEW — Update live stats
+// ──────────────────────────────────────────────
+async function updateDashboardPreview() {
+  // Just show live inventory count in the preview cards
+  const totalEl = document.querySelector('.dash-preview-value');
+  if (totalEl && allVehicles.length > 0) {
+    const listed = document.querySelectorAll('.dash-preview-value');
+    if (listed[1]) listed[1].textContent = allVehicles.length;
+  }
+}
+
+// ──────────────────────────────────────────────
+// MAIN INIT
+// ──────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
   initNavbar();
-  initParticles();
-  renderVehicles('all');
+  initSearchOverlay();
+  initSearchPanel();
   initFilterPills();
-  initSearch();
-  initModals();
+  initLoadMore();
+  initModalListeners();
+  initStatsCounter();
+  initParticles();
+  initTestimonialsCarousel();
+  initScrollReveal();
+  initBrandFilters();
+  initFavBtn();
 
-  initCarousel();
-  initCounters();
-  observeReveal();
-  initNewsletter();
-  initBrandRipple();
-  updateFavCount();
+  // Load inventory from SQLite API
+  await initInventory();
 
-  // Smooth reveal for hero elements
-  setTimeout(() => observeReveal(), 200);
+  // Load featured showcase
+  await initShowcase();
+
+  // Update dashboard preview
+  updateDashboardPreview();
 });
-
-// Global exposure for onclick handlers in HTML
-window.openQuickView  = openQuickView;
-window.toggleFav      = toggleFav;
-window.filterByBrand  = filterByBrand;
-window.quickSearch    = quickSearch;
-window.changeShowcaseImg = changeShowcaseImg;
