@@ -19,8 +19,21 @@
        ============================================================ -->
   <nav class="navbar" id="navbar">
     <div class="nav-container">
-      <a href="#home" class="nav-logo">
-        <img src="/uploads/car-dynasty-logo.png" alt="Car Dynasty" style="height:52px;width:auto;object-fit:contain">
+      <a href="#home" class="nav-logo" style="display:flex;align-items:center;gap:10px;text-decoration:none">
+        <svg width="38" height="38" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+          <!-- Car silhouette -->
+          <path d="M8 52 C8 52 18 30 35 28 L50 26 L72 28 C85 30 92 42 92 52" stroke="#e5a95c" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <path d="M30 28 L38 18 C40 15 55 14 62 18 L70 28" stroke="#e5a95c" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <ellipse cx="25" cy="56" rx="8" ry="8" stroke="#e5a95c" stroke-width="2.5" fill="none"/>
+          <ellipse cx="75" cy="56" rx="8" ry="8" stroke="#e5a95c" stroke-width="2.5" fill="none"/>
+          <!-- CD monogram -->
+          <text x="50" y="53" text-anchor="middle" font-family="Outfit,sans-serif" font-weight="800" font-size="22" fill="url(#gold)" letter-spacing="-2">CD</text>
+          <defs><linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f3be78"/><stop offset="100%" stop-color="#c8832a"/></linearGradient></defs>
+        </svg>
+        <div style="display:flex;flex-direction:column;line-height:1">
+          <span style="font-family:Outfit,sans-serif;font-weight:800;font-size:15px;letter-spacing:2px;background:linear-gradient(135deg,#f3be78,#e5a95c,#c8832a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">CAR DYNASTY</span>
+          <span style="font-family:Outfit,sans-serif;font-weight:400;font-size:8px;letter-spacing:3px;color:#e5a95c;opacity:0.7;margin-top:2px">DRIVE YOUR DREAM</span>
+        </div>
       </a>
 
       <ul class="nav-links" id="navLinks">
@@ -521,100 +534,13 @@
     </div>
   </section>
 
-  <!-- ============================================================
-       LUXURY SHOWCASE
-       ============================================================ -->
-  <section class="showcase-section" id="new-cars">
-    <div class="section-container">
-      <div class="showcase-layout">
-        <div class="showcase-media">
-          <div class="showcase-image-wrap">
-            <img src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1200&q=90" alt="Porsche 911 Turbo S" class="showcase-img" id="showcaseImg" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?w=1200&q=90'">
-            <div class="showcase-image-overlay"></div>
-            <div class="showcase-badge-row">
-              <span class="showcase-badge verified"><i class="ri-verified-badge-fill"></i> Verified</span>
-              <span class="showcase-badge gold"><i class="ri-star-fill"></i> Editor's Choice</span>
-              <span class="showcase-badge new">New Arrival</span>
-            </div>
-          </div>
-          <div class="showcase-thumbnails" id="showcaseThumbs">
-            <img src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=300&q=80" alt="View 1" class="showcase-thumb active" onclick="changeShowcaseImg(this,'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1200&q=90')" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=300&q=80'">
-            <img src="https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=300&q=80" alt="View 2" class="showcase-thumb" onclick="changeShowcaseImg(this,'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=1200&q=90')" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=300&q=80'">
-            <img src="https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=300&q=80" alt="View 3" class="showcase-thumb" onclick="changeShowcaseImg(this,'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=1200&q=90')" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=300&q=80'">
-            <img src="https://images.unsplash.com/photo-1555215695-3004980ad54e?w=300&q=80" alt="View 4" class="showcase-thumb" onclick="changeShowcaseImg(this,'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=1200&q=90')" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1555215695-3004980ad54e?w=300&q=80'">
-          </div>
-        </div>
 
-        <div class="showcase-info">
-          <span class="section-kicker">Featured Vehicle</span>
-          <h2 class="showcase-title">Porsche 911 Turbo S</h2>
-          <p class="showcase-year-tag">2024 · Obsidian Black · 480 km · Freetown</p>
-          <p class="showcase-desc">The pinnacle of rear-engined sports car engineering. With 650 hp and a 0–100 km/h time of just 2.7 seconds, the 911 Turbo S is a masterpiece of controlled, electrifying performance.</p>
-
-          <div class="showcase-specs-grid">
-            <div class="showcase-spec">
-              <span class="spec-icon"><i class="ri-flashlight-fill"></i></span>
-              <span class="spec-value">650 hp</span>
-              <span class="spec-label">Horsepower</span>
-            </div>
-            <div class="showcase-spec">
-              <span class="spec-icon"><i class="ri-timer-2-fill"></i></span>
-              <span class="spec-value">2.7s</span>
-              <span class="spec-label">0–100 km/h</span>
-            </div>
-            <div class="showcase-spec">
-              <span class="spec-icon"><i class="ri-speed-up-fill"></i></span>
-              <span class="spec-value">330 km/h</span>
-              <span class="spec-label">Top Speed</span>
-            </div>
-            <div class="showcase-spec">
-              <span class="spec-icon"><i class="ri-settings-3-fill"></i></span>
-              <span class="spec-value">PDK 8-spd</span>
-              <span class="spec-label">Transmission</span>
-            </div>
-            <div class="showcase-spec">
-              <span class="spec-icon"><i class="ri-gas-station-fill"></i></span>
-              <span class="spec-value">Petrol</span>
-              <span class="spec-label">Fuel Type</span>
-            </div>
-            <div class="showcase-spec">
-              <span class="spec-icon"><i class="ri-engine-fill"></i></span>
-              <span class="spec-value">3.8L Twin-Turbo</span>
-              <span class="spec-label">Engine</span>
-            </div>
-          </div>
-
-          <div class="showcase-price-block">
-            <div class="showcase-price-left">
-              <span class="showcase-price-label">Asking Price</span>
-              <div class="showcase-price">NLE 4,100,000</div>
-            </div>
-            <div class="showcase-dealer-badge">
-              <i class="ri-verified-badge-fill"></i>
-              <div>
-                <span class="dealer-name">Prestige West Africa</span>
-                <span class="dealer-loc"><i class="ri-map-pin-2-line"></i> Freetown</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="showcase-ctas">
-            <a href="https://wa.me/23276637648?text=Hello%2C%20I%20am%20interested%20in%20the%20Porsche%20911%20Turbo%20S" target="_blank" class="btn-showcase-primary" style="text-decoration:none">
-              <i class="ri-whatsapp-line"></i> WhatsApp Enquiry
-            </a>
-            <button class="btn-showcase-icon" data-fav-id="3" onclick="toggleFav(3)" title="Save to Favourites"><i class="ri-heart-line"></i></button>
-            <button class="btn-showcase-icon" onclick="openQuickView(3)" title="Quick View"><i class="ri-eye-line"></i></button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
 
 
   <!-- ============================================================
        TESTIMONIALS
        ============================================================ -->
-  <section class="testimonials-section" id="reviews">
+  <section class="testimonials-section" id="reviews" style="display:none">
     <div class="section-container">
       <div class="section-header-center">
         <span class="section-kicker">Client Stories</span>
@@ -719,8 +645,19 @@
     <div class="footer-top">
       <div class="footer-container">
         <div class="footer-brand-col">
-          <a href="#home" class="footer-logo-link">
-            <img src="/uploads/car-dynasty-logo.png" alt="Car Dynasty" style="height:60px;width:auto;object-fit:contain">
+          <a href="#home" class="footer-logo-link" style="display:flex;align-items:center;gap:10px;text-decoration:none">
+            <svg width="44" height="44" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M8 52 C8 52 18 30 35 28 L50 26 L72 28 C85 30 92 42 92 52" stroke="#e5a95c" stroke-width="3" fill="none" stroke-linecap="round"/>
+              <path d="M30 28 L38 18 C40 15 55 14 62 18 L70 28" stroke="#e5a95c" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+              <ellipse cx="25" cy="56" rx="8" ry="8" stroke="#e5a95c" stroke-width="2.5" fill="none"/>
+              <ellipse cx="75" cy="56" rx="8" ry="8" stroke="#e5a95c" stroke-width="2.5" fill="none"/>
+              <text x="50" y="53" text-anchor="middle" font-family="Outfit,sans-serif" font-weight="800" font-size="22" fill="url(#gold2)" letter-spacing="-2">CD</text>
+              <defs><linearGradient id="gold2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f3be78"/><stop offset="100%" stop-color="#c8832a"/></linearGradient></defs>
+            </svg>
+            <div style="display:flex;flex-direction:column;line-height:1">
+              <span style="font-family:Outfit,sans-serif;font-weight:800;font-size:16px;letter-spacing:2.5px;background:linear-gradient(135deg,#f3be78,#e5a95c,#c8832a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">CAR DYNASTY</span>
+              <span style="font-family:Outfit,sans-serif;font-weight:400;font-size:9px;letter-spacing:3px;color:#e5a95c;opacity:0.7;margin-top:3px">DRIVE YOUR DREAM</span>
+            </div>
           </a>
           <p class="footer-brand-desc">Sierra Leone's most exclusive automotive destination. Where luxury meets performance, and every drive is an experience.</p>
           <div class="footer-social">
@@ -728,7 +665,7 @@
             <a href="#" class="social-btn" aria-label="Facebook"><i class="ri-facebook-fill"></i></a>
             <a href="#" class="social-btn" aria-label="Twitter/X"><i class="ri-twitter-x-line"></i></a>
             <a href="#" class="social-btn" aria-label="YouTube"><i class="ri-youtube-fill"></i></a>
-            <a href="https://wa.me/23276637648" target="_blank" class="social-btn" aria-label="WhatsApp" style="color:#25D366;border-color:#25D366"><i class="ri-whatsapp-line"></i></a>
+            <a href="https://wa.me/23272333936" target="_blank" class="social-btn" aria-label="WhatsApp" style="color:#25D366;border-color:#25D366"><i class="ri-whatsapp-line"></i></a>
           </div>
         </div>
 
@@ -775,8 +712,8 @@
             <button class="newsletter-btn" id="newsletterBtn"><i class="ri-send-plane-fill"></i></button>
           </div>
           <div class="footer-contact-info">
-            <div class="contact-item"><i class="ri-whatsapp-line"></i><a href="https://wa.me/23276637648" target="_blank" style="color:var(--text-muted);transition:color 0.2s" onmouseover="this.style.color='#25D366'" onmouseout="this.style.color=''">+232 76 637 648 (WhatsApp)</a></div>
-            <div class="contact-item"><i class="ri-phone-fill"></i><span>+232 76 637 648</span></div>
+            <div class="contact-item"><i class="ri-whatsapp-line"></i><a href="https://wa.me/23272333936" target="_blank" style="color:var(--text-muted);transition:color 0.2s" onmouseover="this.style.color='#25D366'" onmouseout="this.style.color=''">+232 72 333 936 (WhatsApp)</a></div>
+            <div class="contact-item"><i class="ri-phone-fill"></i><span>+232 72 333 936</span></div>
             <div class="contact-item"><i class="ri-mail-fill"></i><span>hello@cardynasty.sl</span></div>
             <div class="contact-item"><i class="ri-map-pin-fill"></i><span>Wilkinson Road, Freetown</span></div>
           </div>
@@ -823,7 +760,7 @@
   </button>
 
   <!-- WhatsApp Floating Button -->
-  <a href="https://wa.me/23276637648" target="_blank" id="waFloat" class="wa-float" aria-label="Chat on WhatsApp" title="Chat with us on WhatsApp">
+  <a href="https://wa.me/23272333936" target="_blank" id="waFloat" class="wa-float" aria-label="Chat on WhatsApp" title="Chat with us on WhatsApp">
     <i class="ri-whatsapp-line"></i>
     <span class="wa-float-label">Chat Now</span>
   </a>

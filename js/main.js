@@ -9,7 +9,7 @@
 // CONFIG & STATE
 // ──────────────────────────────────────────────
 const API_BASE   = window.location.origin + '/api';
-const WA_NUMBER  = '23276637648';
+const WA_NUMBER  = '23272333936';
 
 let allVehicles      = [];
 let filteredVehicles = [];
@@ -553,24 +553,35 @@ async function initLiveStats() {
 // DYNAMIC REVIEWS (Loads live reviews from SQLite)
 // ──────────────────────────────────────────────
 async function initLiveReviews() {
+  const section  = document.getElementById('reviews');
   const carousel = $('testimonialsCarousel');
   if (!carousel) return;
 
   const data = await apiFetch('/reviews');
-  if (!data.success || !data.reviews?.length) return;
+
+  // Hide entire section if no reviews
+  if (!data.success || !data.reviews?.length) {
+    if (section) section.style.display = 'none';
+    return;
+  }
+
+  // Show section now that we have reviews
+  if (section) section.style.display = '';
 
   carousel.innerHTML = data.reviews.map(r => {
-    const stars = Array(r.rating || 5).fill('<i class="ri-star-fill"></i>').join('');
-    const avatar = r.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(r.name)}&background=18181b&color=e5a95c&bold=true`;
+    const stars  = Array(Math.min(r.rating || 5, 5)).fill('<i class="ri-star-fill"></i>').join('');
+    const initials = r.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+    const avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(r.name)}&background=18181b&color=e5a95c&bold=true&size=80`;
+    const date   = r.created_at ? new Date(r.created_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) : '';
     return `
       <div class="testimonial-card">
         <div class="quote-mark">"</div>
         <p class="testimonial-text">${r.comment}</p>
         <div class="testimonial-author">
-          <img src="${avatar}" alt="${r.name}" class="testimonial-avatar">
+          <img src="${avatar}" alt="${r.name}" class="testimonial-avatar" onerror="this.style.display='none'">
           <div class="testimonial-meta">
             <div class="testimonial-name">${r.name}</div>
-            <div class="testimonial-role">${r.role || 'Verified Client'}</div>
+            <div class="testimonial-role">${r.role || 'Verified Client'}${date ? ' · ' + date : ''}</div>
           </div>
           <div class="testimonial-stars">${stars}</div>
         </div>
@@ -580,7 +591,9 @@ async function initLiveReviews() {
 
   const dotsWrap = $('carouselDots');
   if (dotsWrap) {
-    dotsWrap.innerHTML = data.reviews.map((_, i) => `<div class="carousel-dot ${i === 0 ? 'active' : ''}"></div>`).join('');
+    dotsWrap.innerHTML = data.reviews.map((_, i) =>
+      `<div class="carousel-dot ${i === 0 ? 'active' : ''}"></div>`
+    ).join('');
   }
   initTestimonialsCarousel();
 }

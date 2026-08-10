@@ -109,7 +109,9 @@ function navigate(tab) {
 // THEME
 function applyTheme(theme) {
   currentTheme = theme;
-  document.body.classList.toggle('theme-light', theme === 'light');
+  // Use data-theme attribute to match admin.css selectors
+  document.body.setAttribute('data-theme', theme === 'light' ? 'light' : '');
+  document.documentElement.setAttribute('data-theme', theme === 'light' ? 'light' : '');
   localStorage.setItem('pm_admin_theme', theme);
   $('theme-dark-opt')?.classList.toggle('active', theme === 'dark');
   $('theme-light-opt')?.classList.toggle('active', theme === 'light');

@@ -114,7 +114,7 @@ app.put('/api/auth/profile', requireAuth, (req, res) => {
   run('UPDATE users SET name = ?, email = ? WHERE id = ?', [name.trim(), email.trim().toLowerCase(), req.admin.id]);
   const updated = get('SELECT id, name, email, role, avatar FROM users WHERE id = ?', [req.admin.id]);
 
-  const token = jwt.sign(updated, JWT_SECRET, { expiresIn: JWT_EXPIRES });
+  const token = signToken({ id: updated.id, email: updated.email, name: updated.name, role: updated.role });
   return ok(res, { user: updated, token, message: 'Profile updated successfully.' });
 });
 
