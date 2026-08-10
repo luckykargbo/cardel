@@ -338,7 +338,7 @@ app.post('/api/newsletter', (req, res) => {
   if (!email || !email.includes('@')) return fail(res, 'A valid email is required.');
   try {
     run('INSERT INTO subscribers (email) VALUES (?)', [email.trim().toLowerCase()]);
-    return ok(res, { message: "You're subscribed! Welcome to the Prestige Motors community." }, 201);
+    return ok(res, { message: "You're subscribed! Welcome to the Car Dynasty community." }, 201);
   } catch (err) {
     if (err.message?.includes('UNIQUE')) return ok(res, { message: 'Already subscribed. Thank you!' });
     throw err;

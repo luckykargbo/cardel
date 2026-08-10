@@ -1,7 +1,7 @@
 {
   "name": "prestige-motors",
   "version": "1.0.0",
-  "description": "Prestige Motors — Sierra Leone's Premier Luxury Car Dealership",
+  "description": "Car Dynasty — Sierra Leone's Premier Luxury Car Dealership",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

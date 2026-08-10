@@ -47,7 +47,7 @@ function fmtMileage(km) {
 
 function buildWALink(v) {
   const msg = encodeURIComponent(
-    `🚘 *Prestige Motors Enquiry*\n\n` +
+    `🚘 *Car Dynasty Enquiry*\n\n` +
     `I am interested in the following vehicle:\n\n` +
     `*${v.title}*\n` +
     `📅 Year: ${v.year}\n` +

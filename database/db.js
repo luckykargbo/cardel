@@ -163,7 +163,7 @@ async function seedData() {
   const revCount = revCountRows[0]?.values[0]?.[0] || 0;
   if (revCount === 0) {
     const sampleReviews = [
-      ['Sahr Kamara', 'Managing Director, Kamara & Sons — Freetown', 5, 'Purchased our executive Toyota Land Cruiser V8 through Prestige Motors. Exceptional transparency, pristine vehicle condition, and white-glove doorstep delivery.'],
+      ['Sahr Kamara', 'Managing Director, Kamara & Sons — Freetown', 5, 'Purchased our executive Toyota Land Cruiser V8 through Car Dynasty. Exceptional transparency, pristine vehicle condition, and white-glove doorstep delivery.'],
       ['Aminata Sesay', 'Logistics Director — Bo', 5, 'The Lexus LX 600 VIP was delivered straight to Bo in absolute mint condition. Professional team and unmatched luxury service standard in Sierra Leone.'],
       ['Dr. Mohamed Mansaray', 'Surgeon — Freetown', 5, 'Highly reliable executive automobile dealership. The Range Rover Autobiography exceeded all expectations. Will definitely purchase our next fleet vehicle here.']
     ];
