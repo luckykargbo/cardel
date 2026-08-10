@@ -1,4 +1,4 @@
-# 🚘 Prestige Motors
+# 🚘 SaloneAutoLink
 
 **Sierra Leone's Premier Luxury Car Dealership**
 
@@ -26,7 +26,7 @@ Then open:
 
 | Field    | Value                          |
 |----------|-------------------------------|
-| Email    | `admin@prestigemotors.com`    |
+| Email    | `admin@saloneautolink.com`    |
 | Password | `Onyx2026!`                   |
 
 > ⚠️ Change the password immediately via **Settings → Change Password** after first login.
@@ -128,4 +128,4 @@ cardel/
 
 ## 📄 License
 
-© 2025 Prestige Motors Executive Ltd. Sierra Leone. All Rights Reserved.
+© 2025 SaloneAutoLink Executive Ltd. Sierra Leone. All Rights Reserved.

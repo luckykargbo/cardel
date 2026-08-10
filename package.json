@@ -1,7 +1,7 @@
 {
-  "name": "prestige-motors",
+  "name": "salone-auto-link",
   "version": "1.0.0",
-  "description": "Car Dynasty — Sierra Leone's Premier Luxury Car Dealership",
+  "description": "SaloneAutoLink — Sierra Leone's Premier Luxury Car Dealership",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

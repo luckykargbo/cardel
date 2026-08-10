@@ -1,6 +1,6 @@
 'use strict';
 /**
- * PRESTIGE MOTORS — DATABASE (sql.js — pure JavaScript SQLite)
+ * SALONEAUTOLINK — DATABASE (sql.js — pure JavaScript SQLite)
  * Loads/saves the SQLite file from disk on every write.
  * No native compilation required.
  */
@@ -9,7 +9,7 @@ const path = require('path');
 const fs   = require('fs');
 const initSqlJs = require('sql.js');
 
-const DB_PATH = path.join(__dirname, 'prestige_motors.db');
+const DB_PATH = path.join(__dirname, 'saloneautolink.db');
 
 let db;        // sql.js Database instance
 let SQL;       // sql.js namespace
@@ -120,14 +120,14 @@ async function seedData() {
   const bcrypt = require('bcryptjs');
 
   // Admin user
-  const adminRows = db.exec("SELECT id FROM users WHERE email = 'admin@prestigemotors.com'");
+  const adminRows = db.exec("SELECT id FROM users WHERE email = 'admin@saloneautolink.com'");
   if (!adminRows.length || !adminRows[0].values.length) {
     const hashed = bcrypt.hashSync('Onyx2026!', 12);
     db.run(
       "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, 'superadmin')",
-      ['Super Admin', 'admin@prestigemotors.com', hashed]
+      ['Super Admin', 'admin@saloneautolink.com', hashed]
     );
-    console.log('✅  Admin user created: admin@prestigemotors.com / Onyx2026!');
+    console.log('✅  Admin user created: admin@saloneautolink.com / Onyx2026!');
   }
 
   // Vehicles
@@ -163,7 +163,7 @@ async function seedData() {
   const revCount = revCountRows[0]?.values[0]?.[0] || 0;
   if (revCount === 0) {
     const sampleReviews = [
-      ['Sahr Kamara', 'Managing Director, Kamara & Sons — Freetown', 5, 'Purchased our executive Toyota Land Cruiser V8 through Car Dynasty. Exceptional transparency, pristine vehicle condition, and white-glove doorstep delivery.'],
+      ['Sahr Kamara', 'Managing Director, Kamara & Sons — Freetown', 5, 'Purchased our executive Toyota Land Cruiser V8 through SaloneAutoLink. Exceptional transparency, pristine vehicle condition, and white-glove doorstep delivery.'],
       ['Aminata Sesay', 'Logistics Director — Bo', 5, 'The Lexus LX 600 VIP was delivered straight to Bo in absolute mint condition. Professional team and unmatched luxury service standard in Sierra Leone.'],
       ['Dr. Mohamed Mansaray', 'Surgeon — Freetown', 5, 'Highly reliable executive automobile dealership. The Range Rover Autobiography exceeded all expectations. Will definitely purchase our next fleet vehicle here.']
     ];

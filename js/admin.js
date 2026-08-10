@@ -1,7 +1,7 @@
 'use strict';
 /**
  * ============================================================
- * PRESTIGE MOTORS — ADMIN CONTROL SUITE
+ * SALONEAUTOLINK — ADMIN CONTROL SUITE
  * 100% Live API — SQLite Backend Powered
  * ============================================================
  */
@@ -724,7 +724,7 @@ function exportInventoryCSV() {
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
   a.href     = url;
-  a.download = `prestige-motors-inventory-${new Date().toISOString().slice(0,10)}.csv`;
+  a.download = `saloneautolink-inventory-${new Date().toISOString().slice(0,10)}.csv`;
   a.click();
   URL.revokeObjectURL(url);
   showToast('Inventory exported as CSV!', 'success');

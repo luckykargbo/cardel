@@ -1,7 +1,7 @@
 'use strict';
 /**
  * ============================================================
- * PRESTIGE MOTORS — EXPRESS API SERVER
+ * SALONEAUTOLINK — EXPRESS API SERVER
  * Sierra Leone's Premier Luxury Car Dealership
  * Database: sql.js (pure JavaScript SQLite — no native build required)
  * ============================================================
@@ -338,7 +338,7 @@ app.post('/api/newsletter', (req, res) => {
   if (!email || !email.includes('@')) return fail(res, 'A valid email is required.');
   try {
     run('INSERT INTO subscribers (email) VALUES (?)', [email.trim().toLowerCase()]);
-    return ok(res, { message: "You're subscribed! Welcome to the Car Dynasty community." }, 201);
+    return ok(res, { message: "You're subscribed! Welcome to the SaloneAutoLink community." }, 201);
   } catch (err) {
     if (err.message?.includes('UNIQUE')) return ok(res, { message: 'Already subscribed. Thank you!' });
     throw err;
@@ -451,7 +451,7 @@ initDatabase().then(() => {
   app.listen(PORT, () => {
     console.log('\n' +
       '  ╔══════════════════════════════════════════╗\n' +
-      '  ║   🚘  PRESTIGE MOTORS — SERVER RUNNING   ║\n' +
+      '  ║   🚘  SALONEAUTOLINK — SERVER RUNNING    ║\n' +
       '  ╚══════════════════════════════════════════╝\n'
     );
     console.log(`  🌐  Showroom   → http://localhost:${PORT}`);

@@ -1,11 +1,11 @@
 'use strict';
 /**
- * PRESTIGE MOTORS — JWT Authentication Middleware
+ * SALONEAUTOLINK — JWT Authentication Middleware
  */
 
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'prestige_motors_jwt_secret_onyx_2026';
+const JWT_SECRET = process.env.JWT_SECRET || 'saloneautolink_jwt_secret_onyx_2026';
 const JWT_EXPIRY = '24h';
 
 /**

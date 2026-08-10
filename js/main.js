@@ -1,5 +1,5 @@
 /* ============================================================
-   PRESTIGE MOTORS — PUBLIC SITE JAVASCRIPT
+   SALONEAUTOLINK — PUBLIC SITE JAVASCRIPT
    100% Live API — SQLite Backend Powered
    ============================================================ */
 
@@ -15,7 +15,7 @@ let allVehicles      = [];
 let filteredVehicles = [];
 let displayedCount   = 0;
 let PAGE_SIZE        = 9;
-let favourites       = JSON.parse(localStorage.getItem('pm_favourites') || '[]');
+let favourites       = JSON.parse(localStorage.getItem('sal_favourites') || '[]');
 let currentQuickId   = null;
 
 // ──────────────────────────────────────────────
@@ -47,7 +47,7 @@ function fmtMileage(km) {
 
 function buildWALink(v) {
   const msg = encodeURIComponent(
-    `🚘 *Car Dynasty Enquiry*\n\n` +
+    `🚘 *SaloneAutoLink Enquiry*\n\n` +
     `I am interested in the following vehicle:\n\n` +
     `*${v.title}*\n` +
     `📅 Year: ${v.year}\n` +
