@@ -15,6 +15,7 @@ const bcrypt   = require('bcryptjs');
 const multer   = require('multer');
 const { v4: uuidv4 } = require('uuid');
 
+const cloudStorage                       = require('./services/cloudStorage');
 const { initDatabase, query, run, get } = require('./database/db');
 const { signToken, requireAuth }         = require('./middleware/auth');
 
@@ -28,25 +29,19 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname)));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ──────────────────────────────────────────────
-// MULTER — FILE UPLOAD
+// MULTER — MEMORY STORAGE (SERVERLESS FRIENDLY)
 // ──────────────────────────────────────────────
-const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, uploadsDir),
-  filename:    (_req, file, cb)  => cb(null, `${uuidv4()}${path.extname(file.originalname).toLowerCase()}`)
-});
+const storage = multer.memoryStorage();
 
 const fileFilter = (_req, file, cb) => {
   const ok = /jpeg|jpg|png|webp|gif|mp4|webm|mov|avi|mkv/.test(path.extname(file.originalname).toLowerCase());
   ok ? cb(null, true) : cb(new Error('Only image and video files are allowed.'));
 };
 
-const upload = multer({ storage, fileFilter, limits: { fileSize: 50 * 1024 * 1024 } });
+// Enforce max 15MB file size limit to prevent memory exhaustion in serverless environments
+const upload = multer({ storage, fileFilter, limits: { fileSize: 15 * 1024 * 1024 } });
 
 // ──────────────────────────────────────────────
 // HELPERS
@@ -63,17 +58,22 @@ function mapVehicle(row) {
   return { ...row, images: parseImages(row.images), featured: row.featured === 1 };
 }
 
+// Prevent server crashes from transient network/DB errors
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('⚠️  Unhandled Promise Rejection:', reason?.message || reason);
+});
+
 // ──────────────────────────────────────────────
 // ============================================================
 // AUTH ROUTES
 // ============================================================
 // ──────────────────────────────────────────────
 
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) return fail(res, 'Email and password are required.');
 
-  const user = get('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', [email.trim()]);
+  const user = await get('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', [email.trim()]);
   if (!user) return fail(res, 'Invalid email or password.', 401);
 
   if (!bcrypt.compareSync(password, user.password)) return fail(res, 'Invalid email or password.', 401);
@@ -85,34 +85,34 @@ app.post('/api/auth/login', (req, res) => {
   });
 });
 
-app.get('/api/auth/me', requireAuth, (req, res) => {
-  const user = get('SELECT id,name,email,role,avatar,created_at FROM users WHERE id = ?', [req.admin.id]);
+app.get('/api/auth/me', requireAuth, async (req, res) => {
+  const user = await get('SELECT id,name,email,role,avatar,created_at FROM users WHERE id = ?', [req.admin.id]);
   if (!user) return fail(res, 'User not found.', 404);
   return ok(res, { user });
 });
 
-app.patch('/api/auth/password', requireAuth, (req, res) => {
+app.patch('/api/auth/password', requireAuth, async (req, res) => {
   const { currentPassword, newPassword } = req.body;
   if (!currentPassword || !newPassword) return fail(res, 'Both current and new passwords are required.');
   if (newPassword.length < 8) return fail(res, 'New password must be at least 8 characters.');
 
-  const user = get('SELECT password FROM users WHERE id = ?', [req.admin.id]);
+  const user = await get('SELECT password FROM users WHERE id = ?', [req.admin.id]);
   if (!bcrypt.compareSync(currentPassword, user.password)) return fail(res, 'Current password is incorrect.', 401);
 
   const hashed = bcrypt.hashSync(newPassword, 12);
-  run('UPDATE users SET password = ? WHERE id = ?', [hashed, req.admin.id]);
+  await run('UPDATE users SET password = ? WHERE id = ?', [hashed, req.admin.id]);
   return ok(res, { message: 'Password updated successfully.' });
 });
 
-app.put('/api/auth/profile', requireAuth, (req, res) => {
+app.put('/api/auth/profile', requireAuth, async (req, res) => {
   const { name, email } = req.body;
   if (!name || !email) return fail(res, 'Name and email are required.');
 
-  const existing = get('SELECT id FROM users WHERE email = ? AND id != ?', [email.trim().toLowerCase(), req.admin.id]);
+  const existing = await get('SELECT id FROM users WHERE email = ? AND id != ?', [email.trim().toLowerCase(), req.admin.id]);
   if (existing) return fail(res, 'This email is already in use by another account.', 400);
 
-  run('UPDATE users SET name = ?, email = ? WHERE id = ?', [name.trim(), email.trim().toLowerCase(), req.admin.id]);
-  const updated = get('SELECT id, name, email, role, avatar FROM users WHERE id = ?', [req.admin.id]);
+  await run('UPDATE users SET name = ?, email = ? WHERE id = ?', [name.trim(), email.trim().toLowerCase(), req.admin.id]);
+  const updated = await get('SELECT id, name, email, role, avatar FROM users WHERE id = ?', [req.admin.id]);
 
   const token = signToken({ id: updated.id, email: updated.email, name: updated.name, role: updated.role });
   return ok(res, { user: updated, token, message: 'Profile updated successfully.' });
@@ -124,7 +124,7 @@ app.put('/api/auth/profile', requireAuth, (req, res) => {
 // ============================================================
 // ──────────────────────────────────────────────
 
-app.get('/api/vehicles', (req, res) => {
+app.get('/api/vehicles', async (req, res) => {
   const {
     brand, model, year, body, transmission, fuel,
     price, mileage, colour, location, condition, status,
@@ -177,23 +177,25 @@ app.get('/api/vehicles', (req, res) => {
   sql += ' LIMIT ? OFFSET ?';
 
   const allParams = [...p, parseInt(limit), parseInt(offset)];
-  const vehicles  = query(sql, allParams).map(mapVehicle);
+  const rawVehicles = await query(sql, allParams);
+  const vehicles    = rawVehicles.map(mapVehicle);
 
   // Total count without limit/offset
   const countSql = sql.replace(/SELECT \*/, 'SELECT COUNT(*) as c').replace(/ORDER BY.+$/, '');
-  const totalRow = get(countSql, p);
+  const totalRow = await get(countSql, p);
   const total    = totalRow?.c || vehicles.length;
 
   return ok(res, { vehicles, total, limit: parseInt(limit), offset: parseInt(offset) });
 });
 
-app.get('/api/vehicles/:id', (req, res) => {
-  const vehicle = get('SELECT * FROM vehicles WHERE id = ?', [req.params.id]);
+app.get('/api/vehicles/:id', async (req, res) => {
+  const vehicle = await get('SELECT * FROM vehicles WHERE id = ?', [req.params.id]);
   if (!vehicle) return fail(res, 'Vehicle not found.', 404);
   return ok(res, { vehicle: mapVehicle(vehicle) });
 });
 
-app.post('/api/vehicles', requireAuth, upload.fields([{ name: 'images', maxCount: 10 }, { name: 'video', maxCount: 1 }]), (req, res) => {
+app.post('/api/vehicles', requireAuth, upload.fields([{ name: 'images', maxCount: 10 }, { name: 'video', maxCount: 1 }]), async (req, res) => {
+  const newlyUploadedUrls = [];
   try {
     const {
       title, brand, model, year, price, mileage = 0, fuel,
@@ -208,18 +210,27 @@ app.post('/api/vehicles', requireAuth, upload.fields([{ name: 'images', maxCount
 
     let images = [];
     try { images = JSON.parse(existingImages || '[]'); } catch {}
+
+    // Process & optimize uploaded images to WebP @ 80% quality -> Cloud Storage
     if (req.files?.images?.length) {
-      images = images.concat(req.files.images.map(f => `/uploads/${f.filename}`));
+      for (const file of req.files.images) {
+        const url = await cloudStorage.processAndUploadImage(file.buffer, file.originalname);
+        images.push(url);
+        newlyUploadedUrls.push(url);
+      }
     }
 
+    // Process & upload video -> Cloud Storage
     let finalVideoUrl = video_url || '';
     if (req.files?.video?.length) {
-      finalVideoUrl = `/uploads/${req.files.video[0].filename}`;
+      const vFile = req.files.video[0];
+      finalVideoUrl = await cloudStorage.uploadVideo(vFile.buffer, vFile.originalname, vFile.mimetype);
+      newlyUploadedUrls.push(finalVideoUrl);
     }
 
     const isFeatured = featured === 'true' || featured === true || featured === '1' ? 1 : 0;
 
-    const result = run(`
+    const result = await run(`
       INSERT INTO vehicles
         (title,brand,model,year,price,mileage,fuel,hp,engine,transmission,body,colour,location,condition_type,status,featured,description,images,video_url,updated_at)
       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,datetime('now'))
@@ -227,17 +238,22 @@ app.post('/api/vehicles', requireAuth, upload.fields([{ name: 'images', maxCount
         fuel, hp, engine, transmission, body, colour, location,
         condition_type, status, isFeatured, description, JSON.stringify(images), finalVideoUrl]);
 
-    const newV = get('SELECT * FROM vehicles WHERE id = ?', [result.lastInsertRowid]);
+    const newV = await get('SELECT * FROM vehicles WHERE id = ?', [result.lastInsertRowid]);
     return ok(res, { vehicle: mapVehicle(newV) }, 201);
   } catch (err) {
+    // Database failure rollback: delete newly uploaded media from Cloud Storage
+    if (newlyUploadedUrls.length) {
+      await cloudStorage.deleteCloudMedia(newlyUploadedUrls);
+    }
     console.error('Error adding vehicle:', err);
     return fail(res, err.message || 'Failed to add vehicle.', 500);
   }
 });
 
-app.put('/api/vehicles/:id', requireAuth, upload.fields([{ name: 'images', maxCount: 10 }, { name: 'video', maxCount: 1 }]), (req, res) => {
+app.put('/api/vehicles/:id', requireAuth, upload.fields([{ name: 'images', maxCount: 10 }, { name: 'video', maxCount: 1 }]), async (req, res) => {
+  const newlyUploadedUrls = [];
   try {
-    const existing = get('SELECT * FROM vehicles WHERE id = ?', [req.params.id]);
+    const existing = await get('SELECT * FROM vehicles WHERE id = ?', [req.params.id]);
     if (!existing) return fail(res, 'Vehicle not found.', 404);
 
     const {
@@ -246,34 +262,46 @@ app.put('/api/vehicles/:id', requireAuth, upload.fields([{ name: 'images', maxCo
       condition_type, status, featured, description, existingImages, removeImages, video_url
     } = req.body;
 
-    // Handle images
     let images = parseImages(existing.images);
+
+    // Remove deleted images from Cloud Storage
     if (removeImages) {
       let toRemove = [];
       try { toRemove = JSON.parse(removeImages); } catch {}
       images = images.filter(img => !toRemove.includes(img));
-      toRemove.forEach(img => {
-        if (img.startsWith('/uploads/')) {
-          const fp = path.join(__dirname, img);
-          if (fs.existsSync(fp)) { try { fs.unlinkSync(fp); } catch {} }
-        }
-      });
+      if (toRemove.length) {
+        await cloudStorage.deleteCloudMedia(toRemove);
+      }
     }
+
     if (existingImages) { try { images = JSON.parse(existingImages); } catch {} }
+
+    // Upload newly added images to Cloud Storage
     if (req.files?.images?.length) {
-      images = images.concat(req.files.images.map(f => `/uploads/${f.filename}`));
+      for (const file of req.files.images) {
+        const url = await cloudStorage.processAndUploadImage(file.buffer, file.originalname);
+        images.push(url);
+        newlyUploadedUrls.push(url);
+      }
     }
 
     let finalVideoUrl = video_url !== undefined ? video_url : (existing.video_url || '');
+
+    // Handle video replacement/upload
     if (req.files?.video?.length) {
-      finalVideoUrl = `/uploads/${req.files.video[0].filename}`;
+      if (existing.video_url) {
+        await cloudStorage.deleteCloudMedia(existing.video_url);
+      }
+      const vFile = req.files.video[0];
+      finalVideoUrl = await cloudStorage.uploadVideo(vFile.buffer, vFile.originalname, vFile.mimetype);
+      newlyUploadedUrls.push(finalVideoUrl);
     }
 
     const isFeatured = (featured !== undefined)
       ? (featured === 'true' || featured === true || featured === '1' ? 1 : 0)
       : existing.featured;
 
-    run(`
+    await run(`
       UPDATE vehicles SET
         title=?,brand=?,model=?,year=?,price=?,mileage=?,fuel=?,hp=?,engine=?,
         transmission=?,body=?,colour=?,location=?,condition_type=?,status=?,
@@ -292,52 +320,59 @@ app.put('/api/vehicles/:id', requireAuth, upload.fields([{ name: 'images', maxCo
       parseInt(req.params.id)
     ]);
 
-    return ok(res, { vehicle: mapVehicle(get('SELECT * FROM vehicles WHERE id = ?', [req.params.id])) });
+    const updatedV = await get('SELECT * FROM vehicles WHERE id = ?', [req.params.id]);
+    return ok(res, { vehicle: mapVehicle(updatedV) });
   } catch (err) {
+    if (newlyUploadedUrls.length) {
+      await cloudStorage.deleteCloudMedia(newlyUploadedUrls);
+    }
     console.error('Error updating vehicle:', err);
     return fail(res, err.message || 'Failed to update vehicle.', 500);
   }
 });
 
-app.patch('/api/vehicles/:id/status', requireAuth, (req, res) => {
+app.patch('/api/vehicles/:id/status', requireAuth, async (req, res) => {
   const valid = ['available', 'reserved', 'sold', 'draft'];
   const { status } = req.body;
   if (!valid.includes(status)) return fail(res, 'Invalid status value.');
-  const result = run("UPDATE vehicles SET status=?,updated_at=datetime('now') WHERE id=?", [status, req.params.id]);
+  const result = await run("UPDATE vehicles SET status=?,updated_at=datetime('now') WHERE id=?", [status, req.params.id]);
   if (result.changes === 0) return fail(res, 'Vehicle not found.', 404);
   return ok(res, { message: `Status updated to ${status}.` });
 });
 
-app.patch('/api/vehicles/:id/featured', requireAuth, (req, res) => {
-  const v = get('SELECT featured FROM vehicles WHERE id = ?', [req.params.id]);
+app.patch('/api/vehicles/:id/featured', requireAuth, async (req, res) => {
+  const v = await get('SELECT featured FROM vehicles WHERE id = ?', [req.params.id]);
   if (!v) return fail(res, 'Vehicle not found.', 404);
   const newVal = v.featured === 1 ? 0 : 1;
-  run("UPDATE vehicles SET featured=?,updated_at=datetime('now') WHERE id=?", [newVal, req.params.id]);
+  await run("UPDATE vehicles SET featured=?,updated_at=datetime('now') WHERE id=?", [newVal, req.params.id]);
   return ok(res, { featured: newVal === 1 });
 });
 
-app.delete('/api/vehicles/:id', requireAuth, (req, res) => {
-  const v = get('SELECT images FROM vehicles WHERE id = ?', [req.params.id]);
+app.delete('/api/vehicles/:id', requireAuth, async (req, res) => {
+  const v = await get('SELECT images, video_url FROM vehicles WHERE id = ?', [req.params.id]);
   if (!v) return fail(res, 'Vehicle not found.', 404);
-  parseImages(v.images).forEach(img => {
-    if (img.startsWith('/uploads/')) {
-      const fp = path.join(__dirname, img);
-      if (fs.existsSync(fp)) { try { fs.unlinkSync(fp); } catch {} }
-    }
-  });
-  run('DELETE FROM vehicles WHERE id = ?', [req.params.id]);
-  return ok(res, { message: 'Vehicle deleted.' });
+
+  const mediaToDelete = [...parseImages(v.images)];
+  if (v.video_url) mediaToDelete.push(v.video_url);
+
+  // Trigger deletion of associated Cloud Storage objects
+  if (mediaToDelete.length) {
+    await cloudStorage.deleteCloudMedia(mediaToDelete);
+  }
+
+  await run('DELETE FROM vehicles WHERE id = ?', [req.params.id]);
+  return ok(res, { message: 'Vehicle and associated media deleted.' });
 });
 
 // ──────────────────────────────────────────────
 // NEWSLETTER
 // ──────────────────────────────────────────────
 
-app.post('/api/newsletter', (req, res) => {
+app.post('/api/newsletter', async (req, res) => {
   const { email } = req.body;
   if (!email || !email.includes('@')) return fail(res, 'A valid email is required.');
   try {
-    run('INSERT INTO subscribers (email) VALUES (?)', [email.trim().toLowerCase()]);
+    await run('INSERT INTO subscribers (email) VALUES (?)', [email.trim().toLowerCase()]);
     return ok(res, { message: "You're subscribed! Welcome to the SaloneAutoLink community." }, 201);
   } catch (err) {
     if (err.message?.includes('UNIQUE')) return ok(res, { message: 'Already subscribed. Thank you!' });
@@ -345,8 +380,8 @@ app.post('/api/newsletter', (req, res) => {
   }
 });
 
-app.get('/api/newsletter', requireAuth, (req, res) => {
-  const subscribers = query('SELECT * FROM subscribers ORDER BY created_at DESC');
+app.get('/api/newsletter', requireAuth, async (req, res) => {
+  const subscribers = await query('SELECT * FROM subscribers ORDER BY created_at DESC');
   return ok(res, { subscribers, total: subscribers.length });
 });
 
@@ -354,29 +389,29 @@ app.get('/api/newsletter', requireAuth, (req, res) => {
 // REVIEWS
 // ──────────────────────────────────────────────
 
-app.get('/api/reviews', (req, res) => {
-  const reviews = query("SELECT * FROM reviews WHERE status = 'approved' ORDER BY created_at DESC LIMIT 20");
+app.get('/api/reviews', async (req, res) => {
+  const reviews = await query("SELECT * FROM reviews WHERE status = 'approved' ORDER BY created_at DESC LIMIT 20");
   return ok(res, { reviews });
 });
 
-app.post('/api/reviews', (req, res) => {
+app.post('/api/reviews', async (req, res) => {
   const { name, role, rating = 5, comment } = req.body;
   if (!name || !comment) return fail(res, 'Name and review comment are required.');
-  const result = run(
+  const result = await run(
     'INSERT INTO reviews (name, role, rating, comment, status) VALUES (?, ?, ?, ?, ?)',
     [name.trim(), role?.trim() || 'Verified Client', Math.min(5, Math.max(1, parseInt(rating) || 5)), comment.trim(), 'approved']
   );
   return ok(res, { id: result.lastInsertRowid, message: 'Thank you for your review!' }, 201);
 });
 
-app.get('/api/admin/reviews', requireAuth, (req, res) => {
-  const reviews = query('SELECT * FROM reviews ORDER BY created_at DESC');
+app.get('/api/admin/reviews', requireAuth, async (req, res) => {
+  const reviews = await query('SELECT * FROM reviews ORDER BY created_at DESC');
   return ok(res, { reviews, total: reviews.length });
 });
 
-app.delete('/api/admin/reviews/:id', requireAuth, (req, res) => {
+app.delete('/api/admin/reviews/:id', requireAuth, async (req, res) => {
   const id = parseInt(req.params.id);
-  run('DELETE FROM reviews WHERE id = ?', [id]);
+  await run('DELETE FROM reviews WHERE id = ?', [id]);
   return ok(res, { message: 'Review deleted successfully.' });
 });
 
@@ -384,10 +419,14 @@ app.delete('/api/admin/reviews/:id', requireAuth, (req, res) => {
 // PUBLIC STATS (Live dynamic count for index.html)
 // ──────────────────────────────────────────────
 
-app.get('/api/stats/public', (req, res) => {
-  const availableCars = get("SELECT COUNT(*) as c FROM vehicles WHERE status = 'available'")?.c || 0;
-  const totalBrands   = get("SELECT COUNT(DISTINCT brand) as c FROM vehicles")?.c || 0;
-  const totalSold     = get("SELECT COUNT(*) as c FROM vehicles WHERE status = 'sold'")?.c || 0;
+app.get('/api/stats/public', async (req, res) => {
+  const availableCarsRow = await get("SELECT COUNT(*) as c FROM vehicles WHERE status = 'available'");
+  const totalBrandsRow   = await get("SELECT COUNT(DISTINCT brand) as c FROM vehicles");
+  const totalSoldRow     = await get("SELECT COUNT(*) as c FROM vehicles WHERE status = 'sold'");
+
+  const availableCars = Number(availableCarsRow?.c || 0);
+  const totalBrands   = Number(totalBrandsRow?.c || 0);
+  const totalSold     = Number(totalSoldRow?.c || 0);
 
   return ok(res, {
     carsAvailable: availableCars,
@@ -397,18 +436,29 @@ app.get('/api/stats/public', (req, res) => {
   });
 });
 
-app.get('/api/stats', requireAuth, (req, res) => {
-  const total     = get("SELECT COUNT(*) as c FROM vehicles")?.c || 0;
-  const available = get("SELECT COUNT(*) as c FROM vehicles WHERE status='available'")?.c || 0;
-  const reserved  = get("SELECT COUNT(*) as c FROM vehicles WHERE status='reserved'")?.c || 0;
-  const sold      = get("SELECT COUNT(*) as c FROM vehicles WHERE status='sold'")?.c || 0;
-  const drafts    = get("SELECT COUNT(*) as c FROM vehicles WHERE status='draft'")?.c || 0;
-  const featured  = get("SELECT COUNT(*) as c FROM vehicles WHERE featured=1")?.c || 0;
-  const totalVal  = get("SELECT SUM(price) as s FROM vehicles WHERE status!='draft'")?.s || 0;
-  const soldVal   = get("SELECT SUM(price) as s FROM vehicles WHERE status='sold'")?.s || 0;
-  const subs      = get("SELECT COUNT(*) as c FROM subscribers")?.c || 0;
+app.get('/api/stats', requireAuth, async (req, res) => {
+  const totalRow     = await get("SELECT COUNT(*) as c FROM vehicles");
+  const availableRow = await get("SELECT COUNT(*) as c FROM vehicles WHERE status='available'");
+  const reservedRow  = await get("SELECT COUNT(*) as c FROM vehicles WHERE status='reserved'");
+  const soldRow      = await get("SELECT COUNT(*) as c FROM vehicles WHERE status='sold'");
+  const draftsRow    = await get("SELECT COUNT(*) as c FROM vehicles WHERE status='draft'");
+  const featuredRow  = await get("SELECT COUNT(*) as c FROM vehicles WHERE featured=1");
+  const totalValRow  = await get("SELECT SUM(price) as s FROM vehicles WHERE status!='draft'");
+  const soldValRow   = await get("SELECT SUM(price) as s FROM vehicles WHERE status='sold'");
+  const subsRow      = await get("SELECT COUNT(*) as c FROM subscribers");
 
-  const recentVehicles = query('SELECT * FROM vehicles ORDER BY created_at DESC LIMIT 5').map(mapVehicle);
+  const total     = Number(totalRow?.c || 0);
+  const available = Number(availableRow?.c || 0);
+  const reserved  = Number(reservedRow?.c || 0);
+  const sold      = Number(soldRow?.c || 0);
+  const drafts    = Number(draftsRow?.c || 0);
+  const featured  = Number(featuredRow?.c || 0);
+  const totalVal  = Number(totalValRow?.s || 0);
+  const soldVal   = Number(soldValRow?.s || 0);
+  const subs      = Number(subsRow?.c || 0);
+
+  const rawRecent = await query('SELECT * FROM vehicles ORDER BY created_at DESC LIMIT 5');
+  const recentVehicles = rawRecent.map(mapVehicle);
 
   return ok(res, {
     stats: {
@@ -423,9 +473,20 @@ app.get('/api/stats', requireAuth, (req, res) => {
 // STANDALONE UPLOAD
 // ──────────────────────────────────────────────
 
-app.post('/api/upload', requireAuth, upload.array('images', 10), (req, res) => {
+app.post('/api/upload', requireAuth, upload.array('images', 10), async (req, res) => {
   if (!req.files?.length) return fail(res, 'No files uploaded.');
-  return ok(res, { urls: req.files.map(f => `/uploads/${f.filename}`) });
+
+  try {
+    const urls = [];
+    for (const file of req.files) {
+      const url = await cloudStorage.processAndUploadImage(file.buffer, file.originalname);
+      urls.push(url);
+    }
+    return ok(res, { urls });
+  } catch (err) {
+    console.error('Standalone upload error:', err);
+    return fail(res, err.message || 'Upload failed.', 500);
+  }
 });
 
 // ──────────────────────────────────────────────
@@ -444,21 +505,43 @@ app.use((err, _req, res, _next) => {
   return fail(res, 'Internal server error.', 500);
 });
 
-// ──────────────────────────────────────────────
-// START — initialise DB first, then listen
-// ──────────────────────────────────────────────
-initDatabase().then(() => {
-  app.listen(PORT, () => {
-    console.log('\n' +
-      '  ╔══════════════════════════════════════════╗\n' +
-      '  ║   🚘  SALONEAUTOLINK — SERVER RUNNING    ║\n' +
-      '  ╚══════════════════════════════════════════╝\n'
-    );
-    console.log(`  🌐  Showroom   → http://localhost:${PORT}`);
-    console.log(`  🔐  Admin      → http://localhost:${PORT}/admin.html`);
-    console.log(`  📡  API Base   → http://localhost:${PORT}/api\n`);
-  });
-}).catch(err => {
-  console.error('Failed to initialise database:', err);
-  process.exit(1);
+// Middleware: ensure database initialized on serverless request
+let dbInitPromise = null;
+app.use(async (req, res, next) => {
+  if (!dbInitPromise) {
+    dbInitPromise = initDatabase().catch(err => {
+      console.error('Failed to initialize Turso database:', err);
+      dbInitPromise = null;
+      throw err;
+    });
+  }
+  try {
+    await dbInitPromise;
+    next();
+  } catch (err) {
+    return fail(res, 'Database connection error.', 500);
+  }
 });
+
+// ──────────────────────────────────────────────
+// START — local listen if run directly
+// ──────────────────────────────────────────────
+if (require.main === module) {
+  initDatabase().then(() => {
+    app.listen(PORT, () => {
+      console.log('\n' +
+        '  ╔══════════════════════════════════════════╗\n' +
+        '  ║   🚘  SALONEAUTOLINK — SERVER RUNNING    ║\n' +
+        '  ╚══════════════════════════════════════════╝\n'
+      );
+      console.log(`  🌐  Showroom   → http://localhost:${PORT}`);
+      console.log(`  🔐  Admin      → http://localhost:${PORT}/admin.html`);
+      console.log(`  📡  API Base   → http://localhost:${PORT}/api\n`);
+    });
+  }).catch(err => {
+    console.error('Failed to initialise database:', err);
+    process.exit(1);
+  });
+}
+
+module.exports = app;

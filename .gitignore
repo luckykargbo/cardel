@@ -1,7 +1,7 @@
 node_modules/
-database/prestige_motors.db
-database/prestige_motors.db-shm
-database/prestige_motors.db-wal
+database/*.db
+database/*.db-shm
+database/*.db-wal
 uploads/*.jpg
 uploads/*.jpeg
 uploads/*.png

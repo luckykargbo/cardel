@@ -164,7 +164,7 @@ function renderPage() {
 }
 
 function buildVehicleCard(v) {
-  const img     = (v.images && v.images[0]) ? v.images[0] : 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80';
+  const img     = (v.images && v.images[0]) ? v.images[0] : 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'300\' viewBox=\'0 0 400 300\'%3E%3Crect fill=\'%23111\' width=\'400\' height=\'300\'/%3E%3Ctext x=\'50%25\' y=\'45%25\' text-anchor=\'middle\' fill=\'%23555\' font-size=\'48\'%3E🚘%3C/text%3E%3Ctext x=\'50%25\' y=\'60%25\' text-anchor=\'middle\' fill=\'%23444\' font-size=\'14\' font-family=\'sans-serif\'%3ENo Image Available%3C/text%3E%3C/svg%3E';
   const isFav   = favourites.includes(v.id);
   const isNew   = v.condition_type === 'new';
   const isSold  = v.status === 'sold';
@@ -190,7 +190,7 @@ function buildVehicleCard(v) {
     <article class="vehicle-card" onclick="openQuickView(${v.id})">
       <div class="card-media">
         <img src="${img}" alt="${v.title}" loading="lazy"
-             onerror="this.src='https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80'">
+             onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'300\' viewBox=\'0 0 400 300\'%3E%3Crect fill=\'%23111\' width=\'400\' height=\'300\'/%3E%3Ctext x=\'50%25\' y=\'45%25\' text-anchor=\'middle\' fill=\'%23555\' font-size=\'48\'%3E🚘%3C/text%3E%3Ctext x=\'50%25\' y=\'60%25\' text-anchor=\'middle\' fill=\'%23444\' font-size=\'14\' font-family=\'sans-serif\'%3ENo Image Available%3C/text%3E%3C/svg%3E'">
         <div class="card-badges">
           ${statusBadge}
           ${featuredBadge}
@@ -407,7 +407,7 @@ async function openQuickView(id) {
   }
 
   const v = data.vehicle;
-  const img = (v.images && v.images[0]) ? v.images[0] : 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80';
+  const img = (v.images && v.images[0]) ? v.images[0] : 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'300\' viewBox=\'0 0 400 300\'%3E%3Crect fill=\'%23111\' width=\'400\' height=\'300\'/%3E%3Ctext x=\'50%25\' y=\'45%25\' text-anchor=\'middle\' fill=\'%23555\' font-size=\'48\'%3E🚘%3C/text%3E%3Ctext x=\'50%25\' y=\'60%25\' text-anchor=\'middle\' fill=\'%23444\' font-size=\'14\' font-family=\'sans-serif\'%3ENo Image Available%3C/text%3E%3C/svg%3E';
   const isSold = v.status === 'sold';
   const isResv = v.status === 'reserved';
   const waLink = buildWALink(v);
@@ -417,14 +417,14 @@ async function openQuickView(id) {
         ${v.images.map((imgUrl, i) => `
           <img src="${imgUrl}" alt="View ${i+1}" class="qv-thumb ${i===0?'active':''}"
                onclick="qvChangeImg(this,'${imgUrl}')"
-               onerror="this.src='https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80'">
+               onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'300\' viewBox=\'0 0 400 300\'%3E%3Crect fill=\'%23111\' width=\'400\' height=\'300\'/%3E%3Ctext x=\'50%25\' y=\'45%25\' text-anchor=\'middle\' fill=\'%23555\' font-size=\'48\'%3E🚘%3C/text%3E%3Ctext x=\'50%25\' y=\'60%25\' text-anchor=\'middle\' fill=\'%23444\' font-size=\'14\' font-family=\'sans-serif\'%3ENo Image Available%3C/text%3E%3C/svg%3E'">
         `).join('')}
        </div>`
     : '';
 
   let videoHtml = '';
   if (v.video_url) {
-    if (v.video_url.startsWith('/uploads/') || /\.(mp4|webm|mov|ogg)$/i.test(v.video_url)) {
+    if (v.video_url.startsWith('http') || v.video_url.startsWith('/uploads/') || /\.(mp4|webm|mov|ogg)/i.test(v.video_url)) {
       videoHtml = `
         <div class="qv-video-wrap" style="margin-top:16px">
           <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:6px;display:flex;align-items:center;gap:6px">
@@ -449,7 +449,7 @@ async function openQuickView(id) {
       <div class="qv-media">
         <div class="qv-img-wrap">
           <img src="${img}" alt="${v.title}" class="qv-main-img" id="qvMainImg"
-               onerror="this.src='https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80'">
+               onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'300\' viewBox=\'0 0 400 300\'%3E%3Crect fill=\'%23111\' width=\'400\' height=\'300\'/%3E%3Ctext x=\'50%25\' y=\'45%25\' text-anchor=\'middle\' fill=\'%23555\' font-size=\'48\'%3E🚘%3C/text%3E%3Ctext x=\'50%25\' y=\'60%25\' text-anchor=\'middle\' fill=\'%23444\' font-size=\'14\' font-family=\'sans-serif\'%3ENo Image Available%3C/text%3E%3C/svg%3E'">
           <div class="qv-img-badges">
             ${v.featured ? '<span class="car-badge featured-badge"><i class="ri-star-fill"></i> Featured</span>' : ''}
             <span class="car-badge ${v.condition_type === 'new' ? 'new-badge' : 'used-badge'}">${v.condition_type === 'new' ? 'New' : 'Pre-Owned'}</span>
@@ -917,7 +917,7 @@ function initFavBtn() {
           <h2 style="font-size:22px;color:var(--text-primary);margin-bottom:20px"><i class="ri-heart-fill" style="color:var(--gold)"></i> Saved Vehicles (${favVehicles.length})</h2>
           <div style="display:flex;flex-direction:column;gap:16px">
             ${favVehicles.map(v => {
-              const img = (v.images && v.images[0]) ? v.images[0] : 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=300&q=70';
+              const img = (v.images && v.images[0]) ? v.images[0] : 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'300\' viewBox=\'0 0 400 300\'%3E%3Crect fill=\'%23111\' width=\'400\' height=\'300\'/%3E%3Ctext x=\'50%25\' y=\'45%25\' text-anchor=\'middle\' fill=\'%23555\' font-size=\'48\'%3E🚘%3C/text%3E%3Ctext x=\'50%25\' y=\'60%25\' text-anchor=\'middle\' fill=\'%23444\' font-size=\'14\' font-family=\'sans-serif\'%3ENo Image Available%3C/text%3E%3C/svg%3E';
               return `
                 <div style="display:flex;gap:16px;align-items:center;background:var(--bg-card);padding:16px;border-radius:12px;border:1px solid var(--border)">
                   <img src="${img}" alt="${v.title}" style="width:100px;height:68px;object-fit:cover;border-radius:8px">

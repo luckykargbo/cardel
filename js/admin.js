@@ -176,7 +176,7 @@ function updateAdminUI() {
   const emailEl = document.querySelector('.dropdown-email');
   if (emailEl) emailEl.textContent = currentAdmin.email || '';
   const avatar = $('headerAvatar');
-  if (avatar) avatar.src = currentAdmin.avatar || `https://i.pravatar.cc/150?img=12`;
+  if (avatar) avatar.src = currentAdmin.avatar || `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' viewBox='0 0 150 150'%3E%3Crect fill='%231a1a2e' width='150' height='150' rx='75'/%3E%3Ctext x='50%25' y='55%25' text-anchor='middle' fill='%23d4af37' font-size='48' font-family='sans-serif'%3EA%3C/text%3E%3C/svg%3E`;
 }
 
 function doLogout() {
@@ -320,7 +320,7 @@ function renderInventoryTable(vehicles) {
 }
 
 function buildVehicleRow(v, compact = false) {
-  const img     = (v.images && v.images[0]) ? v.images[0] : 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=100&q=60';
+  const img     = (v.images && v.images[0]) ? v.images[0] : 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'300\' viewBox=\'0 0 400 300\'%3E%3Crect fill=\'%23111\' width=\'400\' height=\'300\'/%3E%3Ctext x=\'50%25\' y=\'45%25\' text-anchor=\'middle\' fill=\'%23555\' font-size=\'48\'%3E🚘%3C/text%3E%3Ctext x=\'50%25\' y=\'60%25\' text-anchor=\'middle\' fill=\'%23444\' font-size=\'14\' font-family=\'sans-serif\'%3ENo Image Available%3C/text%3E%3C/svg%3E';
   const statusMap = {
     'available': '<span class="status-pill available">Available</span>',
     'reserved':  '<span class="status-pill reserved">Reserved</span>',
@@ -333,7 +333,7 @@ function buildVehicleRow(v, compact = false) {
     return `
       <tr>
         <td><img src="${img}" alt="${v.title}" class="table-thumb"
-                 onerror="this.src='https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=100&q=60'"></td>
+                 onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'300\' viewBox=\'0 0 400 300\'%3E%3Crect fill=\'%23111\' width=\'400\' height=\'300\'/%3E%3Ctext x=\'50%25\' y=\'45%25\' text-anchor=\'middle\' fill=\'%23555\' font-size=\'48\'%3E🚘%3C/text%3E%3Ctext x=\'50%25\' y=\'60%25\' text-anchor=\'middle\' fill=\'%23444\' font-size=\'14\' font-family=\'sans-serif\'%3ENo Image Available%3C/text%3E%3C/svg%3E'"></td>
         <td>
           <div class="table-vehicle-name">${v.title}</div>
           <div class="table-vehicle-sub">${v.year} · ${v.fuel}</div>
@@ -350,7 +350,7 @@ function buildVehicleRow(v, compact = false) {
   return `
     <tr>
       <td><img src="${img}" alt="${v.title}" class="table-thumb"
-               onerror="this.src='https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=100&q=60'"></td>
+               onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'300\' viewBox=\'0 0 400 300\'%3E%3Crect fill=\'%23111\' width=\'400\' height=\'300\'/%3E%3Ctext x=\'50%25\' y=\'45%25\' text-anchor=\'middle\' fill=\'%23555\' font-size=\'48\'%3E🚘%3C/text%3E%3Ctext x=\'50%25\' y=\'60%25\' text-anchor=\'middle\' fill=\'%23444\' font-size=\'14\' font-family=\'sans-serif\'%3ENo Image Available%3C/text%3E%3C/svg%3E'"></td>
       <td>
         <div class="table-vehicle-name">${v.title}</div>
         <div class="table-vehicle-sub">${v.year} · ${v.brand} · ${v.fuel}</div>
@@ -470,7 +470,7 @@ function fillVehicleForm(v) {
     preview.innerHTML = v.images.map((url, i) => `
       <div class="img-preview-item" id="imgPrev-${i}">
         <img src="${url}" alt="Image ${i+1}"
-             onerror="this.src='https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=200&q=60'">
+             onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'300\' viewBox=\'0 0 400 300\'%3E%3Crect fill=\'%23111\' width=\'400\' height=\'300\'/%3E%3Ctext x=\'50%25\' y=\'45%25\' text-anchor=\'middle\' fill=\'%23555\' font-size=\'48\'%3E🚘%3C/text%3E%3Ctext x=\'50%25\' y=\'60%25\' text-anchor=\'middle\' fill=\'%23444\' font-size=\'14\' font-family=\'sans-serif\'%3ENo Image Available%3C/text%3E%3C/svg%3E'">
         <button type="button" class="img-remove-btn" onclick="removeExistingImage('${url}', ${i})">
           <i class="ri-close-line"></i>
         </button>
