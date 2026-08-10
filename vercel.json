@@ -1,38 +1,13 @@
 {
   "version": 2,
-  "builds": [
+  "rewrites": [
     {
-      "src": "server.js",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "server.js"
+      "source": "/api/(.*)",
+      "destination": "/api/index.js"
     },
     {
-      "src": "/admin/get/get_chenor(.*)",
-      "dest": "/admin.html"
-    },
-    {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/app-admin-gate(.*)",
-      "dest": "/admin.html#/app-admin-gate"
-    },
-    {
-      "src": "/admin-gate(.*)",
-      "dest": "/admin.html#/app-admin-gate"
-    },
-    {
-      "src": "/admin-dashboard(.*)",
-      "dest": "/admin.html#/admin-dashboard"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/admin/get/get_chenor(.*)",
+      "destination": "/admin.html"
     }
   ]
 }
