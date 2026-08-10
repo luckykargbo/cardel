@@ -111,14 +111,22 @@ app.patch('/api/auth/password', requireAuth, async (req, res) => {
   return ok(res, { message: 'Password updated successfully.' });
 });
 
-app.put('/api/auth/profile', requireAuth, async (req, res) => {
-  const { name, email } = req.body;
+app.put('/api/auth/profile', requireAuth, upload.single('avatar'), async (req, res) => {
+  const { name, email, avatarUrl } = req.body;
   if (!name || !email) return fail(res, 'Name and email are required.');
 
   const existing = await get('SELECT id FROM users WHERE email = ? AND id != ?', [email.trim().toLowerCase(), req.admin.id]);
   if (existing) return fail(res, 'This email is already in use by another account.', 400);
 
-  await run('UPDATE users SET name = ?, email = ? WHERE id = ?', [name.trim(), email.trim().toLowerCase(), req.admin.id]);
+  let newAvatar = avatarUrl || undefined;
+  if (req.file) {
+    newAvatar = await cloudStorage.processAndUploadImage(req.file.buffer, req.file.originalname);
+  }
+
+  const currentUser = await get('SELECT avatar FROM users WHERE id = ?', [req.admin.id]);
+  const finalAvatar = newAvatar !== undefined ? newAvatar : (currentUser?.avatar || null);
+
+  await run('UPDATE users SET name = ?, email = ?, avatar = ? WHERE id = ?', [name.trim(), email.trim().toLowerCase(), finalAvatar, req.admin.id]);
   const updated = await get('SELECT id, name, email, role, avatar FROM users WHERE id = ?', [req.admin.id]);
 
   const token = signToken({ id: updated.id, email: updated.email, name: updated.name, role: updated.role });

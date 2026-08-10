@@ -120,10 +120,11 @@
             <div class="dropdown-menu" id="profileDropdown">
               <div class="dropdown-header">
                 <span class="dropdown-title">SaloneAutoLink</span>
-                <span class="dropdown-email">admin@saloneautolink.com</span>
+                <span class="dropdown-email" id="headerAdminEmail">admin@saloneautolink.com</span>
               </div>
               <div class="dropdown-divider"></div>
               <a class="dropdown-item" onclick="navigate('settings');toggleDropdown()"><i class="ri-settings-3-line"></i> Account Settings</a>
+              <a class="dropdown-item" onclick="navigate('settings');setTimeout(() => document.getElementById('settings-avatar-input')?.click(), 200);toggleDropdown()"><i class="ri-camera-line"></i> Change Profile Photo</a>
               <a class="dropdown-item" href="index.html" target="_blank"><i class="ri-store-2-line"></i> View Showroom</a>
               <div class="dropdown-divider"></div>
               <button class="dropdown-item danger" onclick="showLogoutModal()"><i class="ri-logout-box-line"></i> Sign Out</button>
@@ -295,7 +296,26 @@
               <!-- Profile Info -->
               <div class="card setting-card">
                 <h3 class="setting-title"><i class="ri-user-fill" style="color:var(--gold)"></i> Account Profile</h3>
-                <p class="setting-desc">Update your admin account name and email address.</p>
+                <p class="setting-desc">Update your admin profile photo, account name, and email address.</p>
+
+                <!-- Avatar Upload Slot -->
+                <div class="avatar-upload-wrapper" style="display:flex;align-items:center;gap:16px;margin-bottom:20px;padding:14px;background:rgba(255,255,255,0.03);border-radius:12px;border:1px solid rgba(255,255,255,0.08)">
+                  <div style="position:relative;cursor:pointer;flex-shrink:0" onclick="document.getElementById('settings-avatar-input').click()" title="Click to upload profile photo">
+                    <img id="settings-avatar-preview" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' viewBox='0 0 150 150'%3E%3Crect fill='%231a1a2e' width='150' height='150' rx='75'/%3E%3Ctext x='50%25' y='55%25' text-anchor='middle' fill='%23d4af37' font-size='48' font-family='sans-serif'%3EA%3C/text%3E%3C/svg%3E" alt="Profile Photo" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:2px solid #d4af37">
+                    <div style="position:absolute;bottom:0;right:0;width:26px;height:26px;background:#d4af37;color:#111;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 2px 6px rgba(0,0,0,0.5)">
+                      <i class="ri-camera-fill"></i>
+                    </div>
+                  </div>
+                  <div style="flex:1">
+                    <h4 style="margin:0 0 4px 0;font-size:15px;color:#fff;font-weight:600">Profile Photo</h4>
+                    <p style="margin:0 0 8px 0;font-size:12px;color:#888">Click the photo to select a new profile picture.</p>
+                    <button type="button" class="btn btn-secondary btn-xs" onclick="document.getElementById('settings-avatar-input').click()" style="padding:4px 10px;font-size:12px">
+                      <i class="ri-upload-cloud-line"></i> Upload New Photo
+                    </button>
+                    <input type="file" id="settings-avatar-input" accept="image/*" style="display:none" onchange="handleAvatarSelect(event)">
+                  </div>
+                </div>
+
                 <form id="profileForm" onsubmit="updateAdminProfile(event)">
                   <div class="form-group" style="margin-bottom:12px">
                     <label>Full Name *</label>

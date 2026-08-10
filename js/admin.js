@@ -671,14 +671,75 @@ function closeDeleteModal() {
 }
 
 // ──────────────────────────────────────────────
-// SETTINGS TAB
+// SETTINGS TAB & PROFILE MANAGEMENT
 // ──────────────────────────────────────────────
+function handleAvatarSelect(e) {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    const preview = $('settings-avatar-preview');
+    if (preview) preview.src = evt.target.result;
+    const headerAvatar = $('headerAvatar');
+    if (headerAvatar) headerAvatar.src = evt.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
 function loadSettingsTab() {
   if (currentAdmin) {
     const nameEl = $('settings-name');
     const emailEl = $('settings-email');
     if (nameEl) nameEl.value = currentAdmin.name || '';
     if (emailEl) emailEl.value = currentAdmin.email || '';
+    const avatarPreview = $('settings-avatar-preview');
+    if (avatarPreview) {
+      avatarPreview.src = currentAdmin.avatar || `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' viewBox='0 0 150 150'%3E%3Crect fill='%231a1a2e' width='150' height='150' rx='75'/%3E%3Ctext x='50%25' y='55%25' text-anchor='middle' fill='%23d4af37' font-size='48' font-family='sans-serif'%3EA%3C/text%3E%3C/svg%3E`;
+    }
+  }
+}
+
+async function updateAdminProfile(e) {
+  e.preventDefault();
+  const name = $('settings-name')?.value?.trim();
+  const email = $('settings-email')?.value?.trim();
+  const avatarFile = $('settings-avatar-input')?.files?.[0];
+
+  if (!name || !email) {
+    showToast('Name and email are required.', 'warning');
+    return;
+  }
+
+  const btn = $('profile-save-btn');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="ri-loader-4-line" style="animation:spin 1s linear infinite"></i> Saving...';
+  }
+
+  const formData = new FormData();
+  formData.append('name', name);
+  formData.append('email', email);
+  if (avatarFile) {
+    formData.append('avatar', avatarFile);
+  }
+
+  const data = await api('/auth/profile', { method: 'PUT', body: formData });
+  if (btn) {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ri-save-line"></i> Save Profile Changes';
+  }
+
+  if (data.success) {
+    currentAdmin = data.user;
+    if (data.token) {
+      authToken = data.token;
+      localStorage.setItem('pm_token', data.token);
+    }
+    localStorage.setItem('pm_admin', JSON.stringify(currentAdmin));
+    updateAdminUI();
+    showToast('Profile updated successfully!', 'success');
+  } else {
+    showToast(data.message || 'Profile update failed.', 'error');
   }
 }
 
