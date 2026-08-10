@@ -791,6 +791,20 @@ function initBrandFilters() {
       if (brand) filterByBrand(brand);
     });
   });
+function filterCondition(type) {
+  displayedCount = 0;
+  if (type === 'all') {
+    filteredVehicles = [...allVehicles];
+  } else if (type === 'new') {
+    filteredVehicles = allVehicles.filter(v => v.condition_type === 'new');
+  } else if (type === 'used') {
+    filteredVehicles = allVehicles.filter(v => v.condition_type === 'used');
+  }
+  $$('.filter-pill').forEach(p => {
+    p.classList.toggle('active', p.dataset.filter === type);
+  });
+  renderPage();
+  document.getElementById('inventory')?.scrollIntoView({ behavior: 'smooth' });
 }
 
 function initFilterPills() {

@@ -1,5 +1,5 @@
-Fix search overlay toggle and add quickSearch implementation
+Fix New Cars and Used Cars nav links to filter inventory directly
 
-- Added .show class toggling to search overlay so search input opens reliably on clicking search button
-- Added real-time live input filtering as the user types in search box
-- Added quickSearch(term) function so popular tag buttons filter inventory and scroll smoothly to results
+- Fixed Used Cars and New Cars nav links to call filterCondition('used') and filterCondition('new')
+- Removed misplaced id="used-cars" anchor from Client Stories / Testimonials section
+- Smoothly scrolls to main vehicle inventory grid showing filtered results

@@ -28,9 +28,9 @@
       </a>
 
       <ul class="nav-links" id="navLinks">
-        <li><a href="#inventory" class="nav-link">Inventory</a></li>
-        <li><a href="#new-cars" class="nav-link">New Cars</a></li>
-        <li><a href="#used-cars" class="nav-link">Used Cars</a></li>
+        <li><a href="#inventory" class="nav-link" onclick="filterCondition('all')">Inventory</a></li>
+        <li><a href="#inventory" class="nav-link" onclick="filterCondition('new')">New Cars</a></li>
+        <li><a href="#inventory" class="nav-link" onclick="filterCondition('used')">Used Cars</a></li>
         <li><a href="#brands" class="nav-link">Brands</a></li>
 
         <li><a href="#about" class="nav-link">About</a></li>
@@ -64,9 +64,9 @@
     <!-- Mobile Menu -->
     <div class="mobile-menu" id="mobileMenu">
       <ul class="mobile-nav-links">
-        <li><a href="#inventory" class="mobile-nav-link" data-close>Inventory</a></li>
-        <li><a href="#new-cars" class="mobile-nav-link" data-close>New Cars</a></li>
-        <li><a href="#used-cars" class="mobile-nav-link" data-close>Used Cars</a></li>
+        <li><a href="#inventory" class="mobile-nav-link" data-close onclick="filterCondition('all')">Inventory</a></li>
+        <li><a href="#inventory" class="mobile-nav-link" data-close onclick="filterCondition('new')">New Cars</a></li>
+        <li><a href="#inventory" class="mobile-nav-link" data-close onclick="filterCondition('used')">Used Cars</a></li>
         <li><a href="#brands" class="mobile-nav-link" data-close>Brands</a></li>
 
         <li><a href="#about" class="mobile-nav-link" data-close>About</a></li>
@@ -618,7 +618,7 @@
   <!-- ============================================================
        TESTIMONIALS
        ============================================================ -->
-  <section class="testimonials-section" id="used-cars">
+  <section class="testimonials-section" id="reviews">
     <div class="section-container">
       <div class="section-header-center">
         <span class="section-kicker">Client Stories</span>
