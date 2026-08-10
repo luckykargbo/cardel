@@ -104,6 +104,20 @@ app.patch('/api/auth/password', requireAuth, (req, res) => {
   return ok(res, { message: 'Password updated successfully.' });
 });
 
+app.put('/api/auth/profile', requireAuth, (req, res) => {
+  const { name, email } = req.body;
+  if (!name || !email) return fail(res, 'Name and email are required.');
+
+  const existing = get('SELECT id FROM users WHERE email = ? AND id != ?', [email.trim().toLowerCase(), req.admin.id]);
+  if (existing) return fail(res, 'This email is already in use by another account.', 400);
+
+  run('UPDATE users SET name = ?, email = ? WHERE id = ?', [name.trim(), email.trim().toLowerCase(), req.admin.id]);
+  const updated = get('SELECT id, name, email, role, avatar FROM users WHERE id = ?', [req.admin.id]);
+
+  const token = jwt.sign(updated, JWT_SECRET, { expiresIn: JWT_EXPIRES });
+  return ok(res, { user: updated, token, message: 'Profile updated successfully.' });
+});
+
 // ──────────────────────────────────────────────
 // ============================================================
 // VEHICLES ROUTES
@@ -353,6 +367,17 @@ app.post('/api/reviews', (req, res) => {
     [name.trim(), role?.trim() || 'Verified Client', Math.min(5, Math.max(1, parseInt(rating) || 5)), comment.trim(), 'approved']
   );
   return ok(res, { id: result.lastInsertRowid, message: 'Thank you for your review!' }, 201);
+});
+
+app.get('/api/admin/reviews', requireAuth, (req, res) => {
+  const reviews = query('SELECT * FROM reviews ORDER BY created_at DESC');
+  return ok(res, { reviews, total: reviews.length });
+});
+
+app.delete('/api/admin/reviews/:id', requireAuth, (req, res) => {
+  const id = parseInt(req.params.id);
+  run('DELETE FROM reviews WHERE id = ?', [id]);
+  return ok(res, { message: 'Review deleted successfully.' });
 });
 
 // ──────────────────────────────────────────────

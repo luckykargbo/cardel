@@ -623,84 +623,73 @@
       <div class="section-header-center">
         <span class="section-kicker">Client Stories</span>
         <h2 class="section-title">What Our Clients Say</h2>
-        <p class="section-desc">Trusted by Sierra Leone's most discerning automotive connoisseurs</p>
+        <p class="section-desc">Real reviews from Sierra Leone's executive automobile owners</p>
+        <button class="btn-nav-cta" style="margin-top:20px;display:inline-flex;align-items:center;gap:8px;cursor:pointer" onclick="openReviewModal()">
+          <i class="ri-edit-box-line"></i> Write a Review
+        </button>
       </div>
 
       <div class="testimonials-carousel-wrap">
         <div class="testimonials-track-outer">
           <div class="testimonials-carousel" id="testimonialsCarousel">
-            <div class="testimonial-card">
-              <div class="quote-mark">"</div>
-              <p class="testimonial-text">The experience at Prestige Motors was extraordinary. I walked in looking for a BMW M8 and walked out with not just a car, but a lifestyle upgrade. The team's knowledge and professionalism is unmatched in Sierra Leone.</p>
-              <div class="testimonial-author">
-                <img src="https://i.pravatar.cc/150?img=3" alt="Ahmed Koroma" class="testimonial-avatar">
-                <div class="testimonial-meta">
-                  <div class="testimonial-name">Ahmed Koroma</div>
-                  <div class="testimonial-role">CEO, Koroma Industries — Freetown</div>
-                </div>
-                <div class="testimonial-stars">
-                  <i class="ri-star-fill"></i><i class="ri-star-fill"></i><i class="ri-star-fill"></i><i class="ri-star-fill"></i><i class="ri-star-fill"></i>
-                </div>
-              </div>
-            </div>
-            <div class="testimonial-card">
-              <div class="quote-mark">"</div>
-              <p class="testimonial-text">I always wanted a Porsche 911. Prestige Motors made it happen with a financing deal that fit my budget perfectly. The 48-hour delivery to my home was the cherry on top. Absolutely first-class service.</p>
-              <div class="testimonial-author">
-                <img src="https://i.pravatar.cc/150?img=5" alt="Fatmata Bangura" class="testimonial-avatar">
-                <div class="testimonial-meta">
-                  <div class="testimonial-name">Fatmata Bangura</div>
-                  <div class="testimonial-role">Director, Bangura & Associates</div>
-                </div>
-                <div class="testimonial-stars">
-                  <i class="ri-star-fill"></i><i class="ri-star-fill"></i><i class="ri-star-fill"></i><i class="ri-star-fill"></i><i class="ri-star-fill"></i>
-                </div>
-              </div>
-            </div>
-            <div class="testimonial-card">
-              <div class="quote-mark">"</div>
-              <p class="testimonial-text">Three cars purchased, three flawless experiences. Prestige Motors understands what luxury really means — it's not just the vehicle, it's every touchpoint from first enquiry to after-sales support. Sierra Leone's finest.</p>
-              <div class="testimonial-author">
-                <img src="https://i.pravatar.cc/150?img=7" alt="Ibrahim Sesay" class="testimonial-avatar">
-                <div class="testimonial-meta">
-                  <div class="testimonial-name">Ibrahim Sesay</div>
-                  <div class="testimonial-role">Entrepreneur & Investor — Bo</div>
-                </div>
-                <div class="testimonial-stars">
-                  <i class="ri-star-fill"></i><i class="ri-star-fill"></i><i class="ri-star-fill"></i><i class="ri-star-fill"></i><i class="ri-star-fill"></i>
-                </div>
-              </div>
-            </div>
-            <div class="testimonial-card">
-              <div class="quote-mark">"</div>
-              <p class="testimonial-text">From the moment I booked online to receiving my Lamborghini Huracán, every step was seamless. The online finance calculator gave me confidence before I even stepped in. Prestige Motors is in a class of its own.</p>
-              <div class="testimonial-author">
-                <img src="https://i.pravatar.cc/150?img=9" alt="Mariatu Kamara" class="testimonial-avatar">
-                <div class="testimonial-meta">
-                  <div class="testimonial-name">Mariatu Kamara</div>
-                  <div class="testimonial-role">Managing Director, Kamara Holdings</div>
-                </div>
-                <div class="testimonial-stars">
-                  <i class="ri-star-fill"></i><i class="ri-star-fill"></i><i class="ri-star-fill"></i><i class="ri-star-fill"></i><i class="ri-star-fill"></i>
-                </div>
-              </div>
-            </div>
+            <!-- Dynamically populated from /api/reviews -->
           </div>
         </div>
 
         <div class="carousel-controls">
           <button class="carousel-btn" id="carouselPrev" aria-label="Previous"><i class="ri-arrow-left-s-line"></i></button>
-          <div class="carousel-dots" id="carouselDots">
-            <div class="carousel-dot active"></div>
-            <div class="carousel-dot"></div>
-            <div class="carousel-dot"></div>
-            <div class="carousel-dot"></div>
-          </div>
+          <div class="carousel-dots" id="carouselDots"></div>
           <button class="carousel-btn" id="carouselNext" aria-label="Next"><i class="ri-arrow-right-s-line"></i></button>
         </div>
       </div>
     </div>
   </section>
+
+  <!-- Write Review Modal -->
+  <div class="modal-overlay" id="writeReviewModal" role="dialog" aria-modal="true" aria-label="Write a Review">
+    <div class="qv-modal" style="max-width:550px">
+      <button class="modal-close-btn qv-close" onclick="closeReviewModal()" aria-label="Close"><i class="ri-close-line"></i></button>
+      <div style="padding:32px">
+        <div style="text-align:center;margin-bottom:24px">
+          <div style="width:48px;height:48px;border-radius:50%;background:rgba(229,169,92,0.1);display:inline-flex;align-items:center;justify-content:center;color:var(--gold);font-size:24px;margin-bottom:12px">
+            <i class="ri-star-smile-line"></i>
+          </div>
+          <h2 style="font-size:22px;color:var(--text);margin-bottom:6px">Share Your Experience</h2>
+          <p style="font-size:13px;color:var(--text-muted)">Submit your review for Prestige Motors Executive Ltd</p>
+        </div>
+
+        <form id="reviewForm" onsubmit="submitVisitorReview(event)">
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div>
+              <label style="display:block;font-size:13px;color:var(--text-muted);margin-bottom:6px">Your Full Name *</label>
+              <input type="text" id="revName" placeholder="e.g. Alhaji Mohamed Bangura" required style="width:100%;padding:12px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;color:var(--text);outline:none">
+            </div>
+            <div>
+              <label style="display:block;font-size:13px;color:var(--text-muted);margin-bottom:6px">Role / Company / City</label>
+              <input type="text" id="revRole" placeholder="e.g. CEO, Bangura Logistics — Freetown" style="width:100%;padding:12px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;color:var(--text);outline:none">
+            </div>
+            <div>
+              <label style="display:block;font-size:13px;color:var(--text-muted);margin-bottom:6px">Rating *</label>
+              <select id="revRating" style="width:100%;padding:12px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;color:var(--text);outline:none">
+                <option value="5">⭐⭐⭐⭐⭐ 5 Stars (Exceptional)</option>
+                <option value="4">⭐⭐⭐⭐ 4 Stars (Very Good)</option>
+                <option value="3">⭐⭐⭐ 3 Stars (Good)</option>
+                <option value="2">⭐⭐ 2 Stars (Average)</option>
+                <option value="1">⭐ 1 Star (Poor)</option>
+              </select>
+            </div>
+            <div>
+              <label style="display:block;font-size:13px;color:var(--text-muted);margin-bottom:6px">Your Review Message *</label>
+              <textarea id="revComment" rows="4" placeholder="Tell us about your experience with Prestige Motors..." required style="width:100%;padding:12px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;color:var(--text);outline:none;resize:vertical"></textarea>
+            </div>
+            <button type="submit" id="revSubmitBtn" class="btn-hero-primary" style="width:100%;justify-content:center;margin-top:8px">
+              <i class="ri-send-plane-fill"></i> Submit Review
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 
 
 

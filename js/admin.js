@@ -101,24 +101,25 @@ function navigate(tab) {
   // Load data for the tab
   if (tab === 'dashboard') loadDashboard();
   if (tab === 'inventory') loadInventoryTab();
-  if (tab === 'inquiries') loadInquiriesTab();
-  if (tab === 'financing') loadFinancingTab();
+  if (tab === 'reviews')   loadReviewsTab();
   if (tab === 'settings')  loadSettingsTab();
 }
 
 // ──────────────────────────────────────────────
 // THEME
-// ──────────────────────────────────────────────
 function applyTheme(theme) {
+  currentTheme = theme;
   document.body.classList.toggle('theme-light', theme === 'light');
+  localStorage.setItem('pm_admin_theme', theme);
+  $('theme-dark-opt')?.classList.toggle('active', theme === 'dark');
+  $('theme-light-opt')?.classList.toggle('active', theme === 'light');
   const icon = $('themeIcon');
   if (icon) icon.className = theme === 'light' ? 'ri-sun-line' : 'ri-moon-line';
 }
 
 function toggleTheme() {
-  currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
-  localStorage.setItem('pm_admin_theme', currentTheme);
-  applyTheme(currentTheme);
+  const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  applyTheme(nextTheme);
 }
 
 // ──────────────────────────────────────────────
@@ -727,6 +728,44 @@ function exportInventoryCSV() {
   showToast('Inventory exported as CSV!', 'success');
 }
 
+function loadSettingsTab() {
+  if (!currentAdmin) return;
+  const nameInput  = $('settings-name');
+  const emailInput = $('settings-email');
+  if (nameInput)  nameInput.value  = currentAdmin.name || '';
+  if (emailInput) emailInput.value = currentAdmin.email || '';
+  applyTheme(currentTheme);
+}
+
+async function updateAdminProfile(e) {
+  e.preventDefault();
+  const name  = $('settings-name')?.value?.trim();
+  const email = $('settings-email')?.value?.trim();
+
+  if (!name || !email) { showToast('Name and email are required.', 'error'); return; }
+
+  const btn = $('profile-save-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
+
+  const res = await api('/auth/profile', {
+    method: 'PUT',
+    body: JSON.stringify({ name, email })
+  });
+
+  if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ri-save-line"></i> Save Profile Changes'; }
+
+  if (res.success) {
+    authToken    = res.token;
+    currentAdmin = res.user;
+    localStorage.setItem('pm_token', authToken);
+    localStorage.setItem('pm_admin', JSON.stringify(currentAdmin));
+    updateAdminUI();
+    showToast('Profile updated successfully!', 'success');
+  } else {
+    showToast(res.message || 'Failed to update profile.', 'error');
+  }
+}
+
 // ──────────────────────────────────────────────
 // INIT
 // ──────────────────────────────────────────────
@@ -801,3 +840,52 @@ document.addEventListener('DOMContentLoaded', () => {
   // Export CSV
   $('exportCsvBtn')?.addEventListener('click', exportInventoryCSV);
 });
+
+// ──────────────────────────────────────────────
+// CLIENT REVIEWS TAB
+// ──────────────────────────────────────────────
+async function loadReviewsTab() {
+  const tbody = $('reviewsTableBody');
+  if (!tbody) return;
+
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px"><i class="ri-loader-4-line" style="font-size:24px;animation:spin 1s linear infinite"></i></td></tr>';
+
+  const data = await api('/admin/reviews');
+  if (!data.success) {
+    showToast('Failed to load reviews.', 'error');
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:40px">Failed to load reviews.</td></tr>';
+    return;
+  }
+
+  const reviews = data.reviews || [];
+  if (reviews.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:40px">No customer reviews submitted yet.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = reviews.map(r => `
+    <tr>
+      <td style="font-weight:600;color:var(--text-primary)">${r.name}</td>
+      <td style="color:var(--text-muted)">${r.role || 'Verified Client'}</td>
+      <td><span style="color:var(--gold)">${'★'.repeat(r.rating || 5)}</span></td>
+      <td style="max-width:350px;white-space:normal;line-height:1.4">${r.comment}</td>
+      <td style="color:var(--text-muted);font-size:12px">${fmtDate(r.created_at)}</td>
+      <td style="text-align:right">
+        <button class="btn-icon danger" onclick="deleteAdminReview(${r.id})" title="Delete Review">
+          <i class="ri-delete-bin-line"></i>
+        </button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+async function deleteAdminReview(id) {
+  if (!confirm('Are you sure you want to delete this customer review?')) return;
+  const res = await api(`/admin/reviews/${id}`, { method: 'DELETE' });
+  if (res.success) {
+    showToast('Review deleted successfully.', 'success');
+    loadReviewsTab();
+  } else {
+    showToast(res.message || 'Failed to delete review.', 'error');
+  }
+}

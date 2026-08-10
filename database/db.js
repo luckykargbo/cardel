@@ -163,9 +163,9 @@ async function seedData() {
   const revCount = revCountRows[0]?.values[0]?.[0] || 0;
   if (revCount === 0) {
     const sampleReviews = [
-      ['Ahmed Koroma', 'CEO, Koroma Industries — Freetown', 5, 'The experience at Prestige Motors was extraordinary. I walked in looking for a BMW M8 and walked out with not just a car, but a lifestyle upgrade.'],
-      ['Fatmata Bangura', 'Director, Bangura & Associates', 5, 'I always wanted a Porsche 911. Prestige Motors made it happen with a financing deal that fit my budget perfectly. 48-hour delivery to my doorstep!'],
-      ['Ibrahim Sesay', 'Entrepreneur & Investor — Bo', 5, 'Three cars purchased, three flawless experiences. Prestige Motors understands what true luxury means in Sierra Leone.']
+      ['Sahr Kamara', 'Managing Director, Kamara & Sons — Freetown', 5, 'Purchased our executive Toyota Land Cruiser V8 through Prestige Motors. Exceptional transparency, pristine vehicle condition, and white-glove doorstep delivery.'],
+      ['Aminata Sesay', 'Logistics Director — Bo', 5, 'The Lexus LX 600 VIP was delivered straight to Bo in absolute mint condition. Professional team and unmatched luxury service standard in Sierra Leone.'],
+      ['Dr. Mohamed Mansaray', 'Surgeon — Freetown', 5, 'Highly reliable executive automobile dealership. The Range Rover Autobiography exceeded all expectations. Will definitely purchase our next fleet vehicle here.']
     ];
     for (const r of sampleReviews) {
       db.run("INSERT INTO reviews (name, role, rating, comment, status) VALUES (?, ?, ?, ?, 'approved')", r);

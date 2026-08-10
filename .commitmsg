@@ -1,5 +1,7 @@
-Fix New Cars and Used Cars nav links to filter inventory directly
+Implement real dynamic visitor review system and fix admin settings
 
-- Fixed Used Cars and New Cars nav links to call filterCondition('used') and filterCondition('new')
-- Removed misplaced id="used-cars" anchor from Client Stories / Testimonials section
-- Smoothly scrolls to main vehicle inventory grid showing filtered results
+- Replaced hardcoded static testimonials with 100% dynamic review system fetching real reviews from SQLite database
+- Added visitor "Write a Review" modal on public site to collect real ratings & reviews from visitors
+- Added Client Reviews management tab in admin dashboard to view and delete reviews
+- Made admin profile Name & Email fields fully editable with PUT /api/auth/profile backend update
+- Fixed admin dark/light mode toggle to reliably switch interface themes

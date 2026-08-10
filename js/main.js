@@ -577,6 +577,85 @@ async function initLiveReviews() {
   `).join('');
 
   initTestimonialsCarousel();
+async function initLiveReviews() {
+  const container = $('testimonialsCarousel');
+  if (!container) return;
+
+  const data = await apiFetch('/reviews');
+  if (!data.success || !data.reviews?.length) return;
+
+  container.innerHTML = data.reviews.map(r => {
+    const stars = Array(r.rating || 5).fill('<i class="ri-star-fill"></i>').join('');
+    const avatar = r.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(r.name)}&background=18181b&color=e5a95c&bold=true`;
+    return `
+      <div class="testimonial-card">
+        <div class="quote-mark">"</div>
+        <p class="testimonial-text">${r.comment}</p>
+        <div class="testimonial-author">
+          <img src="${avatar}" alt="${r.name}" class="testimonial-avatar">
+          <div class="testimonial-meta">
+            <div class="testimonial-name">${r.name}</div>
+            <div class="testimonial-role">${r.role || 'Verified Client'}</div>
+          </div>
+          <div class="testimonial-stars">${stars}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  const dotsWrap = $('carouselDots');
+  if (dotsWrap) {
+    dotsWrap.innerHTML = data.reviews.map((_, i) => `<div class="carousel-dot ${i === 0 ? 'active' : ''}"></div>`).join('');
+  }
+  initTestimonialsCarousel();
+}
+
+function openReviewModal() {
+  const modal = $('writeReviewModal');
+  if (modal) {
+    modal.classList.add('active');
+    document.body.classList.add('modal-open');
+  }
+}
+
+function closeReviewModal() {
+  const modal = $('writeReviewModal');
+  if (modal) {
+    modal.classList.remove('active');
+    document.body.classList.remove('modal-open');
+  }
+}
+
+async function submitVisitorReview(e) {
+  e.preventDefault();
+  const name    = $('revName')?.value?.trim();
+  const role    = $('revRole')?.value?.trim();
+  const rating  = $('revRating')?.value || 5;
+  const comment = $('revComment')?.value?.trim();
+
+  if (!name || !comment) {
+    showToast('Please provide your name and review message.', 'error');
+    return;
+  }
+
+  const btn = $('revSubmitBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Submitting...'; }
+
+  const res = await apiFetch('/reviews', {
+    method: 'POST',
+    body: JSON.stringify({ name, role, rating: parseInt(rating), comment })
+  });
+
+  if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ri-send-plane-fill"></i> Submit Review'; }
+
+  if (res.success) {
+    showToast('Thank you! Your review has been published.', 'success');
+    closeReviewModal();
+    $('reviewForm')?.reset();
+    await initLiveReviews();
+  } else {
+    showToast(res.message || 'Failed to submit review.', 'error');
+  }
 }
 
 function initTestimonialsCarousel() {
@@ -791,6 +870,8 @@ function initBrandFilters() {
       if (brand) filterByBrand(brand);
     });
   });
+}
+
 function filterCondition(type) {
   displayedCount = 0;
   if (type === 'all') {
