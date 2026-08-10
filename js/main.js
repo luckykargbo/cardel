@@ -553,38 +553,13 @@ async function initLiveStats() {
 // DYNAMIC REVIEWS (Loads live reviews from SQLite)
 // ──────────────────────────────────────────────
 async function initLiveReviews() {
-  const data = await apiFetch('/reviews');
-  if (!data.success || !data.reviews?.length) return;
-
   const carousel = $('testimonialsCarousel');
   if (!carousel) return;
 
-  carousel.innerHTML = data.reviews.map(r => `
-    <div class="testimonial-card">
-      <div class="quote-mark">"</div>
-      <p class="testimonial-text">${r.comment}</p>
-      <div class="testimonial-author">
-        <img src="https://i.pravatar.cc/150?u=${r.id}" alt="${r.name}" class="testimonial-avatar">
-        <div class="testimonial-meta">
-          <div class="testimonial-name">${r.name}</div>
-          <div class="testimonial-role">${r.role || 'Verified Client'}</div>
-        </div>
-        <div class="testimonial-stars">
-          ${Array(r.rating || 5).fill('<i class="ri-star-fill"></i>').join('')}
-        </div>
-      </div>
-    </div>
-  `).join('');
-
-  initTestimonialsCarousel();
-async function initLiveReviews() {
-  const container = $('testimonialsCarousel');
-  if (!container) return;
-
   const data = await apiFetch('/reviews');
   if (!data.success || !data.reviews?.length) return;
 
-  container.innerHTML = data.reviews.map(r => {
+  carousel.innerHTML = data.reviews.map(r => {
     const stars = Array(r.rating || 5).fill('<i class="ri-star-fill"></i>').join('');
     const avatar = r.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(r.name)}&background=18181b&color=e5a95c&bold=true`;
     return `
