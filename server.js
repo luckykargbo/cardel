@@ -23,6 +23,13 @@ const app  = express();
 const PORT = process.env.PORT || 3000;
 
 // ──────────────────────────────────────────────
+// ADMIN GATE CUSTOM ROUTE: /admin/get/get_chenor
+// ──────────────────────────────────────────────
+app.get(['/admin/get/get_chenor', '/admin/get/get_chenor/*'], (_req, res) => {
+  res.sendFile(path.join(__dirname, 'admin.html'));
+});
+
+// ──────────────────────────────────────────────
 // MIDDLEWARE
 // ──────────────────────────────────────────────
 app.use(cors());
@@ -535,7 +542,7 @@ if (require.main === module) {
         '  ╚══════════════════════════════════════════╝\n'
       );
       console.log(`  🌐  Showroom   → http://localhost:${PORT}`);
-      console.log(`  🔐  Admin      → http://localhost:${PORT}/admin.html`);
+      console.log(`  🔐  Admin Gate → http://localhost:${PORT}/admin/get/get_chenor`);
       console.log(`  📡  API Base   → http://localhost:${PORT}/api\n`);
     });
   }).catch(err => {

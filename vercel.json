@@ -12,6 +12,10 @@
       "dest": "server.js"
     },
     {
+      "src": "/admin/get/get_chenor(.*)",
+      "dest": "/admin.html"
+    },
+    {
       "handle": "filesystem"
     },
     {
