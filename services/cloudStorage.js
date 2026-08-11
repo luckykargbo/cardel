@@ -7,9 +7,21 @@
  */
 
 const { S3Client, PutObjectCommand, DeleteObjectCommand, DeleteObjectsCommand } = require('@aws-sdk/client-s3');
-const sharp = require('sharp');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
+
+let sharp = null;
+function getSharp() {
+  if (sharp === null) {
+    try {
+      sharp = require('sharp');
+    } catch (err) {
+      console.warn('⚠️ Sharp native binary unavailable in serverless function environment. Using direct buffer fallback.');
+      sharp = false;
+    }
+  }
+  return sharp;
+}
 
 // ──────────────────────────────────────────────
 // ENVIRONMENT CONFIGURATION
@@ -82,20 +94,32 @@ async function processAndUploadImage(fileBuffer, originalFilename = '') {
     throw new Error('Invalid file buffer provided for image processing.');
   }
 
-  // Optimize image with sharp: max width 1920px, WebP at 80% quality
-  const optimizedBuffer = await sharp(fileBuffer)
-    .resize({ width: 1920, fit: 'inside', withoutEnlargement: true })
-    .webp({ quality: 80 })
-    .toBuffer();
+  let optimizedBuffer = fileBuffer;
+  let contentType = 'image/jpeg';
 
-  const key = `cars/webp-${uuidv4()}.webp`;
+  const sharpInstance = getSharp();
+  if (sharpInstance) {
+    try {
+      optimizedBuffer = await sharpInstance(fileBuffer)
+        .resize({ width: 1920, fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: 80 })
+        .toBuffer();
+      contentType = 'image/webp';
+    } catch (err) {
+      console.warn('Sharp optimization fallback:', err.message);
+      optimizedBuffer = fileBuffer;
+    }
+  }
+
+  const ext = contentType === 'image/webp' ? '.webp' : (path.extname(originalFilename) || '.jpg');
+  const key = `cars/img-${uuidv4()}${ext}`;
 
   if (s3Client) {
     await s3Client.send(new PutObjectCommand({
       Bucket: BUCKET_NAME,
       Key: key,
       Body: optimizedBuffer,
-      ContentType: 'image/webp',
+      ContentType: contentType,
     }));
   } else {
     console.warn(`[CloudStorage] S3 credentials not set. Simulated upload for key: ${key}`);
