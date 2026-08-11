@@ -4,10 +4,14 @@
  * Uses @libsql/client to connect to Turso cloud SQLite database or local SQLite fallback.
  */
 
-require('dotenv').config();
-const { createClient } = require('@libsql/client');
+let createClient;
+try {
+  createClient = require('@libsql/client/http').createClient;
+} catch {
+  createClient = require('@libsql/client').createClient;
+}
 
-let url = process.env.TURSO_DATABASE_URL || 'file:database/saloneautolink.db';
+let url = process.env.TURSO_DATABASE_URL || 'https://saloneautolink-luckykargbo.aws-eu-west-1.turso.io';
 if (url.startsWith('libsql://')) {
   url = url.replace('libsql://', 'https://');
 }
