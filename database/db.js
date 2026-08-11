@@ -7,7 +7,10 @@
 require('dotenv').config();
 const { createClient } = require('@libsql/client');
 
-const url       = process.env.TURSO_DATABASE_URL || 'file:database/saloneautolink.db';
+let url = process.env.TURSO_DATABASE_URL || 'file:database/saloneautolink.db';
+if (url.startsWith('libsql://')) {
+  url = url.replace('libsql://', 'https://');
+}
 const authToken = process.env.TURSO_AUTH_TOKEN || undefined;
 
 const db = createClient({ url, authToken });

@@ -37,6 +37,26 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname)));
 
+// Serverless Database Auto-Init Middleware
+let dbInitPromise = null;
+app.use(async (req, res, next) => {
+  if (req.path.startsWith('/api/')) {
+    if (!dbInitPromise) {
+      dbInitPromise = initDatabase().catch(err => {
+        console.error('Failed to initialize Turso database:', err);
+        dbInitPromise = null;
+        throw err;
+      });
+    }
+    try {
+      await dbInitPromise;
+    } catch (err) {
+      return fail(res, 'Database connection error.', 500);
+    }
+  }
+  next();
+});
+
 // ──────────────────────────────────────────────
 // MULTER — MEMORY STORAGE (SERVERLESS FRIENDLY)
 // ──────────────────────────────────────────────
@@ -518,24 +538,6 @@ app.use((err, _req, res, _next) => {
   if (err instanceof multer.MulterError) return fail(res, `Upload error: ${err.message}`);
   console.error('Server Error:', err.message);
   return fail(res, 'Internal server error.', 500);
-});
-
-// Middleware: ensure database initialized on serverless request
-let dbInitPromise = null;
-app.use(async (req, res, next) => {
-  if (!dbInitPromise) {
-    dbInitPromise = initDatabase().catch(err => {
-      console.error('Failed to initialize Turso database:', err);
-      dbInitPromise = null;
-      throw err;
-    });
-  }
-  try {
-    await dbInitPromise;
-    next();
-  } catch (err) {
-    return fail(res, 'Database connection error.', 500);
-  }
 });
 
 // ──────────────────────────────────────────────
