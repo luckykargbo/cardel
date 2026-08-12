@@ -1,4 +1,5 @@
 'use strict';
+require('dotenv').config();
 /**
  * SALONEAUTOLINK — DATABASE LAYER (Turso / libSQL Cloud Database)
  * Uses @libsql/client to connect to Turso cloud SQLite database or local SQLite fallback.
