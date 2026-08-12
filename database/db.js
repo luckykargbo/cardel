@@ -7,11 +7,14 @@ try { require('dotenv').config(); } catch {}
 
 const { createClient } = require('@libsql/client/http');
 
-let url = process.env.TURSO_DATABASE_URL || 'https://saloneautolink-luckykargbo.aws-eu-west-1.turso.io';
+const DEFAULT_URL   = 'https://saloneautolink-luckykargbo.aws-eu-west-1.turso.io';
+const DEFAULT_TOKEN = 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3ODYzODMwNjIsImlkIjoiMDE5ZmVjYWYtNjMwMS03ODAxLTg5NGEtMjUyMzk5MGU0ODdmIiwia2lkIjoiMmhDUHBmTlNYMEpYOEZETDRsYUVreDJpUVBLYTdaZW10bVN0aERfcFdvWSIsInJpZCI6IjY5ODRkZmU0LTlkNDItNDdiNS1hNTJjLTU3M2QwMWI3ZjZmOSJ9.wwWICJ6Hj3fTNZVVOMdg1pqQVikT5v_OI37xbvfWGiVZKSzltXkG3sdVbYtki6WWt-FgxvPEsUgmmCDrLTowCw';
+
+let url = (process.env.TURSO_DATABASE_URL || DEFAULT_URL).trim().replace(/^["']|["']$/g, '');
 if (url.startsWith('libsql://')) {
   url = url.replace('libsql://', 'https://');
 }
-const authToken = process.env.TURSO_AUTH_TOKEN || undefined;
+const authToken = (process.env.TURSO_AUTH_TOKEN || DEFAULT_TOKEN).trim().replace(/^["']|["']$/g, '');
 
 const db = createClient({ url, authToken });
 
