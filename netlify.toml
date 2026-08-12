@@ -3,6 +3,9 @@
   publish = "."
   functions = "netlify/functions"
 
+[functions]
+  directory = "netlify/functions"
+
 # Secret Admin Gate URL rewrite (Renders Admin Suite)
 [[redirects]]
   from = "/admin/get/get_chenor*"
