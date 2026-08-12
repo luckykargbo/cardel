@@ -7,55 +7,33 @@
  */
 
 let S3Client = null, PutObjectCommand = null, DeleteObjectCommand = null, DeleteObjectsCommand = null;
-try {
-  const s3Sdk = require('@aws-sdk/client-s3');
-  S3Client = s3Sdk.S3Client;
-  PutObjectCommand = s3Sdk.PutObjectCommand;
-  DeleteObjectCommand = s3Sdk.DeleteObjectCommand;
-  DeleteObjectsCommand = s3Sdk.DeleteObjectsCommand;
-} catch (err) {
-  console.warn('⚠️ AWS S3 SDK unavailable. Using fallback local storage.');
-}
+let s3ClientInstance = null;
 
-const { v4: uuidv4 } = require('uuid');
-const path = require('path');
-
-let sharp = null;
-function getSharp() {
-  if (sharp === null) {
-    try {
-      sharp = require('sharp');
-    } catch (err) {
-      console.warn('⚠️ Sharp native binary unavailable in serverless function environment. Using direct buffer fallback.');
-      sharp = false;
-    }
+function getS3Client() {
+  if (s3ClientInstance !== null) return s3ClientInstance;
+  const ACCESS_KEY = process.env.S3_ACCESS_KEY_ID || undefined;
+  const SECRET_KEY = process.env.S3_SECRET_ACCESS_KEY || undefined;
+  if (!ACCESS_KEY || !SECRET_KEY) {
+    s3ClientInstance = false;
+    return false;
   }
-  return sharp;
-}
-
-// ──────────────────────────────────────────────
-// ENVIRONMENT CONFIGURATION
-// ──────────────────────────────────────────────
-const BUCKET_NAME = process.env.S3_BUCKET_NAME || 'salone-auto-media';
-const REGION      = process.env.S3_REGION || 'auto';
-const ENDPOINT    = process.env.S3_ENDPOINT || undefined;
-const ACCESS_KEY  = process.env.S3_ACCESS_KEY_ID || undefined;
-const SECRET_KEY  = process.env.S3_SECRET_ACCESS_KEY || undefined;
-const URL_PREFIX  = (process.env.PUBLIC_MEDIA_URL_PREFIX || '').replace(/\/+$/, '');
-
-let s3Client = null;
-if (S3Client && ACCESS_KEY && SECRET_KEY) {
-  const s3Config = {
-    region: REGION,
-    credentials: {
-      accessKeyId: ACCESS_KEY,
-      secretAccessKey: SECRET_KEY,
-    },
-  };
-  if (ENDPOINT) {
-    s3Config.endpoint = ENDPOINT;
+  try {
+    const s3Sdk = require('@aws-sdk/client-s3');
+    S3Client = s3Sdk.S3Client;
+    PutObjectCommand = s3Sdk.PutObjectCommand;
+    DeleteObjectCommand = s3Sdk.DeleteObjectCommand;
+    DeleteObjectsCommand = s3Sdk.DeleteObjectsCommand;
+    const BUCKET_NAME = process.env.S3_BUCKET_NAME || 'salone-auto-media';
+    const REGION      = process.env.S3_REGION || 'auto';
+    const ENDPOINT    = process.env.S3_ENDPOINT || undefined;
+    const s3Config = { region: REGION, credentials: { accessKeyId: ACCESS_KEY, secretAccessKey: SECRET_KEY } };
+    if (ENDPOINT) s3Config.endpoint = ENDPOINT;
+    s3ClientInstance = new S3Client(s3Config);
+  } catch (err) {
+    console.warn('S3 SDK load note:', err.message);
+    s3ClientInstance = false;
   }
-  s3Client = new S3Client(s3Config);
+  return s3ClientInstance;
 }
 
 /**
@@ -124,8 +102,10 @@ async function processAndUploadImage(fileBuffer, originalFilename = '') {
   const ext = contentType === 'image/webp' ? '.webp' : (path.extname(originalFilename) || '.jpg');
   const key = `cars/img-${uuidv4()}${ext}`;
 
-  if (s3Client) {
-    await s3Client.send(new PutObjectCommand({
+  const client = getS3Client();
+  if (client) {
+    const BUCKET_NAME = process.env.S3_BUCKET_NAME || 'salone-auto-media';
+    await client.send(new PutObjectCommand({
       Bucket: BUCKET_NAME,
       Key: key,
       Body: optimizedBuffer,
@@ -158,8 +138,10 @@ async function uploadVideo(fileBuffer, originalFilename = '', mimeType = 'video/
   const ext = (path.extname(originalFilename) || '.mp4').toLowerCase();
   const key = `cars/video-${uuidv4()}${ext}`;
 
-  if (s3Client) {
-    await s3Client.send(new PutObjectCommand({
+  const client = getS3Client();
+  if (client) {
+    const BUCKET_NAME = process.env.S3_BUCKET_NAME || 'salone-auto-media';
+    await client.send(new PutObjectCommand({
       Bucket: BUCKET_NAME,
       Key: key,
       Body: fileBuffer,
@@ -183,19 +165,21 @@ async function deleteCloudMedia(fileUrlOrUrls) {
 
   if (!keys.length) return;
 
-  if (!s3Client) {
+  const client = getS3Client();
+  if (!client) {
     console.warn(`[CloudStorage] S3 credentials not set. Simulated deletion for keys:`, keys);
     return;
   }
 
   try {
+    const BUCKET_NAME = process.env.S3_BUCKET_NAME || 'salone-auto-media';
     if (keys.length === 1) {
-      await s3Client.send(new DeleteObjectCommand({
+      await client.send(new DeleteObjectCommand({
         Bucket: BUCKET_NAME,
         Key: keys[0],
       }));
     } else {
-      await s3Client.send(new DeleteObjectsCommand({
+      await client.send(new DeleteObjectsCommand({
         Bucket: BUCKET_NAME,
         Delete: {
           Objects: keys.map(k => ({ Key: k })),
