@@ -3,6 +3,10 @@
   publish = "."
   functions = "functions"
 
+[functions]
+  included_files = ["database/**", "middleware/**", "services/**", "server.js"]
+  external_node_modules = ["@libsql/client"]
+
 # Secret Admin Gate URL rewrite (Renders Admin Suite)
 [[redirects]]
   from = "/admin/get/get_chenor*"
