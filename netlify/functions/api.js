@@ -9,9 +9,9 @@ const bcrypt     = require('bcryptjs');
 const multer     = require('multer');
 const serverless = require('serverless-http');
 
-const cloudStorage                       = require('../../services/cloudStorage');
-const { initDatabase, query, run, get } = require('../../database/db');
-const { signToken, requireAuth }         = require('../../middleware/auth');
+const cloudStorage                       = require('../services/cloudStorage');
+const { initDatabase, query, run, get } = require('../database/db');
+const { signToken, requireAuth }         = require('../middleware/auth');
 
 const app = express();
 
