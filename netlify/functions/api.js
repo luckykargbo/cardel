@@ -1,25 +1,51 @@
 'use strict';
 /**
  * SALONEAUTOLINK — NETLIFY FUNCTION ENTRY POINT
+ * Robust serverless-http wrapper with dynamic path resolution.
  */
 
-const path = require('path');
 const serverless = require('serverless-http');
+const path = require('path');
+const fs = require('fs');
 
-const serverAppPath = path.resolve(__dirname, '../../server.js');
-const app = require(serverAppPath);
+let app = null;
+const possiblePaths = [
+  path.resolve(__dirname, '../server.js'),
+  path.resolve(__dirname, '../../server.js'),
+  path.resolve(process.cwd(), 'server.js'),
+  '/var/task/server.js'
+];
 
-const serverlessHandler = serverless(app);
+for (const p of possiblePaths) {
+  if (fs.existsSync(p)) {
+    try {
+      app = require(p);
+      console.log(`✅ Netlify Function successfully loaded Express app from: ${p}`);
+      break;
+    } catch (err) {
+      console.error(`Failed loading app from ${p}:`, err);
+    }
+  }
+}
+
+const handler = app ? serverless(app) : null;
 
 module.exports.handler = async (event, context) => {
-  try {
-    return await serverlessHandler(event, context);
-  } catch (err) {
-    console.error('Netlify Function execution error:', err);
+  if (!handler) {
     return {
       statusCode: 500,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ success: false, message: err.message || 'Server error.' }),
+      body: JSON.stringify({ success: false, message: 'Server initialization failed on Netlify.' }),
+    };
+  }
+  try {
+    return await handler(event, context);
+  } catch (err) {
+    console.error('Execution error:', err);
+    return {
+      statusCode: 500,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ success: false, message: err.message || 'Execution error.' }),
     };
   }
 };

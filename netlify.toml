@@ -4,7 +4,7 @@
   functions = "netlify/functions"
 
 [functions]
-  directory = "netlify/functions"
+  included_files = ["database/**", "middleware/**", "services/**", "server.js", "package.json"]
 
 # Secret Admin Gate URL rewrite (Renders Admin Suite)
 [[redirects]]
