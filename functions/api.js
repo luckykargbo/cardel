@@ -7,4 +7,17 @@
 const serverless = require('serverless-http');
 const app = require('../server');
 
-module.exports.handler = serverless(app);
+const serverlessHandler = serverless(app);
+
+module.exports.handler = async (event, context) => {
+  try {
+    return await serverlessHandler(event, context);
+  } catch (err) {
+    console.error('Netlify function handler error:', err);
+    return {
+      statusCode: 500,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ success: false, message: err.message || 'Server error.' }),
+    };
+  }
+};
