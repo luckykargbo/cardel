@@ -35,12 +35,22 @@ app.get(['/admin.html', '/admin', '/admin/'], (_req, res) => {
 });
 
 // ──────────────────────────────────────────────
+if (!process.env.NETLIFY && !process.env.LAMBDA_TASK_ROOT) {
+  app.get(['/admin/get/get_chenor', '/admin/get/get_chenor/*'], (_req, res) => {
+    res.sendFile(path.join(__dirname, 'admin.html'));
+  });
+}
+
+// ──────────────────────────────────────────────
 // MIDDLEWARE
 // ──────────────────────────────────────────────
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-app.use(express.static(path.join(__dirname)));
+
+if (!process.env.NETLIFY && !process.env.LAMBDA_TASK_ROOT) {
+  app.use(express.static(path.join(__dirname)));
+}
 
 // Serverless Database Auto-Init Middleware
 let dbInitPromise = null;
@@ -532,8 +542,11 @@ app.post('/api/upload', requireAuth, upload.array('images', 10), async (req, res
 // CATCH-ALL
 // ──────────────────────────────────────────────
 app.get('*', (req, res) => {
-  if (req.path.startsWith('/api/')) return res.status(404).json({ success: false, message: 'Not found.' });
-  res.sendFile(path.join(__dirname, 'index.html'));
+  if (req.path.startsWith('/api/')) return res.status(404).json({ success: false, message: 'API endpoint not found.' });
+  if (!process.env.NETLIFY && !process.env.LAMBDA_TASK_ROOT) {
+    return res.sendFile(path.join(__dirname, 'index.html'));
+  }
+  return res.status(404).send('Not found.');
 });
 
 // Error handler
