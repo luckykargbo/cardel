@@ -15,9 +15,9 @@ const bcrypt   = require('bcryptjs');
 const multer   = require('multer');
 const { v4: uuidv4 } = require('uuid');
 
-const cloudStorage                       = require('./services/cloudStorage');
-const { initDatabase, query, run, get } = require('./database/db');
-const { signToken, requireAuth }         = require('./middleware/auth');
+const cloudStorage                       = require(path.join(__dirname, 'services/cloudStorage'));
+const { initDatabase, query, run, get } = require(path.join(__dirname, 'database/db'));
+const { signToken, requireAuth }         = require(path.join(__dirname, 'middleware/auth'));
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
