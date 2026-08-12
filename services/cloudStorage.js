@@ -6,7 +6,17 @@
  * and bucket file deletion.
  */
 
-const { S3Client, PutObjectCommand, DeleteObjectCommand, DeleteObjectsCommand } = require('@aws-sdk/client-s3');
+let S3Client = null, PutObjectCommand = null, DeleteObjectCommand = null, DeleteObjectsCommand = null;
+try {
+  const s3Sdk = require('@aws-sdk/client-s3');
+  S3Client = s3Sdk.S3Client;
+  PutObjectCommand = s3Sdk.PutObjectCommand;
+  DeleteObjectCommand = s3Sdk.DeleteObjectCommand;
+  DeleteObjectsCommand = s3Sdk.DeleteObjectsCommand;
+} catch (err) {
+  console.warn('⚠️ AWS S3 SDK unavailable. Using fallback local storage.');
+}
+
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 
@@ -34,7 +44,7 @@ const SECRET_KEY  = process.env.S3_SECRET_ACCESS_KEY || undefined;
 const URL_PREFIX  = (process.env.PUBLIC_MEDIA_URL_PREFIX || '').replace(/\/+$/, '');
 
 let s3Client = null;
-if (ACCESS_KEY && SECRET_KEY) {
+if (S3Client && ACCESS_KEY && SECRET_KEY) {
   const s3Config = {
     region: REGION,
     credentials: {
