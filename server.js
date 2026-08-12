@@ -29,6 +29,11 @@ app.get(['/admin/get/get_chenor', '/admin/get/get_chenor/*'], (_req, res) => {
   res.sendFile(path.join(__dirname, 'admin.html'));
 });
 
+// Block direct access to /admin.html and /admin (redirect to public homepage)
+app.get(['/admin.html', '/admin', '/admin/'], (_req, res) => {
+  res.redirect('/');
+});
+
 // ──────────────────────────────────────────────
 // MIDDLEWARE
 // ──────────────────────────────────────────────

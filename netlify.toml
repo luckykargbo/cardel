@@ -3,11 +3,24 @@
   publish = "."
   functions = "functions"
 
-# Custom Admin Gate URL rewrite
+# Secret Admin Gate URL rewrite (Renders Admin Suite)
 [[redirects]]
   from = "/admin/get/get_chenor*"
   to = "/admin.html"
   status = 200
+
+# Block direct access to admin.html and /admin
+[[redirects]]
+  from = "/admin.html"
+  to = "/"
+  status = 302
+  force = true
+
+[[redirects]]
+  from = "/admin"
+  to = "/"
+  status = 302
+  force = true
 
 # Express API serverless function routing
 [[redirects]]
