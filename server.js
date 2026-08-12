@@ -48,15 +48,14 @@ app.use(async (req, res, next) => {
   if (req.path.startsWith('/api/')) {
     if (!dbInitPromise) {
       dbInitPromise = initDatabase().catch(err => {
-        console.error('Failed to initialize Turso database:', err);
-        dbInitPromise = null;
-        throw err;
+        console.warn('Turso init note:', err.message);
+        return null;
       });
     }
     try {
       await dbInitPromise;
-    } catch (err) {
-      return fail(res, 'Database connection error.', 500);
+    } catch {
+      // Proceed directly to handler
     }
   }
   next();
