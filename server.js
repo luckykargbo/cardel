@@ -48,6 +48,15 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Serverless URL normalization: ensure API routes match regardless of Netlify redirect splat
+app.use((req, _res, next) => {
+  if (req.url && !req.url.startsWith('/api/') && !req.url.startsWith('/api?')) {
+    if (req.url === '/api') req.url = '/api/';
+    else req.url = '/api' + (req.url.startsWith('/') ? req.url : '/' + req.url);
+  }
+  next();
+});
+
 if (!process.env.NETLIFY && !process.env.LAMBDA_TASK_ROOT) {
   app.use(express.static(path.join(__dirname)));
 }
