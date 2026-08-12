@@ -134,22 +134,23 @@ async function createSchema() {
 
 async function seedData() {
   const bcrypt = require('bcryptjs');
-  const hashed = bcrypt.hashSync('Onyx2026!', 12);
+  const email = 'hackerunlockme@gmail.com';
+  const hashed = bcrypt.hashSync('PEACElu2@', 12);
 
-  // Synchronize admin user password
-  const adminUser = await get("SELECT id FROM users WHERE email = 'admin@saloneautolink.com'");
+  // Synchronize admin user
+  const adminUser = await get("SELECT id FROM users WHERE LOWER(email) = LOWER(?)", [email]);
   if (!adminUser) {
     await run(
       "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, 'superadmin')",
-      ['Super Admin', 'admin@saloneautolink.com', hashed]
+      ['Super Admin', email, hashed]
     );
-    console.log('✅  Admin user created in Turso: admin@saloneautolink.com / Onyx2026!');
+    console.log(`✅  Admin user created in Turso: ${email}`);
   } else {
     await run(
-      "UPDATE users SET password = ? WHERE email = 'admin@saloneautolink.com'",
-      [hashed]
+      "UPDATE users SET password = ? WHERE LOWER(email) = LOWER(?)",
+      [hashed, email]
     );
-    console.log('✅  Admin user password reset in Turso: Onyx2026!');
+    console.log(`✅  Admin user password synchronized in Turso: ${email}`);
   }
 }
 
