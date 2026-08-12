@@ -8,7 +8,6 @@
 
 [functions]
   directory = "netlify/functions"
-  node_bundler = "esbuild"
 
 # Secret Admin Gate URL rewrite (Renders Admin Suite)
 [[redirects]]
