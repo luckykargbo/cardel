@@ -1,9 +1,2 @@
-# Secret Admin Gate URL (Renders Admin Suite)
 /admin/get/get_chenor*   /admin.html   200
-
-# Block direct access to admin.html and /admin (force redirect to homepage)
-/admin.html              /            302!
-/admin                   /            302!
-
-# API routing to Netlify functions
-/api/*                   /.netlify/functions/api/:splat   200
+/api/*   /.netlify/functions/api/:splat   200

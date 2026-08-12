@@ -1,11 +1,7 @@
 # SALONEAUTOLINK — NETLIFY CONFIGURATION
 [build]
   publish = "."
-  functions = "functions"
-
-[functions]
-  included_files = ["database/**", "middleware/**", "services/**", "server.js"]
-  external_node_modules = ["@libsql/client"]
+  functions = "netlify/functions"
 
 # Secret Admin Gate URL rewrite (Renders Admin Suite)
 [[redirects]]
