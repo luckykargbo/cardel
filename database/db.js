@@ -5,12 +5,7 @@ try { require('dotenv').config(); } catch {}
  * Uses @libsql/client to connect to Turso cloud SQLite database or local SQLite fallback.
  */
 
-let createClient;
-try {
-  createClient = require('@libsql/client/http').createClient;
-} catch {
-  createClient = require('@libsql/client').createClient;
-}
+const { createClient } = require('@libsql/client');
 
 let url = process.env.TURSO_DATABASE_URL || 'https://saloneautolink-luckykargbo.aws-eu-west-1.turso.io';
 if (url.startsWith('libsql://')) {

@@ -3,6 +3,10 @@
   publish = "."
   functions = "functions"
 
+[functions]
+  node_bundler = "esbuild"
+  included_files = ["database/**", "middleware/**", "services/**", "server.js", "package.json"]
+
 # Secret Admin Gate URL rewrite (Renders Admin Suite)
 [[redirects]]
   from = "/admin/get/get_chenor*"
