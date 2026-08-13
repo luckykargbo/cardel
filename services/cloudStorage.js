@@ -53,7 +53,8 @@ function getPublicUrl(key) {
   if (ENDPOINT) {
     return `${ENDPOINT.replace(/\/+$/, '')}/${BUCKET_NAME}/${key}`;
   }
-  return `https://${BUCKET_NAME}.s3.${REGION}.amazonaws.com/${key}`;
+  const s3Region = (!REGION || REGION === 'auto') ? 'us-east-1' : REGION;
+  return `https://${BUCKET_NAME}.s3.${s3Region}.amazonaws.com/${key}`;
 }
 
 /**
@@ -79,8 +80,8 @@ function extractKeyFromUrl(urlStr) {
 
 /**
  * Process image buffer and upload to S3/R2.
- * Falls back to base64 data URL if no cloud credentials are configured —
- * this ensures images always display correctly on the website.
+ * Falls back to base64 data URL if no cloud credentials are configured
+ * or if S3 upload fails — this ensures images always display correctly on the website.
  */
 async function processAndUploadImage(fileBuffer, originalFilename = '') {
   if (!fileBuffer || !Buffer.isBuffer(fileBuffer)) {
@@ -91,43 +92,60 @@ async function processAndUploadImage(fileBuffer, originalFilename = '') {
 
   // ── Cloud storage path (S3 / Cloudflare R2) ──────────────────────────────
   if (client) {
-    const ext = (path.extname(originalFilename) || '.jpg').toLowerCase();
-    const key = `cars/img-${uuidv4()}${ext}`;
-    const BUCKET_NAME = process.env.S3_BUCKET_NAME || 'salone-auto-media';
+    try {
+      const ext = (path.extname(originalFilename) || '.jpg').toLowerCase();
+      const key = `cars/img-${uuidv4()}${ext}`;
+      const BUCKET_NAME = process.env.S3_BUCKET_NAME || 'salone-auto-media';
 
-    const contentTypeMap = {
+      const contentTypeMap = {
+        '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+        '.png': 'image/png', '.webp': 'image/webp',
+        '.gif': 'image/gif'
+      };
+      const contentType = contentTypeMap[ext] || 'image/jpeg';
+
+      await client.send(new PutObjectCommand({
+        Bucket: BUCKET_NAME,
+        Key: key,
+        Body: fileBuffer,
+        ContentType: contentType,
+      }));
+
+      return getPublicUrl(key);
+    } catch (err) {
+      console.warn('⚠️  S3 upload error (using disk fallback):', err.message);
+    }
+  }
+
+  // ── Local disk storage fallback (/uploads/img-uuid.ext) ───────────────────
+  try {
+    const ext = (path.extname(originalFilename) || '.jpg').toLowerCase();
+    const filename = `img-${uuidv4()}${ext}`;
+    const uploadsDir = path.join(__dirname, '..', 'uploads');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+    const filePath = path.join(uploadsDir, filename);
+    fs.writeFileSync(filePath, fileBuffer);
+    return `/uploads/${filename}`;
+  } catch (err) {
+    console.warn('⚠️  Disk write error for image (falling back to base64):', err.message);
+    const ext = (path.extname(originalFilename) || '.jpg').toLowerCase();
+    const mimeMap = {
       '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
       '.png': 'image/png', '.webp': 'image/webp',
       '.gif': 'image/gif'
     };
-    const contentType = contentTypeMap[ext] || 'image/jpeg';
-
-    await client.send(new PutObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: key,
-      Body: fileBuffer,
-      ContentType: contentType,
-    }));
-
-    return getPublicUrl(key);
+    const mime = mimeMap[ext] || 'image/jpeg';
+    const base64 = fileBuffer.toString('base64');
+    return `data:${mime};base64,${base64}`;
   }
-
-  // ── Fallback: base64 data URL (no cloud storage configured) ──────────────
-  // This ensures the image is always stored and shown correctly on the site.
-  const ext = (path.extname(originalFilename) || '.jpg').toLowerCase();
-  const mimeMap = {
-    '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
-    '.png': 'image/png', '.webp': 'image/webp',
-    '.gif': 'image/gif'
-  };
-  const mime = mimeMap[ext] || 'image/jpeg';
-  const base64 = fileBuffer.toString('base64');
-  return `data:${mime};base64,${base64}`;
 }
 
 /**
  * Upload video buffer to S3/R2.
- * Falls back to base64 data URL if no cloud credentials are configured.
+ * Saves to local disk /uploads/video-uuid.ext if S3 is unavailable,
+ * returning a streamable HTTP URL for browser <video> tags.
  */
 async function uploadVideo(fileBuffer, originalFilename = '', mimeType = 'video/mp4') {
   if (!fileBuffer || !Buffer.isBuffer(fileBuffer)) {
@@ -143,22 +161,39 @@ async function uploadVideo(fileBuffer, originalFilename = '', mimeType = 'video/
 
   // ── Cloud storage path ────────────────────────────────────────────────────
   if (client) {
-    const ext = (path.extname(originalFilename) || '.mp4').toLowerCase();
-    const key = `cars/video-${uuidv4()}${ext}`;
-    const BUCKET_NAME = process.env.S3_BUCKET_NAME || 'salone-auto-media';
-    await client.send(new PutObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: key,
-      Body: fileBuffer,
-      ContentType: mimeType || 'video/mp4',
-    }));
-    return getPublicUrl(key);
+    try {
+      const ext = (path.extname(originalFilename) || '.mp4').toLowerCase();
+      const key = `cars/video-${uuidv4()}${ext}`;
+      const BUCKET_NAME = process.env.S3_BUCKET_NAME || 'salone-auto-media';
+      await client.send(new PutObjectCommand({
+        Bucket: BUCKET_NAME,
+        Key: key,
+        Body: fileBuffer,
+        ContentType: mimeType || 'video/mp4',
+      }));
+      return getPublicUrl(key);
+    } catch (err) {
+      console.warn('⚠️  S3 video upload error (using disk fallback):', err.message);
+    }
   }
 
-  // ── Fallback: base64 data URL ─────────────────────────────────────────────
-  const mime = mimeType || 'video/mp4';
-  const base64 = fileBuffer.toString('base64');
-  return `data:${mime};base64,${base64}`;
+  // ── Local disk storage fallback (/uploads/video-uuid.ext) ─────────────────
+  try {
+    const ext = (path.extname(originalFilename) || '.mp4').toLowerCase();
+    const filename = `video-${uuidv4()}${ext}`;
+    const uploadsDir = path.join(__dirname, '..', 'uploads');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+    const filePath = path.join(uploadsDir, filename);
+    fs.writeFileSync(filePath, fileBuffer);
+    return `/uploads/${filename}`;
+  } catch (err) {
+    console.warn('⚠️  Disk write error for video (falling back to base64):', err.message);
+    const mime = mimeType || 'video/mp4';
+    const base64 = fileBuffer.toString('base64');
+    return `data:${mime};base64,${base64}`;
+  }
 }
 
 /**
@@ -197,13 +232,41 @@ async function deleteCloudMedia(fileUrlOrUrls) {
       }));
     }
   } catch (err) {
-    console.error('Failed to delete media from Cloud Storage:', err);
+    console.error('Failed to delete media from Cloud Storage:', err.message);
+  }
+}
+
+/**
+ * Auto-converts any legacy base64 data:video strings into streamable /uploads/video-uuid.mp4 files.
+ */
+function convertDataUrlVideoToDisk(videoUrl) {
+  if (!videoUrl || typeof videoUrl !== 'string' || !videoUrl.startsWith('data:video/')) {
+    return videoUrl;
+  }
+  try {
+    const matches = videoUrl.match(/^data:video\/([a-zA-Z0-9]+);base64,(.+)$/);
+    if (!matches) return videoUrl;
+    const ext = matches[1] === 'quicktime' ? 'mov' : (matches[1] || 'mp4');
+    const base64Data = matches[2];
+    const fileBuffer = Buffer.from(base64Data, 'base64');
+    const filename = `video-${uuidv4()}.${ext}`;
+    const uploadsDir = path.join(__dirname, '..', 'uploads');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+    const filePath = path.join(uploadsDir, filename);
+    fs.writeFileSync(filePath, fileBuffer);
+    return `/uploads/${filename}`;
+  } catch (err) {
+    console.warn('Data URL video conversion note:', err.message);
+    return videoUrl;
   }
 }
 
 module.exports = {
   processAndUploadImage,
   uploadVideo,
+  convertDataUrlVideoToDisk,
   deleteCloudMedia,
   getPublicUrl,
   extractKeyFromUrl,

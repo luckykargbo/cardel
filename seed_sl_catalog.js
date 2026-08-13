@@ -35,7 +35,7 @@ async function seedSierraLeoneCatalog() {
       4500000,
       450,
       'Petrol',
-       me = '409 hp',
+      '409 hp',
       '3.5L V6 Twin-Turbo',
       'Automatic 10-spd',
       'SUV',

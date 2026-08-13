@@ -81,6 +81,7 @@ function showToast(msg, type = 'info', duration = 3500) {
 async function apiFetch(endpoint, options = {}) {
   try {
     const res  = await fetch(API_BASE + endpoint, {
+      cache: 'no-store',
       headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
       ...options
     });
@@ -186,15 +187,20 @@ function buildVehicleCard(v) {
     ? `<span class="card-badge badge-electric"><i class="ri-flashlight-fill"></i> EV</span>`
     : '';
 
+  const videoBadge = v.video_url
+    ? `<span class="card-badge badge-video" style="background:rgba(229,169,92,0.2);color:var(--gold);border:1px solid var(--gold)"><i class="ri-video-fill"></i> Video</span>`
+    : '';
+
   return `
     <article class="vehicle-card" onclick="openQuickView(${v.id})">
       <div class="card-media">
         <img src="${img}" alt="${v.title}" loading="lazy"
-             onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'300\' viewBox=\'0 0 400 300\'%3E%3Crect fill=\'%23111\' width=\'400\' height=\'300\'/%3E%3Ctext x=\'50%25\' y=\'45%25\' text-anchor=\'middle\' fill=\'%23555\' font-size=\'48\'%3E🚘%3C/text%3E%3Ctext x=\'50%25\' y=\'60%25\' text-anchor=\'middle\' fill=\'%23444\' font-size=\'14\' font-family=\'sans-serif\'%3ENo Image Available%3C/text%3E%3C/svg%3E'">
+             onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'300\' viewBox=\'0 0 400 300\'%3E%3Crect fill=\'%23111\' width=\'400\' height=\'300\'/%3E%3Ctext x=\'50%25\' y=\'45%25\' text-anchor=\'middle\' fill=\'%23555\' font-size=\'48\'%3E🚘%3C/text%3E%3Ctext x=\'50%25\' y=\'60%25\' text-anchor=\'middle\' fill=\'%23444\' font-size=\'14\' font-family=\'sans-serif\'%3ENo Image Available%3C/text%3E%3C/svg%3E'">
         <div class="card-badges">
           ${statusBadge}
           ${featuredBadge}
           ${electricBadge}
+          ${videoBadge}
         </div>
         <div class="card-hover-actions">
           <button class="card-action-btn ${isFav ? 'faved' : ''}"
@@ -398,39 +404,53 @@ async function openQuickView(id) {
   currentQuickId = id;
   modal.classList.add('active');
   document.body.classList.add('modal-open');
-  content.innerHTML = `<div style="text-align:center;padding:60px;color:var(--gold)"><i class="ri-loader-4-line" style="font-size:40px;animation:spin 1s linear infinite"></i></div>`;
 
-  const data = await apiFetch(`/vehicles/${id}`);
-  if (!data.success) {
-    content.innerHTML = `<div style="text-align:center;padding:60px;color:var(--text-muted)">Failed to load vehicle details.</div>`;
-    return;
+  // Instant local lookup first (0ms delay)
+  let v = allVehicles.find(x => Number(x.id) === Number(id));
+  if (!v) {
+    content.innerHTML = `<div style="text-align:center;padding:60px;color:var(--gold)">
+      <svg width="48" height="48" viewBox="0 0 48 48" style="animation:spin 0.8s linear infinite;display:inline-block">
+        <circle cx="24" cy="24" r="20" fill="none" stroke="rgba(229,169,92,0.2)" stroke-width="4"/>
+        <path d="M24 4 A20 20 0 0 1 44 24" fill="none" stroke="#e5a95c" stroke-width="4" stroke-linecap="round"/>
+      </svg>
+    </div>`;
+    const data = await apiFetch(`/vehicles/${id}`);
+    if (!data.success || !data.vehicle) {
+      content.innerHTML = `<div style="text-align:center;padding:60px;color:var(--text-muted)">Failed to load vehicle details.</div>`;
+      return;
+    }
+    v = data.vehicle;
   }
 
-  const v = data.vehicle;
-  const img = (v.images && v.images[0]) ? v.images[0] : 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'300\' viewBox=\'0 0 400 300\'%3E%3Crect fill=\'%23111\' width=\'400\' height=\'300\'/%3E%3Ctext x=\'50%25\' y=\'45%25\' text-anchor=\'middle\' fill=\'%23555\' font-size=\'48\'%3E🚘%3C/text%3E%3Ctext x=\'50%25\' y=\'60%25\' text-anchor=\'middle\' fill=\'%23444\' font-size=\'14\' font-family=\'sans-serif\'%3ENo Image Available%3C/text%3E%3C/svg%3E';
+  // Scoped images array for current vehicle ONLY
+  window._qvImages = (v.images && Array.isArray(v.images)) ? [...v.images] : [];
+
+  const defaultSvg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect fill='%230e0e12' width='400' height='300'/%3E%3Ccircle cx='200' cy='150' r='60' fill='rgba(229,169,92,0.05)'/%3E%3Ctext x='50%25' y='48%25' text-anchor='middle' fill='%23e5a95c' font-size='40' font-family='sans-serif'%3E🚘%3C/text%3E%3Ctext x='50%25' y='64%25' text-anchor='middle' fill='%23888899' font-size='13' font-weight='600' font-family='sans-serif' letter-spacing='1'%3ESALONEAUTOLINK%3C/text%3E%3C/svg%3E";
+  const img = window._qvImages[0] || defaultSvg;
+
   const isSold = v.status === 'sold';
   const isResv = v.status === 'reserved';
   const waLink = buildWALink(v);
 
-  const thumbsHtml = v.images && v.images.length > 1
+  const thumbsHtml = window._qvImages.length > 1
     ? `<div class="qv-thumbs">
-        ${v.images.map((imgUrl, i) => `
-          <img src="${imgUrl}" alt="View ${i+1}" class="qv-thumb ${i===0?'active':''}"
-               onclick="qvChangeImg(this,'${imgUrl}')"
-               onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'300\' viewBox=\'0 0 400 300\'%3E%3Crect fill=\'%23111\' width=\'400\' height=\'300\'/%3E%3Ctext x=\'50%25\' y=\'45%25\' text-anchor=\'middle\' fill=\'%23555\' font-size=\'48\'%3E🚘%3C/text%3E%3Ctext x=\'50%25\' y=\'60%25\' text-anchor=\'middle\' fill=\'%23444\' font-size=\'14\' font-family=\'sans-serif\'%3ENo Image Available%3C/text%3E%3C/svg%3E'">
+        ${window._qvImages.map((imgUrl, i) => `
+          <img src="${imgUrl}" alt="View ${i+1}" class="qv-thumb ${i===0?'active':''}" data-idx="${i}"
+               onclick="qvChangeImg(this)"
+               onerror="this.onerror=null;this.src='${defaultSvg}'">
         `).join('')}
        </div>`
     : '';
 
   let videoHtml = '';
   if (v.video_url) {
-    if (v.video_url.startsWith('http') || v.video_url.startsWith('/uploads/') || /\.(mp4|webm|mov|ogg)/i.test(v.video_url)) {
+    if (v.video_url.startsWith('http') || v.video_url.startsWith('/uploads/') || v.video_url.startsWith('data:') || /\.(mp4|webm|mov|ogg|m4v)/i.test(v.video_url)) {
       videoHtml = `
         <div class="qv-video-wrap" style="margin-top:16px">
           <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:6px;display:flex;align-items:center;gap:6px">
             <i class="ri-video-line"></i> Vehicle Video Showcase
           </div>
-          <video controls preload="metadata" style="width:100%;max-height:240px;border-radius:12px;background:#000;border:1px solid var(--border)" src="${v.video_url}"></video>
+          <video controls preload="metadata" style="width:100%;max-height:240px;border-radius:12px;background:#000;border:1px solid var(--border)" src="${v.video_url}" onerror="this.outerHTML='<div style=\\'padding:16px;text-align:center;color:var(--text-muted);font-size:13px;background:rgba(255,255,255,0.03);border-radius:12px;border:1px solid var(--border)\\'>Video playback unavailable</div>'"></video>
         </div>`;
     } else if (/youtube\.com|youtu\.be|vimeo\.com/i.test(v.video_url)) {
       const embedUrl = v.video_url.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/');
@@ -449,7 +469,7 @@ async function openQuickView(id) {
       <div class="qv-media">
         <div class="qv-img-wrap">
           <img src="${img}" alt="${v.title}" class="qv-main-img" id="qvMainImg"
-               onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'300\' viewBox=\'0 0 400 300\'%3E%3Crect fill=\'%23111\' width=\'400\' height=\'300\'/%3E%3Ctext x=\'50%25\' y=\'45%25\' text-anchor=\'middle\' fill=\'%23555\' font-size=\'48\'%3E🚘%3C/text%3E%3Ctext x=\'50%25\' y=\'60%25\' text-anchor=\'middle\' fill=\'%23444\' font-size=\'14\' font-family=\'sans-serif\'%3ENo Image Available%3C/text%3E%3C/svg%3E'">
+               onerror="this.onerror=null;this.src='${defaultSvg}'">
           <div class="qv-img-badges">
             ${v.featured ? '<span class="car-badge featured-badge"><i class="ri-star-fill"></i> Featured</span>' : ''}
             <span class="car-badge ${v.condition_type === 'new' ? 'new-badge' : 'used-badge'}">${v.condition_type === 'new' ? 'New' : 'Pre-Owned'}</span>
@@ -483,14 +503,14 @@ async function openQuickView(id) {
 
         <div class="qv-price-block">
           <div>
-            <div class="qv-price">${fmtFull(v.price)}</div>
+            <div class="qv-price">${isSold ? '<span style="color:#ef4444">SOLD</span>' : fmtFull(v.price)}</div>
           </div>
         </div>
 
         <div class="qv-actions">
           ${!isSold ? `
           <a href="${waLink}" target="_blank" class="btn-hero-primary" style="text-decoration:none">
-            <i class="ri-whatsapp-line"></i> Contact Showroom
+            <i class="ri-whatsapp-line"></i> ${isResv ? 'Enquire (Reserved)' : 'Contact Showroom'}
           </a>` : `
           <div class="sold-notice"><i class="ri-check-double-line"></i> This vehicle has been sold</div>`}
           <button class="btn-qv-icon fav-toggle ${favourites.includes(v.id)?'active':''}"
@@ -514,9 +534,12 @@ function specItem(icon, label, value) {
     </div>`;
 }
 
-function qvChangeImg(el, url) {
+function qvChangeImg(el) {
+  const idx  = parseInt(el.dataset.idx ?? 0);
   const main = $('qvMainImg');
-  if (main) main.src = url;
+  if (main && window._qvImages && window._qvImages[idx]) {
+    main.src = window._qvImages[idx];
+  }
   $$('.qv-thumb').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
 }
@@ -960,4 +983,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Load dynamic featured showcase
   await initShowcase();
+
+  // Live auto-sync: refresh inventory when tab regains focus or when admin updates inventory
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'sal_inventory_updated') initInventory();
+  });
+  window.addEventListener('focus', () => {
+    initInventory();
+  });
 });

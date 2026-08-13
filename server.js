@@ -8,7 +8,7 @@
  */
 
 // Load .env before anything else (local dev — Render sets env vars natively)
-require('dotenv').config();
+try { require('dotenv').config(); } catch {}
 
 const express  = require('express');
 const cors     = require('cors');
@@ -47,6 +47,13 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Serve uploads directory with native byte-range streaming support
+const uploadsPath = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsPath)) {
+  fs.mkdirSync(uploadsPath, { recursive: true });
+}
+app.use('/uploads', express.static(uploadsPath));
+
 // Serve static files (CSS, JS, images, HTML) from project root
 app.use(express.static(path.join(__dirname)));
 
@@ -79,8 +86,8 @@ const fileFilter = (_req, file, cb) => {
   ok ? cb(null, true) : cb(new Error('Only image and video files are allowed.'));
 };
 
-// Enforce max 15MB file size limit to prevent memory exhaustion in serverless environments
-const upload = multer({ storage, fileFilter, limits: { fileSize: 15 * 1024 * 1024 } });
+// Enforce max 50MB file size limit for high resolution photos & video clips
+const upload = multer({ storage, fileFilter, limits: { fileSize: 50 * 1024 * 1024 } });
 
 // ──────────────────────────────────────────────
 // HELPERS
@@ -94,7 +101,12 @@ function parseImages(raw) {
 
 function mapVehicle(row) {
   if (!row) return null;
-  return { ...row, images: parseImages(row.images), featured: row.featured === 1 };
+  let videoUrl = row.video_url || '';
+  if (videoUrl.startsWith('data:video/')) {
+    videoUrl = cloudStorage.convertDataUrlVideoToDisk(videoUrl);
+    run('UPDATE vehicles SET video_url = ? WHERE id = ?', [videoUrl, row.id]).catch(() => {});
+  }
+  return { ...row, images: parseImages(row.images), video_url: videoUrl, featured: row.featured === 1 };
 }
 
 // Prevent server crashes from transient network/DB errors

@@ -497,14 +497,14 @@ function fillVehicleForm(v) {
   const videoUrlEl = $('vf-video-url');
   if (videoUrlEl) videoUrlEl.value = v.video_url || '';
 
-  // Show existing images
+  // Show existing images using data-index to avoid base64 in onclick attributes
   const preview = $('imagePreviewGrid');
   if (preview && v.images && v.images.length) {
     preview.innerHTML = v.images.map((url, i) => `
-      <div class="img-preview-item" id="imgPrev-${i}">
+      <div class="img-preview-item" id="imgPrev-${i}" data-index="${i}">
         <img src="${url}" alt="Image ${i+1}"
-             onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'300\' viewBox=\'0 0 400 300\'%3E%3Crect fill=\'%23111\' width=\'400\' height=\'300\'/%3E%3Ctext x=\'50%25\' y=\'45%25\' text-anchor=\'middle\' fill=\'%23555\' font-size=\'48\'%3E🚘%3C/text%3E%3Ctext x=\'50%25\' y=\'60%25\' text-anchor=\'middle\' fill=\'%23444\' font-size=\'14\' font-family=\'sans-serif\'%3ENo Image Available%3C/text%3E%3C/svg%3E'">
-        <button type="button" class="img-remove-btn" onclick="removeExistingImage('${url}', ${i})">
+             onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'80\' height=\'60\' viewBox=\'0 0 80 60\'%3E%3Crect fill=\'%23222\' width=\'80\' height=\'60\'/%3E%3Ctext x=\'50%25\' y=\'55%25\' text-anchor=\'middle\' fill=\'%23555\' font-size=\'20\'%3E🚘%3C/text%3E%3C/svg%3E'">
+        <button type="button" class="img-remove-btn" data-idx="${i}" onclick="removeExistingImageByIdx(this)">
           <i class="ri-close-line"></i>
         </button>
       </div>
@@ -548,11 +548,51 @@ function clearVehicleForm() {
   window._editingImages = [];
 }
 
+/** Remove existing image by index (uses data-idx, not URL in onclick — safe for base64) */
+function removeExistingImageByIdx(btn) {
+  const idx = parseInt(btn.dataset.idx ?? -1);
+  if (idx === -1 || !window._editingImages) return;
+  window._editingImages.splice(idx, 1);
+  btn.closest('.img-preview-item')?.remove();
+  // Re-index remaining buttons
+  const preview = $('imagePreviewGrid');
+  if (preview) {
+    preview.querySelectorAll('.img-remove-btn').forEach((b, i) => { b.dataset.idx = i; });
+  }
+}
+
+/** Legacy alias — kept for safety */
 function removeExistingImage(url, idx) {
   if (window._editingImages) {
     window._editingImages = window._editingImages.filter(u => u !== url);
   }
   $(`imgPrev-${idx}`)?.remove();
+}
+
+/**
+ * Compress car image to max 1200px JPEG before upload.
+ * Keeps DB base64 strings manageable (~100-200KB per photo).
+ */
+function compressCarImage(file, maxPx = 1200, quality = 0.85) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > maxPx || h > maxPx) {
+          if (w >= h) { h = Math.round(h * maxPx / w); w = maxPx; }
+          else        { w = Math.round(w * maxPx / h); h = maxPx; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        canvas.toBlob((blob) => resolve(blob || file), 'image/jpeg', quality);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 function handleImagePreview(input) {
@@ -562,21 +602,24 @@ function handleImagePreview(input) {
   const existingCount = preview.querySelectorAll('.img-preview-item').length;
   const files = Array.from(input.files).slice(0, 10 - existingCount);
 
-  files.forEach((file, i) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const div = document.createElement('div');
-      div.className = 'img-preview-item';
-      div.innerHTML = `
-        <img src="${e.target.result}" alt="New image">
-        <button type="button" class="img-remove-btn" onclick="this.closest('.img-preview-item').remove()">
-          <i class="ri-close-line"></i>
-        </button>
-        <span class="new-badge-img">New</span>
-      `;
-      preview.appendChild(div);
-    };
-    reader.readAsDataURL(file);
+  files.forEach((file) => {
+    // Compress before previewing so preview matches what gets stored
+    compressCarImage(file, 1200, 0.85).then(blob => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const div = document.createElement('div');
+        div.className = 'img-preview-item';
+        div.innerHTML = `
+          <img src="${e.target.result}" alt="New image">
+          <button type="button" class="img-remove-btn" onclick="this.closest('.img-preview-item').remove()">
+            <i class="ri-close-line"></i>
+          </button>
+          <span class="new-badge-img">New</span>
+        `;
+        preview.appendChild(div);
+      };
+      reader.readAsDataURL(blob);
+    });
   });
 }
 
@@ -618,10 +661,13 @@ async function saveVehicle(e) {
 
   Object.entries(fields).forEach(([k, v]) => formData.append(k, v));
 
-  // Append image files
+  // Compress and append image files
   const fileInput = $('vf-images');
   if (fileInput?.files?.length) {
-    Array.from(fileInput.files).forEach(file => formData.append('images', file));
+    const imageFiles = Array.from(fileInput.files);
+    // Compress all images before sending (prevents huge base64 in DB)
+    const compressed = await Promise.all(imageFiles.map(f => compressCarImage(f, 1200, 0.85)));
+    compressed.forEach((blob, i) => formData.append('images', blob, imageFiles[i]?.name || `image-${i}.jpg`));
   }
 
   // Append video file or video URL

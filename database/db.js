@@ -13,7 +13,7 @@ const dbToken = process.env.TURSO_AUTH_TOKEN     || 'eyJhbGciOiJFZERTQSIsInR5cCI
 
 const cleanHost = dbUrl.replace(/^libsql:\/\//, '').replace(/^https:\/\//, '').replace(/\/$/, '');
 
-function executePipeline(requests) {
+function executePipeline(requests, retries = 3) {
   return new Promise((resolve, reject) => {
     const postData = JSON.stringify({ requests });
     const options = {
@@ -41,7 +41,16 @@ function executePipeline(requests) {
       });
     });
 
-    req.on('error', (err) => reject(err));
+    req.on('error', (err) => {
+      if (retries > 0) {
+        setTimeout(() => {
+          executePipeline(requests, retries - 1).then(resolve).catch(reject);
+        }, 300);
+      } else {
+        reject(err);
+      }
+    });
+
     req.write(postData);
     req.end();
   });
