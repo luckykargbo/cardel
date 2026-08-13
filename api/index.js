@@ -210,20 +210,6 @@ app.all('*', (req, res) => {
   return res.status(404).json({ success: false, message: 'API endpoint not found.' });
 });
 
-const serverlessHandler = serverless(app);
-
-module.exports = (req, res) => {
-  return serverlessHandler(req, res);
-};
-module.exports.handler = async (event, context) => {
-  try {
-    return await serverlessHandler(event, context);
-  } catch (err) {
-    console.error('API Error:', err);
-    return {
-      statusCode: 500,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ success: false, message: err.message || 'Server error.' }),
-    };
-  }
-};
+const handler = serverless(app);
+module.exports = app;
+module.exports.handler = handler;

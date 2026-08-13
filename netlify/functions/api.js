@@ -210,17 +210,5 @@ app.all('*', (req, res) => {
   return res.status(404).json({ success: false, message: 'API endpoint not found.' });
 });
 
-const serverlessHandler = serverless(app);
-
-module.exports.handler = async (event, context) => {
-  try {
-    return await serverlessHandler(event, context);
-  } catch (err) {
-    console.error('Netlify API Error:', err);
-    return {
-      statusCode: 500,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ success: false, message: err.message || 'Server error.' }),
-    };
-  }
-};
+const handler = serverless(app);
+module.exports.handler = handler;
