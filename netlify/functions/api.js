@@ -6,29 +6,116 @@
 const express    = require('express');
 const cors       = require('cors');
 const bcrypt     = require('bcryptjs');
+const https      = require('https');
+const jwt        = require('jsonwebtoken');
 const serverless = require('serverless-http');
 
-const { initDatabase, query, run, get } = require('../../database/db');
-const { signToken, requireAuth }         = require('../../middleware/auth');
+// ──────────────────────────────────────────────
+// TURSO DATABASE DRIVER (Pure HTTPS)
+// ──────────────────────────────────────────────
+const dbUrl   = process.env.TURSO_DATABASE_URL || 'saloneautolink-luckykargbo.aws-eu-west-1.turso.io';
+const dbToken = process.env.TURSO_AUTH_TOKEN     || 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3ODY2MDU1NzMsImlkIjoiMDE5ZmVjYWYtNjMwMS03ODAxLTg5NGEtMjUyMzk5MGU0ODdmIiwia2lkIjoiMmhDUHBmTlNYMEpYOEZETDRsYUVreDJpUVBLYTdaZW10bVN0aERfcFdvWSIsInJpZCI6IjY5ODRkZmU0LTlkNDItNDdiNS1hNTJjLTU3M2QwMWI3ZjZmOSJ9.ljuawc9RGPVZbuzRaSKycw6e5eRpYPMEs8lL4saUlvh0ughebcvi6EkcPwGxh9aquMG1GXUvc5bT-m8Dzj88DQ';
+const cleanHost = dbUrl.replace(/^libsql:\/\//, '').replace(/^https:\/\//, '').replace(/\/$/, '');
 
+function executePipeline(requests) {
+  return new Promise((resolve, reject) => {
+    const postData = JSON.stringify({ requests });
+    const options = {
+      hostname: cleanHost,
+      port: 443,
+      path: '/v2/pipeline',
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${dbToken}`,
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(postData)
+      }
+    };
+
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => {
+        try { resolve(JSON.parse(data)); } catch (e) { reject(new Error('Parse error: ' + data)); }
+      });
+    });
+
+    req.on('error', (err) => reject(err));
+    req.write(postData);
+    req.end();
+  });
+}
+
+function formatParam(val) {
+  if (val === null || val === undefined) return { type: 'null' };
+  if (typeof val === 'number') {
+    if (Number.isInteger(val)) return { type: 'integer', value: String(val) };
+    return { type: 'float', value: val };
+  }
+  return { type: 'text', value: String(val) };
+}
+
+function parseCell(cell) {
+  if (!cell || cell.type === 'null') return null;
+  if (cell.type === 'integer') return parseInt(cell.value, 10);
+  if (cell.type === 'float') return parseFloat(cell.value);
+  return cell.value;
+}
+
+async function query(sql, params = []) {
+  const req = { type: 'execute', stmt: { sql, args: params.map(formatParam) } };
+  const res = await executePipeline([req, { type: 'close' }]);
+  const result = res.results?.[0]?.response?.result;
+  if (!result) throw new Error('Turso query error');
+  const cols = result.cols.map(c => c.name);
+  return result.rows.map(row => {
+    const obj = {};
+    row.forEach((cell, idx) => { obj[cols[idx]] = parseCell(cell); });
+    return obj;
+  });
+}
+
+async function run(sql, params = []) {
+  const req = { type: 'execute', stmt: { sql, args: params.map(formatParam) } };
+  const res = await executePipeline([req, { type: 'close' }]);
+  const result = res.results?.[0]?.response?.result;
+  if (!result) throw new Error('Turso run error');
+  return { rowsAffected: result.affected_row_count || 0 };
+}
+
+async function get(sql, params = []) {
+  const rows = await query(sql, params);
+  return rows[0] || null;
+}
+
+// ──────────────────────────────────────────────
+// JWT AUTH
+// ──────────────────────────────────────────────
+const JWT_SECRET = process.env.JWT_SECRET || 'saloneautolink_jwt_secret_onyx_2026';
+
+function signToken(payload) {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
+}
+
+function requireAuth(req, res, next) {
+  const header = req.headers['authorization'] || '';
+  const token  = header.startsWith('Bearer ') ? header.slice(7) : null;
+  if (!token) return res.status(401).json({ success: false, message: 'Authentication required.' });
+  try {
+    req.admin = jwt.verify(token, JWT_SECRET);
+    next();
+  } catch {
+    return res.status(401).json({ success: false, message: 'Invalid or expired session.' });
+  }
+}
+
+// ──────────────────────────────────────────────
+// EXPRESS API SERVERLESS
+// ──────────────────────────────────────────────
 const app = express();
-
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// Database Auto-Init Middleware
-let dbInitPromise = null;
-app.use(async (req, res, next) => {
-  if (!dbInitPromise) {
-    dbInitPromise = initDatabase().catch(err => {
-      console.warn('Turso init note:', err.message);
-      return null;
-    });
-  }
-  try { await dbInitPromise; } catch {}
-  next();
-});
 
 const ok   = (res, data, status = 200) => res.status(status).json({ success: true, ...data });
 const fail = (res, message, status = 400) => res.status(status).json({ success: false, message });
@@ -40,10 +127,8 @@ function mapVehicle(v) {
   return { ...v, featured: Boolean(v.featured), images };
 }
 
-// ──────────────────────────────────────────────
-// AUTH ROUTES (Support /api/auth/*, /auth/*, and root)
-// ──────────────────────────────────────────────
-async function handleLogin(req, res) {
+// LOGIN
+app.post(['/api/auth/login', '/auth/login', '/login'], async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) return fail(res, 'Email and password are required.');
@@ -62,10 +147,9 @@ async function handleLogin(req, res) {
     console.error('Login error:', err);
     return fail(res, 'Login failed. Please try again.', 500);
   }
-}
+});
 
-app.post(['/api/auth/login', '/auth/login', '/login'], handleLogin);
-
+// AUTH ME
 app.get(['/api/auth/me', '/auth/me', '/me'], requireAuth, async (req, res) => {
   try {
     const user = await get('SELECT id,name,email,role,avatar,created_at FROM users WHERE id = ?', [req.admin.id]);
@@ -76,6 +160,7 @@ app.get(['/api/auth/me', '/auth/me', '/me'], requireAuth, async (req, res) => {
   }
 });
 
+// UPDATE PASSWORD
 app.patch(['/api/auth/password', '/auth/password', '/password'], requireAuth, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -93,6 +178,7 @@ app.patch(['/api/auth/password', '/auth/password', '/password'], requireAuth, as
   }
 });
 
+// UPDATE PROFILE
 app.put(['/api/auth/profile', '/auth/profile', '/profile'], requireAuth, async (req, res) => {
   try {
     const { name, email, avatarUrl } = req.body;
@@ -114,9 +200,7 @@ app.put(['/api/auth/profile', '/auth/profile', '/profile'], requireAuth, async (
   }
 });
 
-// ──────────────────────────────────────────────
-// VEHICLES & STATS ROUTES
-// ──────────────────────────────────────────────
+// VEHICLES LIST
 app.get(['/api/vehicles', '/vehicles'], async (req, res) => {
   try {
     const rawVehicles = await query("SELECT * FROM vehicles WHERE status != 'draft' ORDER BY featured DESC, id ASC LIMIT 50");
@@ -127,6 +211,7 @@ app.get(['/api/vehicles', '/vehicles'], async (req, res) => {
   }
 });
 
+// PUBLIC STATS
 app.get(['/api/stats/public', '/stats/public'], async (_req, res) => {
   try {
     const totalCars   = await get("SELECT COUNT(*) as c FROM vehicles WHERE status = 'available'");
