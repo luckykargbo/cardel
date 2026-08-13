@@ -103,10 +103,42 @@ function navigate(tab) {
   if (tab === 'inventory') loadInventoryTab();
   if (tab === 'reviews')   loadReviewsTab();
   if (tab === 'settings')  loadSettingsTab();
+
+  // Close mobile sidebar after navigation
+  closeMobileSidebar();
 }
 
 // ──────────────────────────────────────────────
-// THEME
+// MOBILE SIDEBAR
+// ──────────────────────────────────────────────
+function toggleMobileSidebar() {
+  const sidebar   = document.querySelector('.sidebar');
+  const backdrop  = $('sidebarBackdrop');
+  const icon      = $('adminHamburgerIcon');
+  const isOpen    = sidebar?.classList.contains('open');
+  if (isOpen) {
+    sidebar?.classList.remove('open');
+    backdrop?.classList.remove('show');
+    if (icon) icon.className = 'ri-menu-line';
+    document.body.style.overflow = '';
+  } else {
+    sidebar?.classList.add('open');
+    backdrop?.classList.add('show');
+    if (icon) icon.className = 'ri-close-line';
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+function closeMobileSidebar() {
+  const sidebar  = document.querySelector('.sidebar');
+  const backdrop = $('sidebarBackdrop');
+  const icon     = $('adminHamburgerIcon');
+  sidebar?.classList.remove('open');
+  backdrop?.classList.remove('show');
+  if (icon) icon.className = 'ri-menu-line';
+  document.body.style.overflow = '';
+}
+
 function applyTheme(theme) {
   currentTheme = theme;
   // Use data-theme attribute to match admin.css selectors
@@ -791,43 +823,7 @@ function exportInventoryCSV() {
   showToast('Inventory exported as CSV!', 'success');
 }
 
-function loadSettingsTab() {
-  if (!currentAdmin) return;
-  const nameInput  = $('settings-name');
-  const emailInput = $('settings-email');
-  if (nameInput)  nameInput.value  = currentAdmin.name || '';
-  if (emailInput) emailInput.value = currentAdmin.email || '';
-  applyTheme(currentTheme);
-}
-
-async function updateAdminProfile(e) {
-  e.preventDefault();
-  const name  = $('settings-name')?.value?.trim();
-  const email = $('settings-email')?.value?.trim();
-
-  if (!name || !email) { showToast('Name and email are required.', 'error'); return; }
-
-  const btn = $('profile-save-btn');
-  if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
-
-  const res = await api('/auth/profile', {
-    method: 'PUT',
-    body: JSON.stringify({ name, email })
-  });
-
-  if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ri-save-line"></i> Save Profile Changes'; }
-
-  if (res.success) {
-    authToken    = res.token;
-    currentAdmin = res.user;
-    localStorage.setItem('pm_token', authToken);
-    localStorage.setItem('pm_admin', JSON.stringify(currentAdmin));
-    updateAdminUI();
-    showToast('Profile updated successfully!', 'success');
-  } else {
-    showToast(res.message || 'Failed to update profile.', 'error');
-  }
-}
+// (duplicate definitions removed — canonical versions defined above)
 
 // ──────────────────────────────────────────────
 // INIT

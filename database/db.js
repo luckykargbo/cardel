@@ -117,7 +117,12 @@ async function get(sql, params = []) {
   return rows[0] || null;
 }
 
+async function safeAlterTable(table, col, definition) {
+  try { await run(`ALTER TABLE ${table} ADD COLUMN ${col} ${definition}`); } catch {}
+}
+
 async function initDatabase() {
+  // ── Users table ──────────────────────────────────────
   await run(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -130,6 +135,7 @@ async function initDatabase() {
     )
   `);
 
+  // ── Vehicles table (full schema) ─────────────────────
   await run(`
     CREATE TABLE IF NOT EXISTS vehicles (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -139,22 +145,67 @@ async function initDatabase() {
       year INTEGER NOT NULL,
       price REAL NOT NULL,
       mileage INTEGER DEFAULT 0,
+      hp TEXT DEFAULT '',
+      engine TEXT DEFAULT '',
       transmission TEXT DEFAULT 'Automatic',
       fuel TEXT DEFAULT 'Petrol',
       body TEXT DEFAULT 'SUV',
       colour TEXT DEFAULT 'Black',
-      engine TEXT,
-      condition_type TEXT DEFAULT 'Used',
+      condition_type TEXT DEFAULT 'new',
       location TEXT DEFAULT 'Freetown',
       status TEXT DEFAULT 'available',
       featured INTEGER DEFAULT 0,
-      description TEXT,
+      description TEXT DEFAULT '',
       images TEXT DEFAULT '[]',
+      video_url TEXT DEFAULT '',
       features TEXT DEFAULT '[]',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  // ── Safe migrations: add columns to existing tables ──
+  // (ALTER TABLE IF NOT COLUMN EXISTS is not supported by SQLite — we use try/catch)
+  await safeAlterTable('vehicles', 'hp', "TEXT DEFAULT ''");
+  await safeAlterTable('vehicles', 'video_url', "TEXT DEFAULT ''");
+  await safeAlterTable('vehicles', 'condition_type', "TEXT DEFAULT 'new'");
+  await safeAlterTable('vehicles', 'colour', "TEXT DEFAULT 'Black'");
+  await safeAlterTable('vehicles', 'engine', "TEXT DEFAULT ''");
+  await safeAlterTable('vehicles', 'features', "TEXT DEFAULT '[]'");
+  await safeAlterTable('users', 'avatar', 'TEXT');
+
+  // ── Subscribers table ────────────────────────────────
+  await run(`
+    CREATE TABLE IF NOT EXISTS subscribers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT UNIQUE NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // ── Reviews table ────────────────────────────────────
+  await run(`
+    CREATE TABLE IF NOT EXISTS reviews (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      role TEXT DEFAULT 'Verified Client',
+      rating INTEGER DEFAULT 5,
+      comment TEXT NOT NULL,
+      status TEXT DEFAULT 'approved',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // ── Seed default admin if no users exist ────────────
+  const adminExists = await get('SELECT id FROM users LIMIT 1');
+  if (!adminExists) {
+    const bcrypt = require('bcryptjs');
+    const hashed = bcrypt.hashSync('admin123', 12);
+    await run(
+      "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, 'admin')",
+      ['Super Admin', 'admin@saloneautolink.com', hashed]
+    );
+  }
 }
 
 module.exports = {

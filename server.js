@@ -3,9 +3,12 @@
  * ============================================================
  * SALONEAUTOLINK — EXPRESS API SERVER
  * Sierra Leone's Premier Luxury Car Dealership
- * Database: sql.js (pure JavaScript SQLite — no native build required)
+ * Database: Turso Cloud SQLite (pure-HTTP HTTPS driver)
  * ============================================================
  */
+
+// Load .env before anything else (local dev — Render sets env vars natively)
+require('dotenv').config();
 
 const express  = require('express');
 const cors     = require('cors');

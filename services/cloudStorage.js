@@ -79,36 +79,55 @@ function extractKeyFromUrl(urlStr) {
 
 /**
  * Process image buffer and upload to S3/R2.
+ * Falls back to base64 data URL if no cloud credentials are configured —
+ * this ensures images always display correctly on the website.
  */
 async function processAndUploadImage(fileBuffer, originalFilename = '') {
   if (!fileBuffer || !Buffer.isBuffer(fileBuffer)) {
     throw new Error('Invalid file buffer provided for image processing.');
   }
 
-  let optimizedBuffer = fileBuffer;
-  let contentType = 'image/jpeg';
-
-  const ext = (path.extname(originalFilename) || '.jpg').toLowerCase();
-  const key = `cars/img-${uuidv4()}${ext}`;
-
   const client = getS3Client();
+
+  // ── Cloud storage path (S3 / Cloudflare R2) ──────────────────────────────
   if (client) {
+    const ext = (path.extname(originalFilename) || '.jpg').toLowerCase();
+    const key = `cars/img-${uuidv4()}${ext}`;
     const BUCKET_NAME = process.env.S3_BUCKET_NAME || 'salone-auto-media';
+
+    const contentTypeMap = {
+      '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+      '.png': 'image/png', '.webp': 'image/webp',
+      '.gif': 'image/gif'
+    };
+    const contentType = contentTypeMap[ext] || 'image/jpeg';
+
     await client.send(new PutObjectCommand({
       Bucket: BUCKET_NAME,
       Key: key,
-      Body: optimizedBuffer,
+      Body: fileBuffer,
       ContentType: contentType,
     }));
-  } else {
-    console.warn(`[CloudStorage] S3 credentials not set. Simulated upload for key: ${key}`);
+
+    return getPublicUrl(key);
   }
 
-  return getPublicUrl(key);
+  // ── Fallback: base64 data URL (no cloud storage configured) ──────────────
+  // This ensures the image is always stored and shown correctly on the site.
+  const ext = (path.extname(originalFilename) || '.jpg').toLowerCase();
+  const mimeMap = {
+    '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+    '.png': 'image/png', '.webp': 'image/webp',
+    '.gif': 'image/gif'
+  };
+  const mime = mimeMap[ext] || 'image/jpeg';
+  const base64 = fileBuffer.toString('base64');
+  return `data:${mime};base64,${base64}`;
 }
 
 /**
  * Upload video buffer to S3/R2.
+ * Falls back to base64 data URL if no cloud credentials are configured.
  */
 async function uploadVideo(fileBuffer, originalFilename = '', mimeType = 'video/mp4') {
   if (!fileBuffer || !Buffer.isBuffer(fileBuffer)) {
@@ -120,11 +139,12 @@ async function uploadVideo(fileBuffer, originalFilename = '', mimeType = 'video/
     throw new Error('Video file exceeds the 15 MB maximum size limit.');
   }
 
-  const ext = (path.extname(originalFilename) || '.mp4').toLowerCase();
-  const key = `cars/video-${uuidv4()}${ext}`;
-
   const client = getS3Client();
+
+  // ── Cloud storage path ────────────────────────────────────────────────────
   if (client) {
+    const ext = (path.extname(originalFilename) || '.mp4').toLowerCase();
+    const key = `cars/video-${uuidv4()}${ext}`;
     const BUCKET_NAME = process.env.S3_BUCKET_NAME || 'salone-auto-media';
     await client.send(new PutObjectCommand({
       Bucket: BUCKET_NAME,
@@ -132,20 +152,25 @@ async function uploadVideo(fileBuffer, originalFilename = '', mimeType = 'video/
       Body: fileBuffer,
       ContentType: mimeType || 'video/mp4',
     }));
-  } else {
-    console.warn(`[CloudStorage] S3 credentials not set. Simulated video upload for key: ${key}`);
+    return getPublicUrl(key);
   }
 
-  return getPublicUrl(key);
+  // ── Fallback: base64 data URL ─────────────────────────────────────────────
+  const mime = mimeType || 'video/mp4';
+  const base64 = fileBuffer.toString('base64');
+  return `data:${mime};base64,${base64}`;
 }
 
 /**
  * Delete associated media from Cloud Storage by URL or array of URLs.
+ * Skips base64 data URLs — those are embedded in the database, not in S3.
  */
 async function deleteCloudMedia(fileUrlOrUrls) {
   if (!fileUrlOrUrls) return;
   const urls = Array.isArray(fileUrlOrUrls) ? fileUrlOrUrls : [fileUrlOrUrls];
-  const keys = urls.map(extractKeyFromUrl).filter(Boolean);
+  // Skip base64 data URLs — they live in the database, nothing to delete from S3
+  const s3Urls = urls.filter(u => u && !String(u).startsWith('data:'));
+  const keys = s3Urls.map(extractKeyFromUrl).filter(Boolean);
 
   if (!keys.length) return;
 
