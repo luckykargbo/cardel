@@ -114,6 +114,22 @@ async function initInventory() {
   updateFavBadge();
 }
 
+// Silent background refresh — NO skeleton, NO flicker.
+// Only re-renders if the server data has actually changed.
+async function silentRefreshInventory() {
+  try {
+    const fresh = await loadVehicles({ limit: 100 });
+    const currentIds = allVehicles.map(v => v.id + v.status + v.price + v.updated_at).join(',');
+    const freshIds   = fresh.map(v => v.id + v.status + v.price + v.updated_at).join(',');
+    if (currentIds === freshIds) return; // nothing changed, skip re-render
+    allVehicles      = fresh;
+    filteredVehicles = [...fresh];
+    displayedCount   = 0;
+    renderPage();
+    updateFavBadge();
+  } catch (_) { /* silently ignore network errors */ }
+}
+
 function showLoadingSkeleton(grid) {
   grid.innerHTML = Array(6).fill(0).map(() => `
     <div class="vehicle-card skeleton-card">
@@ -984,11 +1000,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Load dynamic featured showcase
   await initShowcase();
 
-  // Live auto-sync: refresh inventory when tab regains focus or when admin updates inventory
+  // Live sync: only re-render when admin explicitly saves a change (no skeletons on tab switch)
   window.addEventListener('storage', (e) => {
-    if (e.key === 'sal_inventory_updated') initInventory();
+    if (e.key === 'sal_inventory_updated') silentRefreshInventory();
   });
-  window.addEventListener('focus', () => {
-    initInventory();
-  });
+
+  // Gentle background poll every 60s — silent, no skeletons, only re-renders on actual changes
+  setInterval(silentRefreshInventory, 60000);
 });
