@@ -536,6 +536,87 @@ app.get('/api/stats', requireAuth, async (req, res) => {
 // STANDALONE UPLOAD
 // ──────────────────────────────────────────────
 
+// ──────────────────────────────────────────────
+// REVIEWS ROUTES
+// ──────────────────────────────────────────────
+
+// GET all approved reviews (public)
+app.get('/api/reviews', async (_req, res) => {
+  try {
+    const reviews = await query(
+      "SELECT * FROM reviews WHERE status = 'approved' ORDER BY created_at DESC"
+    );
+    return ok(res, { reviews });
+  } catch (err) {
+    return ok(res, { reviews: [] });
+  }
+});
+
+// GET all reviews for admin (requires auth)
+app.get('/api/reviews/all', requireAuth, async (_req, res) => {
+  try {
+    const reviews = await query('SELECT * FROM reviews ORDER BY created_at DESC');
+    return ok(res, { reviews });
+  } catch (err) {
+    return ok(res, { reviews: [] });
+  }
+});
+
+// POST new review (public — visitors can submit)
+app.post('/api/reviews', async (req, res) => {
+  const { name, role = 'Verified Client', rating = 5, comment } = req.body;
+  if (!name || !comment) return fail(res, 'Name and comment are required.');
+  try {
+    const r = await run(
+      'INSERT INTO reviews (name, role, rating, comment, status) VALUES (?, ?, ?, ?, ?)',
+      [name.trim(), role.trim(), parseInt(rating) || 5, comment.trim(), 'approved']
+    );
+    return ok(res, { id: r.lastInsertRowid }, 201);
+  } catch (err) {
+    return fail(res, err.message || 'Failed to save review.', 500);
+  }
+});
+
+// DELETE review (admin only)
+app.delete('/api/reviews/:id', requireAuth, async (req, res) => {
+  try {
+    await run('DELETE FROM reviews WHERE id = ?', [req.params.id]);
+    return ok(res, { deleted: true });
+  } catch (err) {
+    return fail(res, err.message || 'Failed to delete review.', 500);
+  }
+});
+
+// PATCH review status (approve/hide)
+app.patch('/api/reviews/:id/status', requireAuth, async (req, res) => {
+  const { status } = req.body;
+  if (!['approved', 'hidden'].includes(status)) return fail(res, 'Invalid status.');
+  try {
+    await run('UPDATE reviews SET status = ? WHERE id = ?', [status, req.params.id]);
+    return ok(res, { updated: true });
+  } catch (err) {
+    return fail(res, err.message || 'Failed to update review status.', 500);
+  }
+});
+
+// ──────────────────────────────────────────────
+// FEATURED VEHICLES (public — for homepage showcase)
+// ──────────────────────────────────────────────
+app.get('/api/featured', async (_req, res) => {
+  try {
+    const vehicles = await query(
+      "SELECT * FROM vehicles WHERE featured = 1 AND status != 'draft' ORDER BY updated_at DESC LIMIT 8"
+    );
+    return ok(res, { vehicles: vehicles.map(mapVehicle) });
+  } catch (err) {
+    return ok(res, { vehicles: [] });
+  }
+});
+
+// ──────────────────────────────────────────────
+// STANDALONE UPLOAD
+// ──────────────────────────────────────────────
+
 app.post('/api/upload', requireAuth, upload.array('images', 10), async (req, res) => {
   if (!req.files?.length) return fail(res, 'No files uploaded.');
 

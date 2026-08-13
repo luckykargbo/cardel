@@ -3465,3 +3465,26 @@ body.modal-open { overflow: hidden; }
   animation: spin 1s linear infinite !important;
 }
 
+/* ============================================================
+   FEATURED SHOWCASE SECTION
+   ============================================================ */
+.featured-showcase-section {
+  padding: 80px 0;
+  background: linear-gradient(180deg, var(--bg-deep) 0%, rgba(229,169,92,0.02) 50%, var(--bg-deep) 100%);
+  position: relative;
+}
+.featured-showcase-section::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(229,169,92,0.3), transparent);
+}
+.featured-showcase-section::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(229,169,92,0.3), transparent);
+}
+

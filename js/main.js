@@ -637,6 +637,29 @@ async function initLiveReviews() {
   initTestimonialsCarousel();
 }
 
+// ──────────────────────────────────────────────
+// FEATURED CARS SHOWCASE (Loads featured vehicles from SQLite)
+// ──────────────────────────────────────────────
+async function initShowcase() {
+  const section = document.getElementById('featuredShowcase');
+  const grid    = document.getElementById('featuredGrid');
+  if (!section || !grid) return;
+
+  const data = await apiFetch('/featured');
+
+  // Hide if no featured cars
+  if (!data.success || !data.vehicles?.length) {
+    section.style.display = 'none';
+    return;
+  }
+
+  // Show section and render cards
+  section.style.display = '';
+  grid.innerHTML = data.vehicles.map(v => buildVehicleCard(v)).join('');
+  attachCardEvents();
+}
+
+
 function openReviewModal() {
   const modal = $('writeReviewModal');
   if (modal) {
