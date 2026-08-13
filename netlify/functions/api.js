@@ -1,11 +1,11 @@
 'use strict';
 /**
- * SALONEAUTOLINK — NATIVE NETLIFY SERVERLESS API HANDLER
- * 100% Native AWS Lambda Handler — ZERO Express overhead, ZERO serverless-http stream mocks.
+ * SALONEAUTOLINK — NATIVE NETLIFY SERVERLESS API HANDLER (100% PURE NODE BUILT-INS)
+ * Zero external npm dependencies inside top-level scope: only native https & crypto!
  */
 
 const https  = require('https');
-const jwt    = require('jsonwebtoken');
+const crypto = require('crypto');
 
 // ──────────────────────────────────────────────
 // TURSO DATABASE DRIVER (Pure HTTPS)
@@ -86,7 +86,7 @@ async function get(sql, params = []) {
 }
 
 // ──────────────────────────────────────────────
-// RESPONSE HELPERS & JWT
+// RESPONSE HELPERS & PURE NODE AUTH
 // ──────────────────────────────────────────────
 const ok = (data, status = 200) => ({
   statusCode: status,
@@ -113,16 +113,25 @@ const fail = (message, status = 400) => ({
 const JWT_SECRET = process.env.JWT_SECRET || 'saloneautolink_jwt_secret_onyx_2026';
 
 function signToken(payload) {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
+  const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
+  const exp = Math.floor(Date.now() / 1000) + (24 * 60 * 60);
+  const body = Buffer.from(JSON.stringify({ ...payload, exp })).toString('base64url');
+  const signature = crypto.createHmac('sha256', JWT_SECRET).update(`${header}.${body}`).digest('base64url');
+  return `${header}.${body}.${signature}`;
 }
 
 function verifyAuth(event) {
   const headers = event.headers || {};
-  const header = headers.authorization || headers.Authorization || '';
-  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  const headerStr = headers.authorization || headers.Authorization || '';
+  const token = headerStr.startsWith('Bearer ') ? headerStr.slice(7) : null;
   if (!token) return null;
   try {
-    return jwt.verify(token, JWT_SECRET);
+    const [h, b, s] = token.split('.');
+    const expectedSig = crypto.createHmac('sha256', JWT_SECRET).update(`${h}.${b}`).digest('base64url');
+    if (s !== expectedSig) return null;
+    const payload = JSON.parse(Buffer.from(b, 'base64url').toString('utf8'));
+    if (payload.exp && Math.floor(Date.now() / 1000) > payload.exp) return null;
+    return payload;
   } catch {
     return null;
   }
