@@ -3,9 +3,8 @@
   publish = "."
   functions = "netlify/functions"
 
-[functions]
-  directory = "netlify/functions"
-  node_bundler = "nft"
+[build.environment]
+  AWS_LAMBDA_JS_RUNTIME = "nodejs20.x"
 
 # Secret Admin Gate URL rewrite (Renders Admin Suite)
 [[redirects]]
