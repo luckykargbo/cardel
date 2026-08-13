@@ -22,15 +22,13 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Serverless Database Auto-Init Middleware
 let dbInitPromise = null;
 app.use(async (req, res, next) => {
-  if (req.path.startsWith('/api/')) {
-    if (!dbInitPromise) {
-      dbInitPromise = initDatabase().catch(err => {
-        console.warn('Turso init note:', err.message);
-        return null;
-      });
-    }
-    try { await dbInitPromise; } catch {}
+  if (!dbInitPromise) {
+    dbInitPromise = initDatabase().catch(err => {
+      console.warn('Turso init note:', err.message);
+      return null;
+    });
   }
+  try { await dbInitPromise; } catch {}
   next();
 });
 
@@ -48,9 +46,9 @@ function mapVehicle(v) {
 }
 
 // ──────────────────────────────────────────────
-// AUTH ROUTES
+// AUTH ROUTES (Support both /api/auth/* and /auth/*)
 // ──────────────────────────────────────────────
-app.post('/api/auth/login', async (req, res) => {
+async function handleLogin(req, res) {
   try {
     const { email, password } = req.body;
     if (!email || !password) return fail(res, 'Email and password are required.');
@@ -69,9 +67,11 @@ app.post('/api/auth/login', async (req, res) => {
     console.error('Login error:', err);
     return fail(res, 'Login failed. Please try again.', 500);
   }
-});
+}
 
-app.get('/api/auth/me', requireAuth, async (req, res) => {
+app.post(['/api/auth/login', '/auth/login'], handleLogin);
+
+app.get(['/api/auth/me', '/auth/me'], requireAuth, async (req, res) => {
   try {
     const user = await get('SELECT id,name,email,role,avatar,created_at FROM users WHERE id = ?', [req.admin.id]);
     if (!user) return fail(res, 'User not found.', 404);
@@ -81,7 +81,7 @@ app.get('/api/auth/me', requireAuth, async (req, res) => {
   }
 });
 
-app.patch('/api/auth/password', requireAuth, async (req, res) => {
+app.patch(['/api/auth/password', '/auth/password'], requireAuth, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
     if (!currentPassword || !newPassword) return fail(res, 'Both current and new passwords are required.');
@@ -98,7 +98,7 @@ app.patch('/api/auth/password', requireAuth, async (req, res) => {
   }
 });
 
-app.put('/api/auth/profile', requireAuth, upload.single('avatar'), async (req, res) => {
+app.put(['/api/auth/profile', '/auth/profile'], requireAuth, upload.single('avatar'), async (req, res) => {
   try {
     const { name, email, avatarUrl } = req.body;
     if (!name || !email) return fail(res, 'Name and email are required.');
@@ -127,7 +127,7 @@ app.put('/api/auth/profile', requireAuth, upload.single('avatar'), async (req, r
 // ──────────────────────────────────────────────
 // VEHICLES & STATS ROUTES
 // ──────────────────────────────────────────────
-app.get('/api/vehicles', async (req, res) => {
+async function handleVehiclesList(req, res) {
   try {
     const {
       brand, model, year, body, transmission, fuel,
@@ -177,9 +177,11 @@ app.get('/api/vehicles', async (req, res) => {
   } catch (err) {
     return fail(res, err.message, 500);
   }
-});
+}
 
-app.get('/api/vehicles/:id', async (req, res) => {
+app.get(['/api/vehicles', '/vehicles'], handleVehiclesList);
+
+app.get(['/api/vehicles/:id', '/vehicles/:id'], async (req, res) => {
   try {
     const vehicle = await get('SELECT * FROM vehicles WHERE id = ?', [req.params.id]);
     if (!vehicle) return fail(res, 'Vehicle not found.', 404);
@@ -189,7 +191,7 @@ app.get('/api/vehicles/:id', async (req, res) => {
   }
 });
 
-app.get('/api/stats/public', async (_req, res) => {
+app.get(['/api/stats/public', '/stats/public'], async (_req, res) => {
   try {
     const totalCars   = await get("SELECT COUNT(*) as c FROM vehicles WHERE status = 'available'");
     const totalBrands = await get("SELECT COUNT(DISTINCT brand) as c FROM vehicles WHERE status = 'available'");
