@@ -1,158 +1,138 @@
 'use strict';
 /**
- * SALONEAUTOLINK — UNIVERSAL SERVERLESS API HANDLER
+ * SALONEAUTOLINK — UNIVERSAL API SERVERLESS FUNCTION
  */
 
-const bcrypt                             = require('bcryptjs');
-const cloudStorage                       = require('../services/cloudStorage');
+const express = require('express');
+const cors = require('cors');
+const bcrypt = require('bcryptjs');
 const { initDatabase, query, run, get } = require('../database/db');
-const { signToken, requireAuth }         = require('../middleware/auth');
+const { signToken, requireAuth } = require('../middleware/auth');
 
-function ok(data, status = 200) {
-  return {
-    statusCode: status,
-    headers: {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS'
-    },
-    body: JSON.stringify({ success: true, ...data })
-  };
-}
+const app = express();
 
-function fail(message, status = 400) {
-  return {
-    statusCode: status,
-    headers: {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS'
-    },
-    body: JSON.stringify({ success: false, message })
-  };
-}
+app.use(cors());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-function parseAuthToken(event) {
-  const headers = event.headers || {};
-  const header = headers.authorization || headers.Authorization || '';
-  const token  = header.startsWith('Bearer ') ? header.slice(7) : null;
-  if (!token) return null;
-  try {
-    const jwt = require('jsonwebtoken');
-    const secret = process.env.JWT_SECRET || 'saloneautolink_jwt_secret_onyx_2026';
-    return jwt.verify(token, secret);
-  } catch {
-    return null;
+// Database Auto-Init Middleware
+let dbInitPromise = null;
+app.use(async (req, res, next) => {
+  if (!dbInitPromise) {
+    dbInitPromise = initDatabase().catch(() => null);
   }
+  try { await dbInitPromise; } catch {}
+  next();
+});
+
+const ok   = (res, data, status = 200) => res.status(status).json({ success: true, ...data });
+const fail = (res, message, status = 400) => res.status(status).json({ success: false, message });
+
+function mapVehicle(v) {
+  if (!v) return null;
+  let images = [];
+  try { images = JSON.parse(v.images || '[]'); } catch { images = []; }
+  return { ...v, featured: Boolean(v.featured), images };
 }
 
-exports.handler = async (event, context) => {
-  if (event.httpMethod === 'OPTIONS') return ok({});
-
+// LOGIN
+app.post(['/api/auth/login', '/auth/login'], async (req, res) => {
   try {
-    await initDatabase().catch(() => null);
+    const { email, password } = req.body;
+    if (!email || !password) return fail(res, 'Email and password are required.');
 
-    const path = event.path || '';
-    const method = (event.httpMethod || 'GET').toUpperCase();
-    let body = {};
-    if (event.body) {
-      try { body = JSON.parse(event.body); } catch { body = {}; }
-    }
+    const user = await get('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', [email.trim()]);
+    if (!user) return fail(res, 'Invalid email or password.', 401);
 
-    // LOGIN: POST /api/auth/login or /auth/login
-    if (method === 'POST' && (path.endsWith('/auth/login') || path.endsWith('/auth/login/'))) {
-      const email = body.email ? body.email.trim() : '';
-      const password = body.password || '';
-      if (!email || !password) return fail('Email and password are required.');
+    if (!bcrypt.compareSync(password, user.password)) return fail(res, 'Invalid email or password.', 401);
 
-      const user = await get('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', [email]);
-      if (!user) return fail('Invalid email or password.', 401);
-
-      if (!bcrypt.compareSync(password, user.password)) return fail('Invalid email or password.', 401);
-
-      const token = signToken({ id: user.id, email: user.email, name: user.name, role: user.role });
-      return ok({
-        token,
-        user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar }
-      });
-    }
-
-    // GET /api/auth/me
-    if (method === 'GET' && (path.endsWith('/auth/me') || path.endsWith('/auth/me/'))) {
-      const admin = parseAuthToken(event);
-      if (!admin) return fail('Authentication required.', 401);
-
-      const user = await get('SELECT id,name,email,role,avatar,created_at FROM users WHERE id = ?', [admin.id]);
-      if (!user) return fail('User not found.', 404);
-      return ok({ user });
-    }
-
-    // PATCH /api/auth/password
-    if (method === 'PATCH' && (path.endsWith('/auth/password') || path.endsWith('/auth/password/'))) {
-      const admin = parseAuthToken(event);
-      if (!admin) return fail('Authentication required.', 401);
-
-      const { currentPassword, newPassword } = body;
-      if (!currentPassword || !newPassword) return fail('Both current and new passwords are required.');
-      if (newPassword.length < 8) return fail('New password must be at least 8 characters.');
-
-      const user = await get('SELECT password FROM users WHERE id = ?', [admin.id]);
-      if (!bcrypt.compareSync(currentPassword, user.password)) return fail('Current password is incorrect.', 401);
-
-      const hashed = bcrypt.hashSync(newPassword, 12);
-      await run('UPDATE users SET password = ? WHERE id = ?', [hashed, admin.id]);
-      return ok({ message: 'Password updated successfully.' });
-    }
-
-    // PUT /api/auth/profile
-    if (method === 'PUT' && (path.endsWith('/auth/profile') || path.endsWith('/auth/profile/'))) {
-      const admin = parseAuthToken(event);
-      if (!admin) return fail('Authentication required.', 401);
-
-      const { name, email, avatarUrl } = body;
-      if (!name || !email) return fail('Name and email are required.');
-
-      const existing = await get('SELECT id FROM users WHERE email = ? AND id != ?', [email.trim().toLowerCase(), admin.id]);
-      if (existing) return fail('This email is already in use by another account.', 400);
-
-      const currentUser = await get('SELECT avatar FROM users WHERE id = ?', [admin.id]);
-      const finalAvatar = avatarUrl !== undefined ? avatarUrl : (currentUser?.avatar || null);
-
-      await run('UPDATE users SET name = ?, email = ?, avatar = ? WHERE id = ?', [name.trim(), email.trim().toLowerCase(), finalAvatar, admin.id]);
-      const updated = await get('SELECT id, name, email, role, avatar FROM users WHERE id = ?', [admin.id]);
-
-      const token = signToken({ id: updated.id, email: updated.email, name: updated.name, role: updated.role });
-      return ok({ user: updated, token, message: 'Profile updated successfully.' });
-    }
-
-    // VEHICLES LIST: GET /api/vehicles
-    if (method === 'GET' && (path.endsWith('/vehicles') || path.endsWith('/vehicles/'))) {
-      const raw = await query("SELECT * FROM vehicles WHERE status != 'draft' ORDER BY featured DESC, id ASC LIMIT 50");
-      const vehicles = raw.map(v => {
-        let images = [];
-        try { images = JSON.parse(v.images || '[]'); } catch { images = []; }
-        return { ...v, featured: Boolean(v.featured), images };
-      });
-      return ok({ vehicles, total: vehicles.length });
-    }
-
-    // PUBLIC STATS: GET /api/stats/public
-    if (method === 'GET' && (path.endsWith('/stats/public') || path.endsWith('/stats/public/'))) {
-      const totalCars   = await get("SELECT COUNT(*) as c FROM vehicles WHERE status = 'available'");
-      const totalBrands = await get("SELECT COUNT(DISTINCT brand) as c FROM vehicles WHERE status = 'available'");
-      return ok({
-        carsAvailable:     totalCars?.c   || 0,
-        satisfiedClients:  25,
-        brandsCount:       totalBrands?.c || 0,
-        satisfactionRate:  99
-      });
-    }
-
-    return fail('Endpoint not found.', 404);
+    const token = signToken({ id: user.id, email: user.email, name: user.name, role: user.role });
+    return ok(res, {
+      token,
+      user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar }
+    });
   } catch (err) {
-    console.error('Native Lambda handler error:', err);
-    return fail(err.message || 'Internal server error.', 500);
+    console.error('Login error:', err);
+    return fail(res, 'Login failed. Please try again.', 500);
   }
-};
+});
+
+// AUTH ME
+app.get(['/api/auth/me', '/auth/me'], requireAuth, async (req, res) => {
+  try {
+    const user = await get('SELECT id,name,email,role,avatar,created_at FROM users WHERE id = ?', [req.admin.id]);
+    if (!user) return fail(res, 'User not found.', 404);
+    return ok(res, { user });
+  } catch (err) {
+    return fail(res, err.message, 500);
+  }
+});
+
+// UPDATE PASSWORD
+app.patch(['/api/auth/password', '/auth/password'], requireAuth, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) return fail(res, 'Both current and new passwords are required.');
+    if (newPassword.length < 8) return fail(res, 'New password must be at least 8 characters.');
+
+    const user = await get('SELECT password FROM users WHERE id = ?', [req.admin.id]);
+    if (!bcrypt.compareSync(currentPassword, user.password)) return fail(res, 'Current password is incorrect.', 401);
+
+    const hashed = bcrypt.hashSync(newPassword, 12);
+    await run('UPDATE users SET password = ? WHERE id = ?', [hashed, req.admin.id]);
+    return ok(res, { message: 'Password updated successfully.' });
+  } catch (err) {
+    return fail(res, err.message, 500);
+  }
+});
+
+// UPDATE PROFILE
+app.put(['/api/auth/profile', '/auth/profile'], requireAuth, async (req, res) => {
+  try {
+    const { name, email, avatarUrl } = req.body;
+    if (!name || !email) return fail(res, 'Name and email are required.');
+
+    const existing = await get('SELECT id FROM users WHERE email = ? AND id != ?', [email.trim().toLowerCase(), req.admin.id]);
+    if (existing) return fail(res, 'This email is already in use by another account.', 400);
+
+    const currentUser = await get('SELECT avatar FROM users WHERE id = ?', [req.admin.id]);
+    const finalAvatar = avatarUrl !== undefined ? avatarUrl : (currentUser?.avatar || null);
+
+    await run('UPDATE users SET name = ?, email = ?, avatar = ? WHERE id = ?', [name.trim(), email.trim().toLowerCase(), finalAvatar, req.admin.id]);
+    const updated = await get('SELECT id, name, email, role, avatar FROM users WHERE id = ?', [req.admin.id]);
+
+    const token = signToken({ id: updated.id, email: updated.email, name: updated.name, role: updated.role });
+    return ok(res, { user: updated, token, message: 'Profile updated successfully.' });
+  } catch (err) {
+    return fail(res, err.message, 500);
+  }
+});
+
+// VEHICLES LIST
+app.get(['/api/vehicles', '/vehicles'], async (req, res) => {
+  try {
+    const rawVehicles = await query("SELECT * FROM vehicles WHERE status != 'draft' ORDER BY featured DESC, id ASC LIMIT 50");
+    const vehicles    = rawVehicles.map(mapVehicle);
+    return ok(res, { vehicles, total: vehicles.length });
+  } catch (err) {
+    return fail(res, err.message, 500);
+  }
+});
+
+// PUBLIC STATS
+app.get(['/api/stats/public', '/stats/public'], async (_req, res) => {
+  try {
+    const totalCars   = await get("SELECT COUNT(*) as c FROM vehicles WHERE status = 'available'");
+    const totalBrands = await get("SELECT COUNT(DISTINCT brand) as c FROM vehicles WHERE status = 'available'");
+    return ok(res, {
+      carsAvailable:     totalCars?.c   || 0,
+      satisfiedClients:  25,
+      brandsCount:       totalBrands?.c || 0,
+      satisfactionRate:  99
+    });
+  } catch (err) {
+    return ok(res, { carsAvailable: 0, satisfiedClients: 25, brandsCount: 0, satisfactionRate: 99 });
+  }
+});
+
+module.exports = app;

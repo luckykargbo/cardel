@@ -1,0 +1,9 @@
+{
+  "version": 2,
+  "rewrites": [
+    { "source": "/admin/get/get_chenor(.*)", "destination": "/admin.html" },
+    { "source": "/admin.html", "destination": "/" },
+    { "source": "/admin", "destination": "/" },
+    { "source": "/api/(.*)", "destination": "/api/index.js" }
+  ]
+}
