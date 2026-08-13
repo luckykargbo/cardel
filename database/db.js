@@ -1,93 +1,115 @@
 'use strict';
-try { require('dotenv').config(); } catch {}
 
 /**
- * SALONEAUTOLINK — DATABASE LAYER (Turso Cloud Database via Pure JS Native HTTP Pipeline)
- * Direct HTTPS connection to Turso Cloud Database — 100% serverless compatible, zero C++ native binaries.
+ * SALONEAUTOLINK — UNIVERSAL PURE NODE TURSO HTTPS PIPELINE DRIVER
+ * Works on Node 14+, Node 18+, Node 20+, Netlify, Vercel, AWS Lambda, Windows & Linux.
  */
 
-const DEFAULT_URL   = 'https://saloneautolink-luckykargbo.aws-eu-west-1.turso.io';
-const DEFAULT_TOKEN = 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3ODYzODMwNjIsImlkIjoiMDE5ZmVjYWYtNjMwMS03ODAxLTg5NGEtMjUyMzk5MGU0ODdmIiwia2lkIjoiMmhDUHBmTlNYMEpYOEZETDRsYUVreDJpUVBLYTdaZW10bVN0aERfcFdvWSIsInJpZCI6IjY5ODRkZmU0LTlkNDItNDdiNS1hNTJjLTU3M2QwMWI3ZjZmOSJ9.wwWICJ6Hj3fTNZVVOMdg1pqQVikT5v_OI37xbvfWGiVZKSzltXkG3sdVbYtki6WWt-FgxvPEsUgmmCDrLTowCw';
+const https = require('https');
+const bcrypt = require('bcryptjs');
 
-let baseUrl = (process.env.TURSO_DATABASE_URL || DEFAULT_URL).trim().replace(/^["']|["']$/g, '');
-if (baseUrl.startsWith('libsql://')) {
-  baseUrl = baseUrl.replace('libsql://', 'https://');
+const dbUrl   = process.env.TURSO_DATABASE_URL || 'saloneautolink-luckykargbo.aws-eu-west-1.turso.io';
+const dbToken = process.env.TURSO_AUTH_TOKEN     || 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3ODY2MDU1NzMsImlkIjoiMDE5ZmVjYWYtNjMwMS03ODAxLTg5NGEtMjUyMzk5MGU0ODdmIiwia2lkIjoiMmhDUHBmTlNYMEpYOEZETDRsYUVreDJpUVBLYTdaZW10bVN0aERfcFdvWSIsInJpZCI6IjY5ODRkZmU0LTlkNDItNDdiNS1hNTJjLTU3M2QwMWI3ZjZmOSJ9.ljuawc9RGPVZbuzRaSKycw6e5eRpYPMEs8lL4saUlvh0ughebcvi6EkcPwGxh9aquMG1GXUvc5bT-m8Dzj88DQ';
+
+const cleanHost = dbUrl.replace(/^libsql:\/\//, '').replace(/^https:\/\//, '').replace(/\/$/, '');
+
+function executePipeline(requests) {
+  return new Promise((resolve, reject) => {
+    const postData = JSON.stringify({ requests });
+    const options = {
+      hostname: cleanHost,
+      port: 443,
+      path: '/v2/pipeline',
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${dbToken}`,
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(postData)
+      }
+    };
+
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(data);
+          resolve(parsed);
+        } catch (e) {
+          reject(new Error('Failed to parse Turso response: ' + data));
+        }
+      });
+    });
+
+    req.on('error', (err) => reject(err));
+    req.write(postData);
+    req.end();
+  });
 }
-const authToken = (process.env.TURSO_AUTH_TOKEN || DEFAULT_TOKEN).trim().replace(/^["']|["']$/g, '');
 
-function formatArg(arg) {
-  if (arg === null || arg === undefined) return { type: 'null' };
-  if (typeof arg === 'number') {
-    if (Number.isInteger(arg)) return { type: 'integer', value: String(arg) };
-    return { type: 'float', value: arg };
+function formatParam(val) {
+  if (val === null || val === undefined) return { type: 'null' };
+  if (typeof val === 'number') {
+    if (Number.isInteger(val)) return { type: 'integer', value: String(val) };
+    return { type: 'float', value: val };
   }
-  if (typeof arg === 'boolean') return { type: 'integer', value: arg ? '1' : '0' };
-  return { type: 'text', value: String(arg) };
+  return { type: 'text', value: String(val) };
 }
 
-function parseVal(cell) {
-  if (!cell || cell.type === 'null') return null;
+function parseCell(cell) {
+  if (!cell) return null;
+  if (cell.type === 'null') return null;
   if (cell.type === 'integer') return parseInt(cell.value, 10);
   if (cell.type === 'float') return parseFloat(cell.value);
   return cell.value;
 }
 
-async function executeStmt(sql, params = []) {
-  const url = `${baseUrl.replace(/\/+$/, '')}/v2/pipeline`;
-  const stmt = { sql, args: params.map(formatArg) };
+async function query(sql, params = []) {
+  const req = {
+    type: 'execute',
+    stmt: {
+      sql,
+      args: params.map(formatParam)
+    }
+  };
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${authToken}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      requests: [
-        { type: 'execute', stmt },
-        { type: 'close' }
-      ]
-    })
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Turso HTTP error ${response.status}: ${text}`);
+  const res = await executePipeline([req, { type: 'close' }]);
+  const result = res.results?.[0]?.response?.result;
+  if (!result) {
+    const err = res.results?.[0]?.response?.error || res.error;
+    throw new Error(`Turso Query Failed: ${err ? JSON.stringify(err) : 'Unknown error'}`);
   }
 
-  const data = await response.json();
-
-  if (data?.results?.[0]?.type === 'error') {
-    throw new Error(data.results[0].error?.message || 'Turso query execution failed');
-  }
-
-  const execResult = data?.results?.[0]?.response?.result;
-  if (!execResult) return { rows: [], affectedRows: 0, lastInsertRowid: null };
-
-  const cols = (execResult.cols || []).map(c => c.name);
-  const rows = (execResult.rows || []).map(rowCells => {
+  const cols = result.cols.map(c => c.name);
+  return result.rows.map(row => {
     const obj = {};
-    cols.forEach((colName, idx) => {
-      obj[colName] = parseVal(rowCells[idx]);
+    row.forEach((cell, idx) => {
+      obj[cols[idx]] = parseCell(cell);
     });
     return obj;
   });
-
-  return {
-    rows,
-    affectedRows: execResult.affected_row_count || 0,
-    lastInsertRowid: execResult.last_insert_rowid ? parseInt(execResult.last_insert_rowid, 10) : null
-  };
-}
-
-async function query(sql, params = []) {
-  const res = await executeStmt(sql, params);
-  return res.rows;
 }
 
 async function run(sql, params = []) {
-  const res = await executeStmt(sql, params);
-  return { lastID: res.lastInsertRowid, changes: res.affectedRows };
+  const req = {
+    type: 'execute',
+    stmt: {
+      sql,
+      args: params.map(formatParam)
+    }
+  };
+
+  const res = await executePipeline([req, { type: 'close' }]);
+  const result = res.results?.[0]?.response?.result;
+  if (!result) {
+    const err = res.results?.[0]?.response?.error || res.error;
+    throw new Error(`Turso Run Failed: ${err ? JSON.stringify(err) : 'Unknown error'}`);
+  }
+
+  return {
+    rowsAffected: result.affected_row_count || 0,
+    lastInsertRowid: result.last_insert_rowid ? parseInt(result.last_insert_rowid, 10) : null
+  };
 }
 
 async function get(sql, params = []) {
@@ -96,91 +118,48 @@ async function get(sql, params = []) {
 }
 
 async function initDatabase() {
-  await createSchema();
-  await seedData();
-  return true;
-}
-
-async function createSchema() {
-  await executeStmt(`
+  await run(`
     CREATE TABLE IF NOT EXISTS users (
-      id         INTEGER PRIMARY KEY AUTOINCREMENT,
-      name       TEXT    NOT NULL,
-      email      TEXT    NOT NULL UNIQUE,
-      password   TEXT    NOT NULL,
-      role       TEXT    NOT NULL DEFAULT 'admin',
-      avatar     TEXT,
-      created_at TEXT    NOT NULL DEFAULT (datetime('now'))
-    );
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      email TEXT UNIQUE NOT NULL,
+      password TEXT NOT NULL,
+      role TEXT DEFAULT 'admin',
+      avatar TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
   `);
 
-  await executeStmt(`
+  await run(`
     CREATE TABLE IF NOT EXISTS vehicles (
-      id              INTEGER PRIMARY KEY AUTOINCREMENT,
-      title           TEXT    NOT NULL,
-      brand           TEXT    NOT NULL,
-      model           TEXT    NOT NULL,
-      year            INTEGER NOT NULL,
-      price           INTEGER NOT NULL,
-      mileage         INTEGER NOT NULL DEFAULT 0,
-      fuel            TEXT    NOT NULL,
-      hp              TEXT,
-      engine          TEXT,
-      transmission    TEXT,
-      body            TEXT,
-      colour          TEXT,
-      location        TEXT    DEFAULT 'Freetown',
-      condition_type  TEXT    NOT NULL DEFAULT 'new',
-      status          TEXT    NOT NULL DEFAULT 'available',
-      featured        INTEGER NOT NULL DEFAULT 0,
-      description     TEXT,
-      images          TEXT    NOT NULL DEFAULT '[]',
-      video_url       TEXT,
-      created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
-      updated_at      TEXT    NOT NULL DEFAULT (datetime('now'))
-    );
-  `);
-
-  await executeStmt(`
-    CREATE TABLE IF NOT EXISTS reviews (
-      id          INTEGER PRIMARY KEY AUTOINCREMENT,
-      name        TEXT    NOT NULL,
-      role        TEXT,
-      rating      INTEGER NOT NULL DEFAULT 5,
-      comment     TEXT    NOT NULL,
-      status      TEXT    NOT NULL DEFAULT 'approved',
-      created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
-    );
-  `);
-
-  await executeStmt(`
-    CREATE TABLE IF NOT EXISTS subscribers (
-      id         INTEGER PRIMARY KEY AUTOINCREMENT,
-      email      TEXT    NOT NULL UNIQUE,
-      created_at TEXT    NOT NULL DEFAULT (datetime('now'))
-    );
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      brand TEXT NOT NULL,
+      model TEXT NOT NULL,
+      year INTEGER NOT NULL,
+      price REAL NOT NULL,
+      mileage INTEGER DEFAULT 0,
+      transmission TEXT DEFAULT 'Automatic',
+      fuel TEXT DEFAULT 'Petrol',
+      body TEXT DEFAULT 'SUV',
+      colour TEXT DEFAULT 'Black',
+      engine TEXT,
+      condition_type TEXT DEFAULT 'Used',
+      location TEXT DEFAULT 'Freetown',
+      status TEXT DEFAULT 'available',
+      featured INTEGER DEFAULT 0,
+      description TEXT,
+      images TEXT DEFAULT '[]',
+      features TEXT DEFAULT '[]',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
   `);
 }
 
-async function seedData() {
-  const bcrypt = require('bcryptjs');
-  const email = 'hackerunlockme@gmail.com';
-  const hashed = bcrypt.hashSync('PEACElu2@', 12);
-
-  const adminUser = await get("SELECT id FROM users WHERE LOWER(email) = LOWER(?)", [email]);
-  if (!adminUser) {
-    await run(
-      "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, 'superadmin')",
-      ['Super Admin', email, hashed]
-    );
-    console.log(`✅ Admin user created in Turso: ${email}`);
-  } else {
-    await run(
-      "UPDATE users SET password = ? WHERE LOWER(email) = LOWER(?)",
-      [hashed, email]
-    );
-    console.log(`✅ Admin user password synchronized in Turso: ${email}`);
-  }
-}
-
-module.exports = { db: { execute: executeStmt }, initDatabase, query, run, get };
+module.exports = {
+  initDatabase,
+  query,
+  run,
+  get
+};
