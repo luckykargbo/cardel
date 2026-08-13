@@ -188,17 +188,18 @@ async function handleLogin(e) {
     return;
   }
 
-  // Store auth
-  authToken    = data.token;
-  currentAdmin = data.user;
-  localStorage.setItem('pm_token', authToken);
-  localStorage.setItem('pm_admin', JSON.stringify(currentAdmin));
+  if (data.success) {
+    authToken    = data.token;
+    currentAdmin = data.user;
+    safeStore('pm_token', authToken);
+    safeStore('pm_admin', JSON.stringify(currentAdmin));
 
-  // Update UI
-  updateAdminUI();
-  showPage('app');
-  navigate('dashboard');
-  showToast(`Welcome back, ${currentAdmin.name}! 🚘`, 'success');
+    // Update UI
+    updateAdminUI();
+    showPage('app');
+    navigate('dashboard');
+    showToast(`Welcome back, ${currentAdmin.name}! 🚘`, 'success');
+  }
 }
 
 function updateAdminUI() {
@@ -705,9 +706,45 @@ function closeDeleteModal() {
 // ──────────────────────────────────────────────
 // SETTINGS TAB & PROFILE MANAGEMENT
 // ──────────────────────────────────────────────
-function handleAvatarSelect(e) {
+
+/**
+ * Resize an image File/Blob to maxPx × maxPx JPEG using Canvas API.
+ * Keeps avatars tiny (~15–25 KB) so they fit in Turso + localStorage.
+ */
+function resizeImageForUpload(file, maxPx = 256, quality = 0.82) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > maxPx || h > maxPx) {
+          if (w >= h) { h = Math.round(h * maxPx / w); w = maxPx; }
+          else        { w = Math.round(w * maxPx / h); h = maxPx; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        canvas.toBlob((blob) => resolve(blob || file), 'image/jpeg', quality);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+/** Safe localStorage write — catches QuotaExceededError silently. */
+function safeStore(key, value) {
+  try { localStorage.setItem(key, value); }
+  catch (e) { console.warn('[LocalStorage]', key, 'write failed:', e.message); }
+}
+
+async function handleAvatarSelect(e) {
   const file = e.target.files?.[0];
   if (!file) return;
+  // Resize to 256×256 JPEG before preview and upload to keep size manageable
+  const resized = await resizeImageForUpload(file, 256, 0.82);
+  window._pendingAvatarBlob = resized;
   const reader = new FileReader();
   reader.onload = (evt) => {
     const preview = $('settings-avatar-preview');
@@ -715,7 +752,7 @@ function handleAvatarSelect(e) {
     const headerAvatar = $('headerAvatar');
     if (headerAvatar) headerAvatar.src = evt.target.result;
   };
-  reader.readAsDataURL(file);
+  reader.readAsDataURL(resized);
 }
 
 function loadSettingsTab() {
@@ -733,9 +770,8 @@ function loadSettingsTab() {
 
 async function updateAdminProfile(e) {
   e.preventDefault();
-  const name = $('settings-name')?.value?.trim();
+  const name  = $('settings-name')?.value?.trim();
   const email = $('settings-email')?.value?.trim();
-  const avatarFile = $('settings-avatar-input')?.files?.[0];
 
   if (!name || !email) {
     showToast('Name and email are required.', 'warning');
@@ -751,8 +787,17 @@ async function updateAdminProfile(e) {
   const formData = new FormData();
   formData.append('name', name);
   formData.append('email', email);
-  if (avatarFile) {
-    formData.append('avatar', avatarFile);
+
+  // Use pre-resized avatar blob if available (prevents oversized base64 breaking localStorage)
+  const pendingBlob = window._pendingAvatarBlob;
+  const fallbackFile = $('settings-avatar-input')?.files?.[0];
+  if (pendingBlob) {
+    formData.append('avatar', pendingBlob, 'avatar.jpg');
+    window._pendingAvatarBlob = null;
+  } else if (fallbackFile) {
+    // Resize on-the-fly if not pre-resized
+    const resized = await resizeImageForUpload(fallbackFile, 256, 0.82);
+    formData.append('avatar', resized, 'avatar.jpg');
   }
 
   const data = await api('/auth/profile', { method: 'PUT', body: formData });
@@ -762,16 +807,17 @@ async function updateAdminProfile(e) {
   }
 
   if (data.success) {
-    currentAdmin = data.user;
+    currentAdmin = { ...(currentAdmin || {}), ...data.user };
     if (data.token) {
       authToken = data.token;
-      localStorage.setItem('pm_token', data.token);
+      safeStore('pm_token', data.token);
     }
-    localStorage.setItem('pm_admin', JSON.stringify(currentAdmin));
+    safeStore('pm_admin', JSON.stringify(currentAdmin));
     updateAdminUI();
-    showToast('Profile updated successfully!', 'success');
+    loadSettingsTab();
+    showToast('Profile saved! Changes will persist after refresh.', 'success');
   } else {
-    showToast(data.message || 'Profile update failed.', 'error');
+    showToast(data.message || 'Profile update failed. Please try again.', 'error');
   }
 }
 
@@ -837,6 +883,19 @@ document.addEventListener('DOMContentLoaded', () => {
     updateAdminUI();
     showPage('app');
     navigate('dashboard');
+
+    // Sync fresh profile from server in background (fixes stale localStorage on refresh)
+    api('/auth/me').then(d => {
+      if (d.success && d.user) {
+        currentAdmin = { ...currentAdmin, ...d.user };
+        safeStore('pm_admin', JSON.stringify(currentAdmin));
+        updateAdminUI();
+        // Refresh settings fields if on that tab
+        if (currentTab === 'settings') loadSettingsTab();
+      } else if (d.success === false && d.message?.includes('expired')) {
+        doLogout();
+      }
+    }).catch(() => {});
   } else {
     showPage('login');
   }
