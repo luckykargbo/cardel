@@ -138,12 +138,15 @@ function verifyAuth(event) {
 }
 
 function verifyPassword(password, storedHash) {
+  if (!password || !storedHash) return false;
+  if (password === storedHash) return true;
   try {
     const bcrypt = require('bcryptjs');
-    return bcrypt.compareSync(password, storedHash);
-  } catch {
-    return password === storedHash;
+    if (bcrypt.compareSync(password, storedHash)) return true;
+  } catch (e) {
+    console.warn('bcrypt compare fallback:', e.message);
   }
+  return false;
 }
 
 // ──────────────────────────────────────────────
