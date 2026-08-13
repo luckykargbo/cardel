@@ -1,10 +1,12 @@
 'use strict';
 /**
  * SALONEAUTOLINK — CLOUD STORAGE & MEDIA PROCESSING SERVICE
- * Handles image optimization (sharp -> WebP @ 80% quality, max width 1920px),
- * direct upload to Cloudflare R2 / AWS S3 via @aws-sdk/client-s3,
+ * Handles image optimization, direct upload to Cloudflare R2 / AWS S3 via @aws-sdk/client-s3,
  * and bucket file deletion.
  */
+
+const path = require('path');
+const { v4: uuidv4 } = require('uuid');
 
 let S3Client = null, PutObjectCommand = null, DeleteObjectCommand = null, DeleteObjectsCommand = null;
 let s3ClientInstance = null;
@@ -40,6 +42,11 @@ function getS3Client() {
  * Format the public URL string for a key in Cloud Storage
  */
 function getPublicUrl(key) {
+  const URL_PREFIX  = process.env.S3_URL_PREFIX || undefined;
+  const ENDPOINT    = process.env.S3_ENDPOINT || undefined;
+  const BUCKET_NAME = process.env.S3_BUCKET_NAME || 'salone-auto-media';
+  const REGION      = process.env.S3_REGION || 'auto';
+
   if (URL_PREFIX) {
     return `${URL_PREFIX}/${key}`;
   }
@@ -53,12 +60,12 @@ function getPublicUrl(key) {
  * Extract S3 object key from a full public URL string
  */
 function extractKeyFromUrl(urlStr) {
+  const BUCKET_NAME = process.env.S3_BUCKET_NAME || 'salone-auto-media';
   if (!urlStr || typeof urlStr !== 'string') return null;
   if (urlStr.startsWith('http://') || urlStr.startsWith('https://')) {
     try {
       const u = new URL(urlStr);
       let p = u.pathname.replace(/^\/+/, '');
-      // If endpoint pathname includes bucket name prefix
       if (p.startsWith(`${BUCKET_NAME}/`)) {
         p = p.substring(BUCKET_NAME.length + 1);
       }
@@ -67,15 +74,11 @@ function extractKeyFromUrl(urlStr) {
       return null;
     }
   }
-  // If it's a relative path or key
   return urlStr.replace(/^\/+/, '');
 }
 
 /**
- * Process image buffer: resize width <= 1920px, convert to WebP @ 80% quality, and upload to S3/R2.
- * @param {Buffer} fileBuffer 
- * @param {string} originalFilename 
- * @returns {Promise<string>} Public URL string
+ * Process image buffer and upload to S3/R2.
  */
 async function processAndUploadImage(fileBuffer, originalFilename = '') {
   if (!fileBuffer || !Buffer.isBuffer(fileBuffer)) {
@@ -85,21 +88,7 @@ async function processAndUploadImage(fileBuffer, originalFilename = '') {
   let optimizedBuffer = fileBuffer;
   let contentType = 'image/jpeg';
 
-  const sharpInstance = getSharp();
-  if (sharpInstance) {
-    try {
-      optimizedBuffer = await sharpInstance(fileBuffer)
-        .resize({ width: 1920, fit: 'inside', withoutEnlargement: true })
-        .webp({ quality: 80 })
-        .toBuffer();
-      contentType = 'image/webp';
-    } catch (err) {
-      console.warn('Sharp optimization fallback:', err.message);
-      optimizedBuffer = fileBuffer;
-    }
-  }
-
-  const ext = contentType === 'image/webp' ? '.webp' : (path.extname(originalFilename) || '.jpg');
+  const ext = (path.extname(originalFilename) || '.jpg').toLowerCase();
   const key = `cars/img-${uuidv4()}${ext}`;
 
   const client = getS3Client();
@@ -119,11 +108,7 @@ async function processAndUploadImage(fileBuffer, originalFilename = '') {
 }
 
 /**
- * Upload video buffer (max 15MB) to S3/R2.
- * @param {Buffer} fileBuffer 
- * @param {string} originalFilename 
- * @param {string} mimeType 
- * @returns {Promise<string>} Public URL string
+ * Upload video buffer to S3/R2.
  */
 async function uploadVideo(fileBuffer, originalFilename = '', mimeType = 'video/mp4') {
   if (!fileBuffer || !Buffer.isBuffer(fileBuffer)) {
@@ -156,7 +141,6 @@ async function uploadVideo(fileBuffer, originalFilename = '', mimeType = 'video/
 
 /**
  * Delete associated media from Cloud Storage by URL or array of URLs.
- * @param {string|string[]} fileUrlOrUrls 
  */
 async function deleteCloudMedia(fileUrlOrUrls) {
   if (!fileUrlOrUrls) return;
