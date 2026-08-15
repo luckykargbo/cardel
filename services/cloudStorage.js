@@ -6,6 +6,7 @@
  */
 
 const path = require('path');
+const fs   = require('fs');
 const { v4: uuidv4 } = require('uuid');
 
 let S3Client = null, PutObjectCommand = null, DeleteObjectCommand = null, DeleteObjectsCommand = null;
