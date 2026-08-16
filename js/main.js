@@ -460,22 +460,39 @@ async function openQuickView(id) {
 
   let videoHtml = '';
   if (v.video_url) {
-    if (v.video_url.startsWith('http') || v.video_url.startsWith('/uploads/') || v.video_url.startsWith('data:') || /\.(mp4|webm|mov|ogg|m4v)/i.test(v.video_url)) {
+    let url = v.video_url.trim();
+    if (/youtube\.com|youtu\.be/i.test(url)) {
+      let embedUrl = url;
+      if (url.includes('youtu.be/')) {
+        embedUrl = url.replace(/.*youtu\.be\/([^?&]+).*/, 'https://www.youtube.com/embed/$1');
+      } else if (url.includes('watch?v=')) {
+        embedUrl = url.replace(/.*watch\?v=([^&]+).*/, 'https://www.youtube.com/embed/$1');
+      } else if (url.includes('/shorts/')) {
+        embedUrl = url.replace(/.*\/shorts\/([^?&]+).*/, 'https://www.youtube.com/embed/$1');
+      }
       videoHtml = `
         <div class="qv-video-wrap" style="margin-top:16px">
           <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:6px;display:flex;align-items:center;gap:6px">
             <i class="ri-video-line"></i> Vehicle Video Showcase
           </div>
-          <video controls preload="metadata" style="width:100%;max-height:240px;border-radius:12px;background:#000;border:1px solid var(--border)" src="${v.video_url}" onerror="this.outerHTML='<div style=\\'padding:16px;text-align:center;color:var(--text-muted);font-size:13px;background:rgba(255,255,255,0.03);border-radius:12px;border:1px solid var(--border)\\'>Video playback unavailable</div>'"></video>
+          <iframe src="${embedUrl}" style="width:100%;height:240px;border-radius:12px;border:none" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
         </div>`;
-    } else if (/youtube\.com|youtu\.be|vimeo\.com/i.test(v.video_url)) {
-      const embedUrl = v.video_url.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/');
+    } else if (/vimeo\.com/i.test(url)) {
+      const vimeoId = url.split('/').pop();
       videoHtml = `
         <div class="qv-video-wrap" style="margin-top:16px">
           <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:6px;display:flex;align-items:center;gap:6px">
             <i class="ri-video-line"></i> Vehicle Video Showcase
           </div>
-          <iframe src="${embedUrl}" style="width:100%;height:220px;border-radius:12px;border:none" allowfullscreen></iframe>
+          <iframe src="https://player.vimeo.com/video/${vimeoId}" style="width:100%;height:240px;border-radius:12px;border:none" allowfullscreen></iframe>
+        </div>`;
+    } else {
+      videoHtml = `
+        <div class="qv-video-wrap" style="margin-top:16px">
+          <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:6px;display:flex;align-items:center;gap:6px">
+            <i class="ri-video-line"></i> Vehicle Video Showcase
+          </div>
+          <video controls preload="metadata" style="width:100%;max-height:240px;border-radius:12px;background:#000;border:1px solid var(--border)" src="${url}"></video>
         </div>`;
     }
   }
