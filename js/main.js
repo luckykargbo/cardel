@@ -75,24 +75,7 @@ function showToast(msg, type = 'info', duration = 3500) {
   setTimeout(() => { t.classList.add('fade-out'); setTimeout(() => t.remove(), 400); }, duration);
 }
 
-// ──────────────────────────────────────────────
-// API CALLS
-// ──────────────────────────────────────────────
-async function apiFetch(endpoint, options = {}) {
-  try {
-    const res  = await fetch(API_BASE + endpoint, {
-      cache: 'no-store',
-      headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
-      ...options
-    });
-    return await res.json();
-  } catch (err) {
-    console.error('API Error:', err);
-    return { success: false, message: 'Network error. Please try again.' };
-  }
-}
-
-// ──────────────────────────────────────────────
+// ─────────────────────────────────────────────// ──────────────────────────────────────────────
 // VEHICLE LOADING
 // ──────────────────────────────────────────────
 async function loadVehicles(params = {}) {
@@ -181,7 +164,20 @@ function renderPage() {
 }
 
 function buildVehicleCard(v) {
-  const img     = (v.images && v.images[0]) ? v.images[0] : 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'300\' viewBox=\'0 0 400 300\'%3E%3Crect fill=\'%23111\' width=\'400\' height=\'300\'/%3E%3Ctext x=\'50%25\' y=\'45%25\' text-anchor=\'middle\' fill=\'%23555\' font-size=\'48\'%3E🚘%3C/text%3E%3Ctext x=\'50%25\' y=\'60%25\' text-anchor=\'middle\' fill=\'%23444\' font-size=\'14\' font-family=\'sans-serif\'%3ENo Image Available%3C/text%3E%3C/svg%3E';
+  let cardImgs = [];
+  if (v.images) {
+    if (Array.isArray(v.images)) cardImgs = v.images.filter(Boolean);
+    else if (typeof v.images === 'string') {
+      try {
+        const p = JSON.parse(v.images);
+        if (Array.isArray(p)) cardImgs = p.filter(Boolean);
+      } catch (e) {
+        cardImgs = v.images.split(',').map(s => s.trim()).filter(Boolean);
+      }
+    }
+  }
+  const fallbackSvg = "data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27400%27 height=%27300%27 viewBox=%270 0 400 300%27%3E%3Crect fill=%27%23111%27 width=%27400%27 height=%27300%27/%3E%3Ctext x=%2750%25%27 y=%2745%25%27 text-anchor=%27middle%27 fill=%27%23555%27 font-size=%2748%27%3E🚘%3C/text%3E%3Ctext x=%2750%25%27 y=%2760%25%27 text-anchor=%27middle%27 fill=%27%23444%27 font-size=%2714%27 font-family=%27sans-serif%27%3ENo Image Available%3C/text%3E%3C/svg%3E";
+  const img     = cardImgs[0] || fallbackSvg;
   const isFav   = favourites.includes(v.id);
   const isNew   = v.condition_type === 'new';
   const isSold  = v.status === 'sold';
@@ -211,7 +207,7 @@ function buildVehicleCard(v) {
     <article class="vehicle-card" onclick="openQuickView(${v.id})">
       <div class="card-media">
         <img src="${img}" alt="${v.title}" loading="lazy"
-             onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'300\' viewBox=\'0 0 400 300\'%3E%3Crect fill=\'%23111\' width=\'400\' height=\'300\'/%3E%3Ctext x=\'50%25\' y=\'45%25\' text-anchor=\'middle\' fill=\'%23555\' font-size=\'48\'%3E🚘%3C/text%3E%3Ctext x=\'50%25\' y=\'60%25\' text-anchor=\'middle\' fill=\'%23444\' font-size=\'14\' font-family=\'sans-serif\'%3ENo Image Available%3C/text%3E%3C/svg%3E'">
+             onerror="this.onerror=null;this.src='${fallbackSvg}'">
         <div class="card-badges">
           ${statusBadge}
           ${featuredBadge}
@@ -438,10 +434,23 @@ async function openQuickView(id) {
     v = data.vehicle;
   }
 
-  // Scoped images array for current vehicle ONLY
-  window._qvImages = (v.images && Array.isArray(v.images)) ? [...v.images] : [];
+  // Robustly parse vehicle images (array, JSON string, or comma-separated list)
+  let imgList = [];
+  if (v.images) {
+    if (Array.isArray(v.images)) {
+      imgList = v.images.filter(Boolean);
+    } else if (typeof v.images === 'string') {
+      try {
+        const parsed = JSON.parse(v.images);
+        if (Array.isArray(parsed)) imgList = parsed.filter(Boolean);
+      } catch (e) {
+        imgList = v.images.split(',').map(s => s.trim()).filter(Boolean);
+      }
+    }
+  }
+  window._qvImages = imgList;
 
-  const defaultSvg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect fill='%230e0e12' width='400' height='300'/%3E%3Ccircle cx='200' cy='150' r='60' fill='rgba(229,169,92,0.05)'/%3E%3Ctext x='50%25' y='48%25' text-anchor='middle' fill='%23e5a95c' font-size='40' font-family='sans-serif'%3E🚘%3C/text%3E%3Ctext x='50%25' y='64%25' text-anchor='middle' fill='%23888899' font-size='13' font-weight='600' font-family='sans-serif' letter-spacing='1'%3ESALONEAUTOLINK%3C/text%3E%3C/svg%3E";
+  const defaultSvg = "data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27400%27 height=%27300%27 viewBox=%270 0 400 300%27%3E%3Crect fill=%27%230e0e12%27 width=%27400%27 height=%27300%27/%3E%3Ccircle cx=%27200%27 cy=%27150%27 r=%2760%27 fill=%27rgba(229,169,92,0.05)%27/%3E%3Ctext x=%2750%25%27 y=%2748%25%27 text-anchor=%27middle%27 fill=%27%23e5a95c%27 font-size=%2740%27 font-family=%27sans-serif%27%3E🚘%3C/text%3E%3Ctext x=%2750%25%27 y=%2764%25%27 text-anchor=%27middle%27 fill=%27%23888899%27 font-size=%2713%27 font-weight=%27600%27 font-family=%27sans-serif%27 letter-spacing=%271%27%3ESALONEAUTOLINK%3C/text%3E%3C/svg%3E";
   const img = window._qvImages[0] || defaultSvg;
 
   const isSold = v.status === 'sold';
