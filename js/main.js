@@ -75,7 +75,24 @@ function showToast(msg, type = 'info', duration = 3500) {
   setTimeout(() => { t.classList.add('fade-out'); setTimeout(() => t.remove(), 400); }, duration);
 }
 
-// ─────────────────────────────────────────────// ──────────────────────────────────────────────
+// ──────────────────────────────────────────────
+// API CALLS
+// ──────────────────────────────────────────────
+async function apiFetch(endpoint, options = {}) {
+  try {
+    const res = await fetch(API_BASE + endpoint, {
+      cache: 'no-store',
+      headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+      ...options
+    });
+    return await res.json();
+  } catch (err) {
+    console.error('API Error:', err);
+    return { success: false, message: 'Network error. Please try again.' };
+  }
+}
+
+// ──────────────────────────────────────────────
 // VEHICLE LOADING
 // ──────────────────────────────────────────────
 async function loadVehicles(params = {}) {
