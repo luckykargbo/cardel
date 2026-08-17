@@ -40,12 +40,50 @@ app.get(['/admin.html', '/admin', '/admin/'], (_req, res) => {
 
 
 
+const compression = require('compression');
+
 // ──────────────────────────────────────────────
 // MIDDLEWARE
 // ──────────────────────────────────────────────
 app.use(cors());
+
+// Enable Brotli / Gzip compression for text payloads (> 1KB)
+app.use(compression({
+  threshold: 1024,
+  filter: (req, res) => {
+    if (req.headers['x-no-compression']) return false;
+    return compression.filter(req, res);
+  }
+}));
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Edge Caching Helper Middleware
+const cacheMiddleware = (maxAge = 60, swr = 300) => {
+  return (req, res, next) => {
+    if (req.method === 'GET') {
+      res.set({
+        'Cache-Control': `public, max-age=${maxAge}, s-maxage=${maxAge}, stale-while-revalidate=${swr}`,
+        'Vary': 'Accept-Encoding'
+      });
+    }
+    next();
+  };
+};
+
+// No-Store Middleware for Admin & Auth Routes (prevents stale admin panel state)
+const noCacheMiddleware = (_req, res, next) => {
+  res.set({
+    'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+    'Pragma': 'no-cache',
+    'Expires': '0'
+  });
+  next();
+};
+
+app.use('/api/auth', noCacheMiddleware);
+app.use('/api/admin', noCacheMiddleware);
 
 // Serve uploads directory with native byte-range streaming support
 const uploadsPath = path.join(__dirname, 'uploads');
@@ -187,14 +225,16 @@ app.put('/api/auth/profile', requireAuth, upload.single('avatar'), async (req, r
 // ============================================================
 // ──────────────────────────────────────────────
 
-app.get('/api/vehicles', async (req, res) => {
+const VEHICLE_COLS = 'id, title, brand, model, year, price, mileage, fuel, hp, engine, transmission, body, colour, location, condition_type, status, featured, description, images, video_url, created_at, updated_at';
+
+app.get('/api/vehicles', cacheMiddleware(60, 300), async (req, res) => {
   const {
     brand, model, year, body, transmission, fuel,
     price, mileage, colour, location, condition, status,
     search, featured, sort, limit = 50, offset = 0
   } = req.query;
 
-  let sql  = 'SELECT * FROM vehicles WHERE 1=1';
+  let sql  = `SELECT ${VEHICLE_COLS} FROM vehicles WHERE 1=1`;
   const p  = [];
 
   if (status && status !== 'all') { sql += ' AND LOWER(status) = LOWER(?)'; p.push(status); }
@@ -244,15 +284,15 @@ app.get('/api/vehicles', async (req, res) => {
   const vehicles    = rawVehicles.map(mapVehicle);
 
   // Total count without limit/offset
-  const countSql = sql.replace(/SELECT \*/, 'SELECT COUNT(*) as c').replace(/ORDER BY.+$/, '');
+  const countSql = sql.replace(/SELECT .+ FROM vehicles/, 'SELECT COUNT(*) as c FROM vehicles').replace(/ORDER BY.+$/, '');
   const totalRow = await get(countSql, p);
   const total    = totalRow?.c || vehicles.length;
 
   return ok(res, { vehicles, total, limit: parseInt(limit), offset: parseInt(offset) });
 });
 
-app.get('/api/vehicles/:id', async (req, res) => {
-  const vehicle = await get('SELECT * FROM vehicles WHERE id = ?', [req.params.id]);
+app.get('/api/vehicles/:id', cacheMiddleware(60, 300), async (req, res) => {
+  const vehicle = await get(`SELECT ${VEHICLE_COLS} FROM vehicles WHERE id = ?`, [req.params.id]);
   if (!vehicle) return fail(res, 'Vehicle not found.', 404);
   return ok(res, { vehicle: mapVehicle(vehicle) });
 });
@@ -452,7 +492,7 @@ app.get('/api/newsletter', requireAuth, async (req, res) => {
 // REVIEWS
 // ──────────────────────────────────────────────
 
-app.get('/api/reviews', async (req, res) => {
+app.get('/api/reviews', cacheMiddleware(60, 300), async (req, res) => {
   const reviews = await query("SELECT * FROM reviews WHERE status = 'approved' ORDER BY created_at DESC LIMIT 20");
   return ok(res, { reviews });
 });
@@ -482,7 +522,7 @@ app.delete('/api/admin/reviews/:id', requireAuth, async (req, res) => {
 // PUBLIC STATS (Live dynamic count for index.html)
 // ──────────────────────────────────────────────
 
-app.get('/api/stats/public', async (req, res) => {
+app.get('/api/stats/public', cacheMiddleware(300, 1800), async (req, res) => {
   const availableCarsRow = await get("SELECT COUNT(*) as c FROM vehicles WHERE status = 'available'");
   const totalBrandsRow   = await get("SELECT COUNT(DISTINCT brand) as c FROM vehicles");
   const totalSoldRow     = await get("SELECT COUNT(*) as c FROM vehicles WHERE status = 'sold'");

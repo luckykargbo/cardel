@@ -102,31 +102,81 @@ async function loadVehicles(params = {}) {
   return data.vehicles || [];
 }
 
+// Stale-While-Revalidate (SWR) Inventory Loader with Quota & Flicker Protection
 async function initInventory() {
   const grid = $('vehiclesGrid');
   if (!grid) return;
 
-  showLoadingSkeleton(grid);
-  allVehicles      = await loadVehicles({ limit: 100 });
-  filteredVehicles = [...allVehicles];
-  displayedCount   = 0;
-  renderPage();
-  updateFavBadge();
+  // 1. Instant Paint from Local Storage Cache (< 20ms)
+  let loadedFromCache = false;
+  try {
+    const cachedStr = localStorage.getItem('sal_inventory_cache');
+    if (cachedStr) {
+      const cached = JSON.parse(cachedStr);
+      if (Array.isArray(cached) && cached.length > 0) {
+        allVehicles      = cached;
+        filteredVehicles = [...allVehicles];
+        displayedCount   = 0;
+        renderPage();
+        updateFavBadge();
+        loadedFromCache  = true;
+      }
+    }
+  } catch (e) {
+    console.warn('LocalStorage cache read note:', e);
+  }
+
+  // 2. Show skeleton ONLY if cache was empty
+  if (!loadedFromCache) {
+    showLoadingSkeleton(grid);
+  }
+
+  // 3. Background Revalidation from Turso API
+  try {
+    const fresh = await loadVehicles({ limit: 100 });
+    if (fresh && Array.isArray(fresh)) {
+      const currentSig = JSON.stringify(allVehicles);
+      const freshSig   = JSON.stringify(fresh);
+
+      // Deep equality check: skip DOM re-render if data is identical (zero flicker)
+      if (!loadedFromCache || currentSig !== freshSig) {
+        allVehicles      = fresh;
+        filteredVehicles = [...allVehicles];
+        displayedCount   = 0;
+        renderPage();
+        updateFavBadge();
+      }
+
+      // Safe Local Storage write with QuotaExceededError protection
+      try {
+        localStorage.setItem('sal_inventory_cache', JSON.stringify(fresh));
+      } catch (quotaErr) {
+        console.warn('LocalStorage quota limit reached, skipping cache write:', quotaErr);
+      }
+    }
+  } catch (err) {
+    console.error('Failed to revalidate inventory from API:', err);
+  }
 }
 
 // Silent background refresh — NO skeleton, NO flicker.
-// Only re-renders if the server data has actually changed.
+// Only re-renders if server data has actually changed.
 async function silentRefreshInventory() {
   try {
     const fresh = await loadVehicles({ limit: 100 });
-    const currentIds = allVehicles.map(v => v.id + v.status + v.price + v.updated_at).join(',');
-    const freshIds   = fresh.map(v => v.id + v.status + v.price + v.updated_at).join(',');
-    if (currentIds === freshIds) return; // nothing changed, skip re-render
+    const currentSig = JSON.stringify(allVehicles);
+    const freshSig   = JSON.stringify(fresh);
+    if (currentSig === freshSig) return; // nothing changed, skip re-render
+
     allVehicles      = fresh;
     filteredVehicles = [...fresh];
     displayedCount   = 0;
     renderPage();
     updateFavBadge();
+
+    try {
+      localStorage.setItem('sal_inventory_cache', JSON.stringify(fresh));
+    } catch (_) {}
   } catch (_) { /* silently ignore network errors */ }
 }
 
