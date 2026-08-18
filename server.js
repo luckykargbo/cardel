@@ -228,73 +228,83 @@ app.put('/api/auth/profile', requireAuth, upload.single('avatar'), async (req, r
 const VEHICLE_COLS = 'id, title, brand, model, year, price, mileage, fuel, hp, engine, transmission, body, colour, location, condition_type, status, featured, description, images, video_url, created_at, updated_at';
 
 app.get('/api/vehicles', cacheMiddleware(60, 300), async (req, res) => {
-  const {
-    brand, model, year, body, transmission, fuel,
-    price, mileage, colour, location, condition, status,
-    search, featured, sort, limit = 50, offset = 0
-  } = req.query;
+  try {
+    const {
+      brand, model, year, body, transmission, fuel,
+      price, mileage, colour, location, condition, status,
+      search, featured, sort, limit = 50, offset = 0
+    } = req.query;
 
-  let sql  = `SELECT ${VEHICLE_COLS} FROM vehicles WHERE 1=1`;
-  const p  = [];
+    let sql  = `SELECT ${VEHICLE_COLS} FROM vehicles WHERE 1=1`;
+    const p  = [];
 
-  if (status && status !== 'all') { sql += ' AND LOWER(status) = LOWER(?)'; p.push(status); }
-  else if (req.query.all !== 'true' && req.query.all !== '1') { sql += " AND status != 'draft'"; }
+    if (status && status !== 'all') { sql += ' AND LOWER(status) = LOWER(?)'; p.push(status); }
+    else if (req.query.all !== 'true' && req.query.all !== '1') { sql += " AND status != 'draft'"; }
 
-  if (brand)   { sql += ' AND LOWER(brand) = LOWER(?)'; p.push(brand); }
-  if (model)   { sql += ' AND LOWER(model) LIKE LOWER(?)'; p.push(`%${model}%`); }
-  if (year)    { sql += ' AND year = ?'; p.push(parseInt(year)); }
-  if (body)    { sql += ' AND LOWER(body) = LOWER(?)'; p.push(body); }
-  if (transmission) { sql += ' AND LOWER(transmission) LIKE LOWER(?)'; p.push(`%${transmission}%`); }
-  if (fuel)    { sql += ' AND LOWER(fuel) = LOWER(?)'; p.push(fuel); }
-  if (colour)  { sql += ' AND LOWER(colour) LIKE LOWER(?)'; p.push(`%${colour}%`); }
-  if (location){ sql += ' AND LOWER(location) = LOWER(?)'; p.push(location); }
-  if (condition){ sql += ' AND LOWER(condition_type) = LOWER(?)'; p.push(condition); }
-  if (featured === 'true' || featured === '1') { sql += ' AND featured = 1'; }
+    if (brand)   { sql += ' AND LOWER(brand) = LOWER(?)'; p.push(brand); }
+    if (model)   { sql += ' AND LOWER(model) LIKE LOWER(?)'; p.push(`%${model}%`); }
+    if (year)    { sql += ' AND year = ?'; p.push(parseInt(year)); }
+    if (body)    { sql += ' AND LOWER(body) = LOWER(?)'; p.push(body); }
+    if (transmission) { sql += ' AND LOWER(transmission) LIKE LOWER(?)'; p.push(`%${transmission}%`); }
+    if (fuel)    { sql += ' AND LOWER(fuel) = LOWER(?)'; p.push(fuel); }
+    if (colour)  { sql += ' AND LOWER(colour) LIKE LOWER(?)'; p.push(`%${colour}%`); }
+    if (location){ sql += ' AND LOWER(location) = LOWER(?)'; p.push(location); }
+    if (condition){ sql += ' AND LOWER(condition_type) = LOWER(?)'; p.push(condition); }
+    if (featured === 'true' || featured === '1') { sql += ' AND featured = 1'; }
 
-  if (price) {
-    const parts = price.split('-');
-    if (parts[1] && parts[1] !== '+') {
-      sql += ' AND price >= ? AND price <= ?'; p.push(parseInt(parts[0]), parseInt(parts[1]));
-    } else {
-      sql += ' AND price >= ?'; p.push(parseInt(parts[0]));
+    if (price) {
+      const parts = price.split('-');
+      if (parts[1] && parts[1] !== '+') {
+        sql += ' AND price >= ? AND price <= ?'; p.push(parseInt(parts[0]), parseInt(parts[1]));
+      } else {
+        sql += ' AND price >= ?'; p.push(parseInt(parts[0]));
+      }
     }
+
+    if (mileage) {
+      if (mileage === '0') { sql += ' AND mileage = 0'; }
+      else { sql += ' AND mileage <= ?'; p.push(parseInt(mileage)); }
+    }
+
+    if (search) {
+      sql += ' AND (LOWER(title) LIKE LOWER(?) OR LOWER(brand) LIKE LOWER(?) OR LOWER(model) LIKE LOWER(?))';
+      const q = `%${search}%`;
+      p.push(q, q, q);
+    }
+
+    const sortMap = {
+      price_asc:  'price ASC', price_desc: 'price DESC',
+      year_desc:  'year DESC', year_asc:   'year ASC',
+      newest:     'created_at DESC', featured: 'featured DESC, created_at DESC'
+    };
+    sql += ` ORDER BY ${sortMap[sort] || 'featured DESC, id ASC'}`;
+    sql += ' LIMIT ? OFFSET ?';
+
+    const allParams = [...p, parseInt(limit), parseInt(offset)];
+    const rawVehicles = await query(sql, allParams);
+    const vehicles    = rawVehicles.map(mapVehicle);
+
+    // Total count without limit/offset
+    const countSql = sql.replace(/SELECT .+ FROM vehicles/, 'SELECT COUNT(*) as c FROM vehicles').replace(/ORDER BY.+$/, '');
+    const totalRow = await get(countSql, p);
+    const total    = totalRow?.c || vehicles.length;
+
+    return ok(res, { vehicles, total, limit: parseInt(limit), offset: parseInt(offset) });
+  } catch (err) {
+    console.error('Error fetching vehicles:', err);
+    return fail(res, err.message || 'Database fetch error.', 500);
   }
-
-  if (mileage) {
-    if (mileage === '0') { sql += ' AND mileage = 0'; }
-    else { sql += ' AND mileage <= ?'; p.push(parseInt(mileage)); }
-  }
-
-  if (search) {
-    sql += ' AND (LOWER(title) LIKE LOWER(?) OR LOWER(brand) LIKE LOWER(?) OR LOWER(model) LIKE LOWER(?))';
-    const q = `%${search}%`;
-    p.push(q, q, q);
-  }
-
-  const sortMap = {
-    price_asc:  'price ASC', price_desc: 'price DESC',
-    year_desc:  'year DESC', year_asc:   'year ASC',
-    newest:     'created_at DESC', featured: 'featured DESC, created_at DESC'
-  };
-  sql += ` ORDER BY ${sortMap[sort] || 'featured DESC, id ASC'}`;
-  sql += ' LIMIT ? OFFSET ?';
-
-  const allParams = [...p, parseInt(limit), parseInt(offset)];
-  const rawVehicles = await query(sql, allParams);
-  const vehicles    = rawVehicles.map(mapVehicle);
-
-  // Total count without limit/offset
-  const countSql = sql.replace(/SELECT .+ FROM vehicles/, 'SELECT COUNT(*) as c FROM vehicles').replace(/ORDER BY.+$/, '');
-  const totalRow = await get(countSql, p);
-  const total    = totalRow?.c || vehicles.length;
-
-  return ok(res, { vehicles, total, limit: parseInt(limit), offset: parseInt(offset) });
 });
 
 app.get('/api/vehicles/:id', cacheMiddleware(60, 300), async (req, res) => {
-  const vehicle = await get(`SELECT ${VEHICLE_COLS} FROM vehicles WHERE id = ?`, [req.params.id]);
-  if (!vehicle) return fail(res, 'Vehicle not found.', 404);
-  return ok(res, { vehicle: mapVehicle(vehicle) });
+  try {
+    const vehicle = await get(`SELECT ${VEHICLE_COLS} FROM vehicles WHERE id = ?`, [req.params.id]);
+    if (!vehicle) return fail(res, 'Vehicle not found.', 404);
+    return ok(res, { vehicle: mapVehicle(vehicle) });
+  } catch (err) {
+    console.error('Error fetching vehicle details:', err);
+    return fail(res, err.message || 'Database error.', 500);
+  }
 });
 
 app.post('/api/vehicles', requireAuth, upload.fields([{ name: 'images', maxCount: 10 }, { name: 'video', maxCount: 1 }]), async (req, res) => {
@@ -450,36 +460,50 @@ app.put('/api/vehicles/:id', requireAuth, upload.fields([{ name: 'images', maxCo
 });
 
 app.patch('/api/vehicles/:id/status', requireAuth, async (req, res) => {
-  const valid = ['available', 'reserved', 'sold', 'draft'];
-  const { status } = req.body;
-  if (!valid.includes(status)) return fail(res, 'Invalid status value.');
-  const result = await run("UPDATE vehicles SET status=?,updated_at=datetime('now') WHERE id=?", [status, req.params.id]);
-  if (result.changes === 0) return fail(res, 'Vehicle not found.', 404);
-  return ok(res, { message: `Status updated to ${status}.` });
+  try {
+    const valid = ['available', 'reserved', 'sold', 'draft'];
+    const { status } = req.body;
+    if (!valid.includes(status)) return fail(res, 'Invalid status value.');
+    const result = await run("UPDATE vehicles SET status=?,updated_at=datetime('now') WHERE id=?", [status, req.params.id]);
+    if (result.changes === 0) return fail(res, 'Vehicle not found.', 404);
+    return ok(res, { message: `Status updated to ${status}.` });
+  } catch (err) {
+    console.error('Error updating vehicle status:', err);
+    return fail(res, err.message || 'Failed to update vehicle status.', 500);
+  }
 });
 
 app.patch('/api/vehicles/:id/featured', requireAuth, async (req, res) => {
-  const v = await get('SELECT featured FROM vehicles WHERE id = ?', [req.params.id]);
-  if (!v) return fail(res, 'Vehicle not found.', 404);
-  const newVal = v.featured === 1 ? 0 : 1;
-  await run("UPDATE vehicles SET featured=?,updated_at=datetime('now') WHERE id=?", [newVal, req.params.id]);
-  return ok(res, { featured: newVal === 1 });
+  try {
+    const v = await get('SELECT featured FROM vehicles WHERE id = ?', [req.params.id]);
+    if (!v) return fail(res, 'Vehicle not found.', 404);
+    const newVal = v.featured === 1 ? 0 : 1;
+    await run("UPDATE vehicles SET featured=?,updated_at=datetime('now') WHERE id=?", [newVal, req.params.id]);
+    return ok(res, { featured: newVal === 1 });
+  } catch (err) {
+    console.error('Error updating featured flag:', err);
+    return fail(res, err.message || 'Failed to update featured flag.', 500);
+  }
 });
 
 app.delete('/api/vehicles/:id', requireAuth, async (req, res) => {
-  const v = await get('SELECT images, video_url FROM vehicles WHERE id = ?', [req.params.id]);
-  if (!v) return fail(res, 'Vehicle not found.', 404);
+  try {
+    const v = await get('SELECT images, video_url FROM vehicles WHERE id = ?', [req.params.id]);
+    if (!v) return fail(res, 'Vehicle not found.', 404);
 
-  const mediaToDelete = [...parseImages(v.images)];
-  if (v.video_url) mediaToDelete.push(v.video_url);
+    const mediaToDelete = [...parseImages(v.images)];
+    if (v.video_url) mediaToDelete.push(v.video_url);
 
-  // Trigger deletion of associated Cloud Storage objects
-  if (mediaToDelete.length) {
-    await cloudStorage.deleteCloudMedia(mediaToDelete);
+    if (mediaToDelete.length) {
+      await cloudStorage.deleteCloudMedia(mediaToDelete).catch(err => console.warn('Cloud media delete note:', err.message));
+    }
+
+    await run('DELETE FROM vehicles WHERE id = ?', [req.params.id]);
+    return ok(res, { message: 'Vehicle and associated media deleted.' });
+  } catch (err) {
+    console.error('Error deleting vehicle:', err);
+    return fail(res, err.message || 'Failed to delete vehicle.', 500);
   }
-
-  await run('DELETE FROM vehicles WHERE id = ?', [req.params.id]);
-  return ok(res, { message: 'Vehicle and associated media deleted.' });
 });
 
 // ──────────────────────────────────────────────
