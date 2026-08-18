@@ -356,7 +356,8 @@ app.post('/api/vehicles', requireAuth, upload.fields([{ name: 'images', maxCount
 app.put('/api/vehicles/:id', requireAuth, upload.fields([{ name: 'images', maxCount: 10 }, { name: 'video', maxCount: 1 }]), async (req, res) => {
   const newlyUploadedUrls = [];
   try {
-    const existing = await get('SELECT * FROM vehicles WHERE id = ?', [req.params.id]);
+    const vehicleId = parseInt(req.params.id);
+    const existing = await get('SELECT * FROM vehicles WHERE id = ?', [vehicleId]);
     if (!existing) return fail(res, 'Vehicle not found.', 404);
 
     const {
@@ -367,17 +368,24 @@ app.put('/api/vehicles/:id', requireAuth, upload.fields([{ name: 'images', maxCo
 
     let images = parseImages(existing.images);
 
-    // Remove deleted images from Cloud Storage
+    // Remove explicitly deleted images from Cloud Storage
     if (removeImages) {
       let toRemove = [];
       try { toRemove = JSON.parse(removeImages); } catch {}
-      images = images.filter(img => !toRemove.includes(img));
-      if (toRemove.length) {
-        await cloudStorage.deleteCloudMedia(toRemove);
+      if (Array.isArray(toRemove) && toRemove.length > 0) {
+        images = images.filter(img => !toRemove.includes(img));
+        await cloudStorage.deleteCloudMedia(toRemove).catch(err => console.warn('Media cleanup note:', err.message));
       }
     }
 
-    if (existingImages) { try { images = JSON.parse(existingImages); } catch {} }
+    if (existingImages) {
+      try {
+        const parsedExisting = JSON.parse(existingImages);
+        if (Array.isArray(parsedExisting) && parsedExisting.length > 0) {
+          images = parsedExisting;
+        }
+      } catch {}
+    }
 
     // Upload newly added images to Cloud Storage
     if (req.files?.images?.length) {
@@ -388,20 +396,27 @@ app.put('/api/vehicles/:id', requireAuth, upload.fields([{ name: 'images', maxCo
       }
     }
 
-    let finalVideoUrl = video_url !== undefined ? video_url : (existing.video_url || '');
+    // NON-DESTRUCTIVE FALLBACK: Retain existing images if array is empty and removeImages was not triggered
+    if (images.length === 0 && parseImages(existing.images).length > 0) {
+      images = parseImages(existing.images);
+    }
 
-    // Handle video replacement/upload
+    // NON-DESTRUCTIVE VIDEO FALLBACK: Retain existing video URL unless a new video file or non-empty URL is provided
+    let finalVideoUrl = existing.video_url || '';
+
     if (req.files?.video?.length) {
       if (existing.video_url) {
-        await cloudStorage.deleteCloudMedia(existing.video_url);
+        await cloudStorage.deleteCloudMedia(existing.video_url).catch(err => console.warn('Old video cleanup note:', err.message));
       }
       const vFile = req.files.video[0];
       finalVideoUrl = await cloudStorage.uploadVideo(vFile.buffer, vFile.originalname, vFile.mimetype);
       newlyUploadedUrls.push(finalVideoUrl);
+    } else if (video_url && typeof video_url === 'string' && video_url.trim().length > 0) {
+      finalVideoUrl = video_url.trim();
     }
 
-    const isFeatured = (featured !== undefined)
-      ? (featured === 'true' || featured === true || featured === '1' ? 1 : 0)
+    const isFeatured = (featured !== undefined && featured !== null && featured !== '')
+      ? (featured === 'true' || featured === true || featured === '1' || featured === 1 ? 1 : 0)
       : existing.featured;
 
     await run(`
@@ -411,23 +426,23 @@ app.put('/api/vehicles/:id', requireAuth, upload.fields([{ name: 'images', maxCo
         featured=?,description=?,images=?,video_url=?,updated_at=datetime('now')
       WHERE id=?
     `, [
-      title ?? existing.title, brand ?? existing.brand,
-      model ?? existing.model, parseInt(year ?? existing.year),
-      parseInt(price ?? existing.price), parseInt(mileage ?? existing.mileage),
-      fuel ?? existing.fuel, hp ?? existing.hp,
-      engine ?? existing.engine, transmission ?? existing.transmission,
-      body ?? existing.body, colour ?? existing.colour,
-      location ?? existing.location, condition_type ?? existing.condition_type,
-      status ?? existing.status, isFeatured,
+      title || existing.title, brand || existing.brand,
+      model || existing.model, parseInt(year || existing.year),
+      parseInt(price || existing.price), parseInt(mileage || existing.mileage),
+      fuel || existing.fuel, hp || existing.hp,
+      engine || existing.engine, transmission || existing.transmission,
+      body || existing.body, colour || existing.colour,
+      location || existing.location, condition_type || existing.condition_type,
+      status || existing.status, isFeatured,
       description ?? existing.description, JSON.stringify(images), finalVideoUrl,
-      parseInt(req.params.id)
+      vehicleId
     ]);
 
-    const updatedV = await get('SELECT * FROM vehicles WHERE id = ?', [req.params.id]);
+    const updatedV = await get('SELECT * FROM vehicles WHERE id = ?', [vehicleId]);
     return ok(res, { vehicle: mapVehicle(updatedV) });
   } catch (err) {
     if (newlyUploadedUrls.length) {
-      await cloudStorage.deleteCloudMedia(newlyUploadedUrls);
+      await cloudStorage.deleteCloudMedia(newlyUploadedUrls).catch(() => {});
     }
     console.error('Error updating vehicle:', err);
     return fail(res, err.message || 'Failed to update vehicle.', 500);

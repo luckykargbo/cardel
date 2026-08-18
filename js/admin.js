@@ -691,6 +691,11 @@ async function saveVehicle(e) {
   if (data.success) {
     showToast(editingVehicleId ? 'Vehicle updated successfully!' : 'Vehicle added to inventory!', 'success');
     closeVehicleModal();
+    // Invalidate client SWR cache
+    try {
+      localStorage.removeItem('sal_inventory_cache');
+      localStorage.setItem('sal_inventory_updated', Date.now().toString());
+    } catch (e) {}
     await loadInventoryTab();
     await loadDashboard();
   } else {
@@ -738,7 +743,14 @@ async function executeDelete() {
 
   if (data.success) {
     showToast('Deleted successfully.', 'success');
-    if (type === 'vehicle') { await loadInventoryTab(); await loadDashboard(); }
+    if (type === 'vehicle') {
+      try {
+        localStorage.removeItem('sal_inventory_cache');
+        localStorage.setItem('sal_inventory_updated', Date.now().toString());
+      } catch (e) {}
+      await loadInventoryTab();
+      await loadDashboard();
+    }
   } else {
     showToast(data.message || 'Deletion failed.', 'error');
   }
